@@ -14,7 +14,7 @@ from .utils import *
 
 WINDOW_SIZE = (1500, 700)
 ICON = os.path.dirname(os.path.realpath(__file__)) + "/icon.png"
-
+TITLE = "Cheap EMUlator"
 
 class CodeWidget(QWidget):
     def __init__(self, *args, **kwargs):
@@ -22,6 +22,7 @@ class CodeWidget(QWidget):
         layout = QVBoxLayout()
         label = QLabel("Code")
         self.editor = QTextEdit()
+        self.editor.insertPlainText("mov eax, 1\nmov dword ptr [esp], 0x42424242\npush 0x41414141\ninc ebx\nshl ebx, 10")
         self.editor.setFont(QFont('Courier', 11))
         self.editor.setFrameStyle(QFrame.Panel | QFrame.Plain)
         layout.addWidget(label)
@@ -104,6 +105,22 @@ class EmulatorWidget(QWidget):
         return
 
 
+class LogWidget(QWidget):
+     def __init__(self, parent, *args, **kwargs):
+        super(LogWidget, self).__init__()
+        self.parent = parent
+        layout = QVBoxLayout()
+        label = QLabel("Log")
+        self.editor = QTextEdit()
+        self.editor.setFont(QFont('Courier', 11))
+        self.editor.setFrameStyle(QFrame.Panel | QFrame.Plain)
+        self.editor.setReadOnly(True)
+        layout.addWidget(label)
+        layout.addWidget(self.editor)
+        self.setLayout(layout)
+        return
+
+
 class CommandWidget(QWidget):
      def __init__(self, parent, *args, **kwargs):
         super(CommandWidget, self).__init__()
@@ -112,13 +129,13 @@ class CommandWidget(QWidget):
         layout.addStretch(1)
         runButton = QPushButton("Run all code")
         runButton.clicked.connect( self.parent.runCode )
-        stepiButton = QPushButton("Next instruction")
-        stepiButton.clicked.connect( self.parent.stepCode )
-        stepoButton = QPushButton("Stop")
-        stepiButton.clicked.connect( self.parent.stopCode )
+        stepButton = QPushButton("Next instruction")
+        stepButton.clicked.connect( self.parent.stepCode )
+        stopButton = QPushButton("Stop")
+        stopButton.clicked.connect( self.parent.stopCode )
         layout.addWidget(runButton)
-        layout.addWidget(stepiButton)
-        layout.addWidget(stepoButton)
+        layout.addWidget(stepButton)
+        layout.addWidget(stopButton)
         self.setLayout(layout)
         return
 
@@ -129,19 +146,25 @@ class RegistersWidget(QWidget):
         self.parent = parent
         layout = QGridLayout()
         self.values = QTableWidget(10, 2)
+        self.values.setHorizontalHeaderLabels(["Register", "Value"])
         layout.addWidget(self.values)
         self.setLayout(layout)
         self.updateGrid()
         return
 
     def updateGrid(self):
+        emu = self.parent.parent.emulator
         current_mode = self.parent.parent.mode
         registers = current_mode.get_registers()
         self.values.setRowCount(len(registers))
         for i, reg in enumerate(registers):
             name = QTableWidgetItem(reg)
             name.setFlags(Qt.NoItemFlags)
-            value = QTableWidgetItem( format_address(0x00, current_mode) )
+            if emu.vm is None:
+                val = 0
+            else:
+                val = emu.get_register_value(reg)
+            value = QTableWidgetItem(format_address(val, current_mode) )
             value.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable)
             self.values.setItem(i, 0, name)
             self.values.setItem(i, 1, value)
@@ -183,6 +206,8 @@ class MemoryWidget(QWidget):
             return
 
         addr = self.address.text()
+        if addr.startswith("0x") or addr.startswith("0X"):
+            addr = addr[2:]
         if not addr.isdigit():
             return
 
@@ -199,23 +224,23 @@ class MemoryWidget(QWidget):
         return
 
 
-
-
 class CanvasWidget(QWidget):
 
     def __init__(self, parent, *args, **kwargs):
         super(CanvasWidget, self).__init__()
         self.parent = parent
-        self.setEmulatorWidgetLayout()
+        self.emu = self.parent.emulator
+        self.setCanvasWidgetLayout()
         self.show()
         return
 
 
-    def setEmulatorWidgetLayout(self):
+    def setCanvasWidgetLayout(self):
         self.codeWidget = CodeWidget()
         self.binWidget = BinaryWidget()
         self.mapWidget = MemoryMappingWidget(self)
         self.emuWidget = EmulatorWidget(self)
+        self.logWidget = LogWidget(self)
         self.commandWidget = CommandWidget(self)
         self.regWidget = RegistersWidget(self)
         self.memWidget = MemoryWidget(self)
@@ -229,8 +254,12 @@ class CanvasWidget(QWidget):
         hboxTop.addWidget(self.tabs)
         hboxTop.addWidget(self.regWidget)
 
+        self.tabs2 = QTabWidget()
+        self.tabs2.addTab(self.emuWidget, "Emulator")
+        self.tabs2.addTab(self.logWidget, "Log")
+
         hboxBottom = QHBoxLayout()
-        hboxBottom.addWidget(self.emuWidget)
+        hboxBottom.addWidget(self.tabs2)
         hboxBottom.addWidget(self.memWidget)
 
         vbox = QVBoxLayout()
@@ -241,33 +270,51 @@ class CanvasWidget(QWidget):
         return
 
 
+    def loadContext(self):
+        self.logWidget.editor.append("Starting new emulation")
+        self.emu.reinit()
+        self.emuWidget.editor.clear()
+        self.emu.widget = self
+        maps = self.mapWidget.getMappings()
+        self.emu.populate_memory(maps)
+        code = self.codeWidget.getCode()
+        self.emu.compile_code(code)
+        regs = self.regWidget.getRegisters()
+        self.emu.populate_registers(regs)
+        self.emu.map_code()
+        return
+
+
     def stopCode(self):
-        emu = self.parent.emulator
-        emu.stop()
+        if not self.emu.is_running:
+            self.logWidget.editor.append("No emulation context loaded.")
+            return
+        self.emu.stop()
+        self.regWidget.updateGrid()
+        self.logWidget.editor.append("Emulation context reset")
         return
 
 
     def stepCode(self):
+        self.emu.use_step_mode = True
+        self.run()
         return
 
 
     def runCode(self):
-        self.emuWidget.editor.clear()
-        emu = self.parent.emulator
-        if emu.vm is None:
-            emu.reinit()
-        emu.widget = self.emuWidget
-        regs = self.regWidget.getRegisters()
-        emu.populate_registers(regs)
-        maps = self.mapWidget.getMappings()
-        emu.populate_memory(maps)
-        code = self.codeWidget.getCode()
-        emu.compile_code(code)
-        emu.map_code()
-        emu.run()
-        self.regWidget.updateGrid()
+        self.emu.use_step_mode = False
+        self.run()
         return
 
+
+    def run(self):
+        if not self.emu.is_running:
+            self.loadContext()
+            self.emu.is_running = True
+
+        self.emu.run()
+        self.regWidget.updateGrid()
+        return
 
 
 class EmulatorWindow(QMainWindow):
@@ -286,7 +333,7 @@ class EmulatorWindow(QMainWindow):
     def setMainWindowProperty(self):
         self.resize(*WINDOW_SIZE)
         self.setFixedSize(*WINDOW_SIZE)
-        self.setWindowTitle("Cheapest Emulator Ever")
+        self.updateTitle()
         self.centerMainWindow()
         qApp.setStyle("Cleanlooks")
         return
@@ -329,15 +376,18 @@ class EmulatorWindow(QMainWindow):
 
         for arch in modes.keys():
             archSubMenu = archMenu.addMenu(arch)
-            for idx, title, regs in modes[arch]:
+            for idx, title, _, _, _ in modes[arch]:
                 archAction = QAction(QIcon(), title, self)
                 if self.mode.get_id() == idx:
                     archAction.setEnabled(False)
                     self.currentAction = archAction
-                else:
-                    archAction.setStatusTip("Switch context to architecture: '%s'" % title)
-                    archAction.triggered.connect( functools.partial(self.updateMode, idx, archAction) )
+
+                archAction.setStatusTip("Switch context to architecture: '%s'" % title)
+                archAction.triggered.connect( functools.partial(self.updateMode, idx, archAction) )
                 archSubMenu.addAction(archAction)
+
+        templateMenu = menubar.addMenu("&Templates")
+        # TODO
         return
 
 
@@ -367,6 +417,11 @@ class EmulatorWindow(QMainWindow):
         self.canvas.regWidget.updateGrid()
         newAction.setEnabled(False)
         self.currentAction = newAction
+        self.updateTitle()
+        return
+
+    def updateTitle(self):
+        self.setWindowTitle("%s (%s)" % (TITLE, self.mode.get_title()))
         return
 
 

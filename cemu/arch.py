@@ -12,25 +12,40 @@ Architecture = enum.Enum('Architecture',
                          "ARM_LE " + \
                          "ARM_BE " + \
                          "ARM_THUMB_LE " + \
-                         "ARM_THUMB_BE")
+                         "ARM_THUMB_BE " + \
+                         "ARM_AARCH64 " + \
+                         "MIPS " + \
+                         "MIPS_BE" + \
+                         "MIPS64 " + \
+                         "MIPS64_BE " + \
+                         "PPC_BE " + \
+                         "PPC64 " + \
+                         "PPC64_BE " + \
+                         "SPARC " + \
+                         "SPARC64 " + \
+                         "SPARC64_BE" )
 
 X86_GPR = ["AX", "BX", "CX", "DX", "IP", "BP", "SP"]
-X86_PGR = ["CS", "DS", "ES", "FS", "SS"]
-X86_16_REGS = X86_GPR + X86_PGR
-X86_32_REGS = ["E"+x for x in X86_GPR] + X86_PGR
-X86_64_REGS = ["R"+x for x in X86_GPR] + X86_PGR
+X86_PGR = ["CS", "DS", "ES", "FS", "GS", "SS"]
+X86_16_REGS = X86_GPR
+X86_32_REGS = ["E"+x for x in X86_GPR]
+X86_64_REGS = ["R"+x for x in X86_GPR] + ["R%d"%i for i in range(8,16)]
 
-modes = {"x86" : [ (Architecture.X86_16_INTEL, "16bit, Intel syntax", X86_16_REGS),
-                   (Architecture.X86_32_INTEL, "32bit, Intel syntax", X86_32_REGS),
-                   (Architecture.X86_64_INTEL, "64bit, Intel syntax", X86_64_REGS),
-                   (Architecture.X86_16_ATT, "16bit, AT&T syntax", X86_16_REGS),
-                   (Architecture.X86_32_ATT, "32bit, AT&T syntax", X86_32_REGS),
-                   (Architecture.X86_64_ATT, "64bit, AT&T syntax", X86_64_REGS), ],
+ARM_GPR = ["R%d"%i for i in range(16)]
+ARM_REGS = ARM_GPR + ["PC"]
 
-         "arm": [ (Architecture.ARM_LE, "ARM - little endian", ["R0", "R1", "R2", "R3",]),
-                  (Architecture.ARM_BE, "ARM - big endian", ["R0", "R1", "R2", "R3",]),
-                  (Architecture.ARM_THUMB_LE, "ARM Thumb mode - little endian", ["R0", "R1", "R2", "R3",]),
-                  (Architecture.ARM_THUMB_BE, "ARM Thumb mobe - big endian", ["R0", "R1", "R2", "R3",]),]
+modes = {"x86" : [ (Architecture.X86_16_INTEL, "16bit, Intel syntax", X86_16_REGS, "IP", "SP"),
+                   (Architecture.X86_32_INTEL, "32bit, Intel syntax", X86_32_REGS, "EIP", "ESP"),
+                   (Architecture.X86_64_INTEL, "64bit, Intel syntax", X86_64_REGS, "RIP", "RSP"),
+                   (Architecture.X86_16_ATT, "16bit, AT&T syntax", X86_16_REGS, "IP", "SP"),
+                   (Architecture.X86_32_ATT, "32bit, AT&T syntax", X86_32_REGS, "EIP", "ESP"),
+                   (Architecture.X86_64_ATT, "64bit, AT&T syntax", X86_64_REGS, "RIP", "RSP"), ],
+
+         "arm": [ (Architecture.ARM_LE, "ARM - little endian", ARM_REGS, "PC", "SP"),
+                  (Architecture.ARM_BE, "ARM - big endian", ARM_REGS, "PC", "SP"),
+                  (Architecture.ARM_THUMB_LE, "ARM Thumb mode - little endian", ARM_REGS, "PC", "SP"),
+                  (Architecture.ARM_THUMB_BE, "ARM Thumb mobe - big endian", ARM_REGS, "PC", "SP"),],
+
 }
 
 class Mode:
@@ -59,6 +74,12 @@ class Mode:
 
     def get_registers(self):
         return self.__selected[2]
+
+    def get_pc(self):
+        return self.__selected[3]
+
+    def get_sp(self):
+        return self.__selected[4]
 
     def __eq__(self, x):
         return x==self.get_id()

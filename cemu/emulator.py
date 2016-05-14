@@ -11,10 +11,13 @@ class Emulator:
         self.reinit()
         return
 
+
     def reinit(self):
         self.vm = None
         self.code = None
         self.widget = None
+        self.is_running = False
+        self.use_step_mode = False
         self.areas = {}
         self.registers = {}
         self.create_new_vm()
@@ -24,8 +27,16 @@ class Emulator:
     def print(self, x):
         if self.widget is None:
             print(x)
-            return
-        self.widget.editor.append(x)
+        else:
+            self.widget.emuWidget.editor.append(x)
+        return
+
+
+    def log(self, x):
+        if self.widget is None:
+            print(x)
+        else:
+            self.widget.logWidget.editor.append(x)
         return
 
 
@@ -70,6 +81,11 @@ class Emulator:
         raise Exception("Cannot find register '%s' for arch '%s'" % (reg, self.mode))
 
 
+    def get_register_value(self, r):
+        ur = self.unicorn_register(r)
+        return self.vm.reg_read(ur)
+
+
     def unicorn_permissions(self, perms):
         p = 0
         for perm in perms.split("|"):
@@ -80,6 +96,9 @@ class Emulator:
     def create_new_vm(self):
         arch, mode, endian = self.get_arch_mode("unicorn")
         self.vm = unicorn.Uc(arch, mode | endian)
+        self.vm.hook_add(unicorn.UC_HOOK_BLOCK, self.hook_block)
+        self.vm.hook_add(unicorn.UC_HOOK_CODE, self.hook_code)
+        # TODO add more hooks
         return
 
 
@@ -88,7 +107,10 @@ class Emulator:
             perm = self.unicorn_permissions(permission)
             self.vm.mem_map(address, size, perm)
             self.areas[name] = [address, size, permission,]
-            self.print(">>> map %s @%x (size=%d,perm=%s)" % (name, address, size, permission))
+            self.log(">>> map %s @%x (size=%d,perm=%s)" % (name, address, size, permission))
+
+        self.start_addr = self.areas[".text"][0]
+        self.end_addr = -1
         return
 
 
@@ -96,7 +118,15 @@ class Emulator:
         for r in registers.keys():
             ur = self.unicorn_register(r)
             self.vm.reg_write(ur, registers[r])
-            self.print(">>> register %s = %x" % (r, registers[r]))
+            self.log(">>> register %s = %x" % (r, registers[r]))
+
+        # fix $PC
+        ur = self.unicorn_register(self.mode.get_pc())
+        self.vm.reg_write(ur, self.areas[".text"][0])
+
+        # fix $SP
+        ur = self.unicorn_register(self.mode.get_sp())
+        self.vm.reg_write(ur, self.areas[".stack"][0])
         return
 
 
@@ -106,10 +136,13 @@ class Emulator:
         if self.mode in (Architecture.X86_16_ATT, Architecture.X86_32_ATT, Architecture.X86_64_ATT):
             ks.syntax = keystone.KS_OPT_SYNTAX_ATT
         code = b";".join(code)
-        self.print(">>> Compiling '%s'" % code)
+        self.log(">>> Assembly using keystone: '%s'" % code)
         code, cnt = ks.asm(code)
         self.code = bytes(bytearray(code))
-        self.print(">>> %d instructions compiled" % cnt)
+        self.log(">>> %d instructions compiled" % cnt)
+
+        # update end_addr since we know the size of the code to execute
+        self.end_addr = self.start_addr + len(self.code)
         return
 
 
@@ -119,7 +152,7 @@ class Emulator:
         if self.code is None:
             raise Exception("No code defined yet")
         addr = self.areas[".text"][0]
-        self.print(">>> mapping .text at %#x" % addr)
+        self.log(">>> mapping .text at %#x" % addr)
         self.vm.mem_write(addr, bytes(self.code))
         return
 
@@ -133,36 +166,49 @@ class Emulator:
             return i
 
 
+    def get_next_instruction_address(self):
+        pc = self.get_register_value(self.mode.get_pc())
+        insn = self.disassemble(self.code, pc)
+        return pc + insn.size
+
+
     def hook_code(self, emu, address, size, user_data):
-        self.print(">> Executing instruction at 0x{:x}".format(address))
+        self.log(">> Executing instruction at 0x{:x}".format(address))
         code = self.vm.mem_read(address, size)
         insn = self.disassemble(code, address)
         self.print(">>> 0x{:x}: {:s} {:s}".format(insn.address, insn.mnemonic, insn.op_str))
+
+        if self.use_step_mode:
+            emu.emu_stop()
+            self.start_addr = self.get_next_instruction_address()
         return
 
 
     def hook_block(self, emu, addr, size, misc):
+        self.print(">>> Entering new block at 0x{:x}".format(addr))
         return
 
 
     def run(self):
-        self.vm.hook_add(unicorn.UC_HOOK_BLOCK, self.hook_block)
-        self.vm.hook_add(unicorn.UC_HOOK_CODE, self.hook_code)
-
-        start_addr = self.areas[".text"][0]
-        end_addr = start_addr + len(self.code)
+        self.print(">>> Execution from %#x to %#x" % (self.start_addr, self.end_addr))
         try:
-            self.vm.emu_start(start_addr, end_addr)
-        except unicorn.UcError as e:
+            self.vm.emu_start(self.start_addr, self.end_addr)
+        except unicorn.unicorn.UcError as e:
             self.vm.emu_stop()
-            self.print("An error occured during emulation: %s" % e)
+            self.log("An error occured during emulation")
             return
 
-        self.print(">>> End of emulation")
+        if self.get_register_value( self.mode.get_pc() )==self.end_addr:
+            self.print(">>> End of emulation")
         return
 
 
     def stop(self):
+        for area in self.areas.keys():
+            addr, size = self.areas[area][0:2]
+            self.vm.mem_unmap(addr, size)
+
         del self.vm
         self.vm = None
+        self.is_running = False
         return
