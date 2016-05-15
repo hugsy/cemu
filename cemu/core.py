@@ -22,7 +22,6 @@ class CodeWidget(QWidget):
         layout = QVBoxLayout()
         label = QLabel("Code")
         self.editor = QTextEdit()
-        self.editor.insertPlainText("mov eax, 1\nmov dword ptr [esp], 0x42424242\npush 0x41414141\ninc ebx\nshl ebx, 10")
         self.editor.setFont(QFont('Courier', 11))
         self.editor.setFrameStyle(QFrame.Panel | QFrame.Plain)
         layout.addWidget(label)

@@ -8,6 +8,7 @@ class Emulator:
 
     def __init__(self, mode, *args, **kwargs):
         self.mode = mode
+        self.use_step_mode = False
         self.reinit()
         return
 
@@ -17,7 +18,6 @@ class Emulator:
         self.code = None
         self.widget = None
         self.is_running = False
-        self.use_step_mode = False
         self.areas = {}
         self.registers = {}
         self.create_new_vm()
@@ -168,12 +168,6 @@ class Emulator:
             return i
 
 
-    def get_next_instruction_address(self):
-        pc = self.get_register_value(self.mode.get_pc())
-        insn = self.disassemble(self.code, pc)
-        return pc + insn.size
-
-
     def hook_code(self, emu, address, size, user_data):
         self.log(">> Executing instruction at 0x{:x}".format(address))
         code = self.vm.mem_read(address, size)
@@ -182,7 +176,8 @@ class Emulator:
 
         if self.use_step_mode:
             emu.emu_stop()
-            self.start_addr = self.get_next_instruction_address()
+            self.start_addr = self.get_register_value(self.mode.get_pc()) + insn.size
+            self.log("next start_addr = %#x"  % self.start_addr)
         return
 
 
@@ -197,7 +192,7 @@ class Emulator:
 
 
     def hook_interrupt(self, emu, intno, data):
-        self.print(">>> Triggering interrupt #%d".format(intno))
+        self.print(">>> Triggering interrupt #{:d}".format(intno))
         return
 
 
