@@ -98,7 +98,9 @@ class Emulator:
         self.vm = unicorn.Uc(arch, mode | endian)
         self.vm.hook_add(unicorn.UC_HOOK_BLOCK, self.hook_block)
         self.vm.hook_add(unicorn.UC_HOOK_CODE, self.hook_code)
-        # TODO add more hooks
+        self.vm.hook_add(unicorn.UC_HOOK_INTR, self.hook_interrupt)
+        self.vm.hook_add(unicorn.UC_HOOK_MEM_WRITE, self.hook_mem_access)
+        self.vm.hook_add(unicorn.UC_HOOK_MEM_READ, self.hook_mem_access)
         return
 
 
@@ -186,6 +188,24 @@ class Emulator:
 
     def hook_block(self, emu, addr, size, misc):
         self.print(">>> Entering new block at 0x{:x}".format(addr))
+        return
+
+
+    def hook_block(self, emu, addr, size, misc):
+        self.print(">>> Entering new block at 0x{:x}".format(addr))
+        return
+
+
+    def hook_interrupt(self, emu, intno, data):
+        self.print(">>> Triggering interrupt #%d".format(intno))
+        return
+
+
+    def hook_mem_access(self, emu, access, address, size, value, user_data):
+        if access == unicorn.UC_MEM_WRITE:
+            self.print(">>> MEM_WRITE : *%#x = 0x%#x (size = %u)"% (address, value, size))
+        elif access == unicorn.UC_MEM_READ:
+            self.print(">>> MEM_READ : reg = *%#x (size = %u)" % (address, size))
         return
 
 

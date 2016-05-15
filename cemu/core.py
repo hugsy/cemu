@@ -351,13 +351,23 @@ class EmulatorWindow(QMainWindow):
     def setMainWindowMenuBar(self):
         loadAsmAction = QAction(QIcon(), "Load Assembly", self)
         loadAsmAction.setShortcut("Ctrl+O")
-        loadAsmAction.triggered.connect( self.updateCodeText )
+        loadAsmAction.triggered.connect( self.loadCodeText )
         loadAsmAction.setStatusTip("Load an assembly file")
 
         loadBinAction = QAction(QIcon(), "Load Binary", self)
         loadBinAction.setShortcut("Ctrl+B")
-        loadBinAction.triggered.connect( self.updateCodeBin )
+        loadBinAction.triggered.connect( self.loadCodeBin )
         loadBinAction.setStatusTip("Load a raw binary file")
+
+        saveAsmAction = QAction(QIcon(), "Save Assembly", self)
+        saveAsmAction.setShortcut("Ctrl+S")
+        saveAsmAction.triggered.connect( self.saveCodeText )
+        saveAsmAction.setStatusTip("Save the content of the assembly pane in a file")
+
+        saveBinAction = QAction(QIcon(), "Save Binary", self)
+        saveBinAction.setShortcut("Ctrl+N")
+        saveBinAction.triggered.connect( self.saveCodeBin )
+        saveBinAction.setStatusTip("Save the content of the raw binary pane in a file")
 
         quitAction = QAction(QIcon(), "Quit", self)
         quitAction.setShortcut("Alt+F4")
@@ -370,6 +380,8 @@ class EmulatorWindow(QMainWindow):
         fileMenu = menubar.addMenu("&File")
         fileMenu.addAction(loadAsmAction)
         fileMenu.addAction(loadBinAction)
+        fileMenu.addAction(saveAsmAction)
+        fileMenu.addAction(saveBinAction)
         fileMenu.addAction(quitAction)
 
         archMenu = menubar.addMenu("&Architecture")
@@ -391,24 +403,40 @@ class EmulatorWindow(QMainWindow):
         return
 
 
-    def updateCode(self, title, widget):
+    def loadCode(self, title, widget):
         qFiles = QFileDialog().getOpenFileName(self, "Open file", os.getenv("HOME"), title)
         qFile = qFiles[0]
         if not os.access(qFile, os.R_OK):
             return
         with open(qFile, 'r') as f:
-            widget.insertPlainText( f.read() )
-
+            widget.setPlainText( f.read() )
         return
 
 
-    def updateCodeText(self):
-        return self.updateCode("Assembly files (*.asm)", self.canvas.codeWidget.editor)
+    def loadCodeText(self):
+        return self.loadCode("Assembly files (*.asm)", self.canvas.codeWidget.editor)
 
 
-    def updateCodeBin(self):
-        return self.updateCode("Raw binary files (*.bin)", self.canvas.binWidget.editor)
+    def loadCodeBin(self):
+        return self.loadCode("Raw binary files (*.bin)", self.canvas.binWidget.editor)
+
+
+    def saveCode(self, title, widget, filter):
+        qFileName = QFileDialog().getSaveFileName(self, title, os.getenv("HOME"), filter=filter)
+        if qFileName is None or len(qFileName)==0 or qFileName[0]=="":
+            return
+
+        with open(qFileName[0], "w") as f:
+            f.write( widget.toPlainText() )
         return
+
+
+    def saveCodeText(self):
+        return self.saveCode("Save Assembly Pane As", self.canvas.codeWidget.editor, "*.asm")
+
+
+    def saveCodeBin(self):
+        return self.saveCode("Save Raw Binary Pane As", self.canvas.binWidget.editor, "*.bin")
 
 
     def updateMode(self, idx, newAction):
@@ -419,6 +447,7 @@ class EmulatorWindow(QMainWindow):
         self.currentAction = newAction
         self.updateTitle()
         return
+
 
     def updateTitle(self):
         self.setWindowTitle("%s (%s)" % (TITLE, self.mode.get_title()))
