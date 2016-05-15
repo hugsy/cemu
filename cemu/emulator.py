@@ -132,19 +132,29 @@ class Emulator:
         return
 
 
-    def compile_code(self, code):
+    def compile_code(self, code, update_end_addr=True):
         arch, mode, endian = self.get_arch_mode("keystone")
         ks = keystone.Ks(arch, mode | endian)
         if self.mode in (Architecture.X86_16_ATT, Architecture.X86_32_ATT, Architecture.X86_64_ATT):
             ks.syntax = keystone.KS_OPT_SYNTAX_ATT
         code = b";".join(code)
         self.log(">>> Assembly using keystone: '%s'" % code)
-        code, cnt = ks.asm(code)
-        self.code = bytes(bytearray(code))
-        self.log(">>> %d instructions compiled" % cnt)
+        try:
+            code, cnt = ks.asm(code)
+            if cnt == 0:
+                self.code = b""
+            else:
+                self.code = bytes(bytearray(code))
+                self.log(">>> %d instructions compiled" % cnt)
+
+        except keystone.keystone.KsError:
+            self.log(">>> Failed to compile code")
+            self.code = b""
+            return
 
         # update end_addr since we know the size of the code to execute
-        self.end_addr = self.start_addr + len(self.code)
+        if update_end_addr:
+            self.end_addr = self.start_addr + len(self.code)
         return
 
 
@@ -198,7 +208,7 @@ class Emulator:
 
     def hook_mem_access(self, emu, access, address, size, value, user_data):
         if access == unicorn.UC_MEM_WRITE:
-            self.print(">>> MEM_WRITE : *%#x = 0x%#x (size = %u)"% (address, value, size))
+            self.print(">>> MEM_WRITE : *%#x = %#x (size = %u)"% (address, value, size))
         elif access == unicorn.UC_MEM_READ:
             self.print(">>> MEM_READ : reg = *%#x (size = %u)" % (address, size))
         return

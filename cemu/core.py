@@ -12,7 +12,7 @@ from .emulator import Emulator
 from .utils import *
 
 
-WINDOW_SIZE = (1500, 700)
+WINDOW_SIZE = (1600, 800)
 ICON = os.path.dirname(os.path.realpath(__file__)) + "/icon.png"
 TITLE = "Cheap EMUlator"
 
@@ -132,9 +132,12 @@ class CommandWidget(QWidget):
         stepButton.clicked.connect( self.parent.stepCode )
         stopButton = QPushButton("Stop")
         stopButton.clicked.connect( self.parent.stopCode )
+        checkAsmButton = QPushButton("Check assembly code")
+        checkAsmButton.clicked.connect( self.parent.checkAsmCode )
         layout.addWidget(runButton)
         layout.addWidget(stepButton)
         layout.addWidget(stopButton)
+        layout.addWidget(checkAsmButton)
         self.setLayout(layout)
         return
 
@@ -143,6 +146,7 @@ class RegistersWidget(QWidget):
     def __init__(self, parent, *args, **kwargs):
         super(RegistersWidget, self).__init__()
         self.parent = parent
+        self.old_register_values = {}
         layout = QGridLayout()
         self.values = QTableWidget(10, 2)
         self.values.setHorizontalHeaderLabels(["Register", "Value"])
@@ -163,7 +167,11 @@ class RegistersWidget(QWidget):
                 val = 0
             else:
                 val = emu.get_register_value(reg)
-            value = QTableWidgetItem(format_address(val, current_mode) )
+            old_val = self.old_register_values.get(reg, 0)
+            value = QTableWidgetItem( format_address(val, current_mode) )
+            if old_val != val:
+                self.old_register_values[reg] = val
+                value.setForeground(QColor(Qt.red))
             value.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable)
             self.values.setItem(i, 0, name)
             self.values.setItem(i, 1, value)
@@ -178,6 +186,21 @@ class RegistersWidget(QWidget):
             value = self.values.item(i, 1).text()
             regs[name] = int(value, 16)
         return regs
+
+
+class ScratchboardWidget(QWidget):
+     def __init__(self, parent, *args, **kwargs):
+        super(ScratchboardWidget, self).__init__()
+        self.parent = parent
+        layout = QVBoxLayout()
+        label = QLabel("Scratchboard")
+        self.editor = QTextEdit()
+        self.editor.setFont(QFont('Courier', 11))
+        self.editor.setFrameStyle(QFrame.Panel | QFrame.Plain)
+        layout.addWidget(label)
+        layout.addWidget(self.editor)
+        self.setLayout(layout)
+        return
 
 
 class MemoryWidget(QWidget):
@@ -243,15 +266,20 @@ class CanvasWidget(QWidget):
         self.commandWidget = CommandWidget(self)
         self.regWidget = RegistersWidget(self)
         self.memWidget = MemoryWidget(self)
+        self.scratchWidget = ScratchboardWidget(self)
 
         self.tabs = QTabWidget()
         self.tabs.addTab(self.codeWidget, "Assembly")
         self.tabs.addTab(self.binWidget, "Binary")
         self.tabs.addTab(self.mapWidget, "Mappings")
 
+        hboxTop2 = QHBoxLayout()
+        hboxTop2.addWidget(self.regWidget)
+        hboxTop2.addWidget(self.scratchWidget)
+
         hboxTop = QHBoxLayout()
         hboxTop.addWidget(self.tabs)
-        hboxTop.addWidget(self.regWidget)
+        hboxTop.addLayout(hboxTop2)
 
         self.tabs2 = QTabWidget()
         self.tabs2.addTab(self.emuWidget, "Emulator")
@@ -313,6 +341,12 @@ class CanvasWidget(QWidget):
 
         self.emu.run()
         self.regWidget.updateGrid()
+        return
+
+
+    def checkAsmCode(self):
+        code = self.codeWidget.getCode()
+        self.emu.compile_code(code, False)
         return
 
 
