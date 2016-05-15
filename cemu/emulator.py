@@ -66,6 +66,7 @@ class Emulator:
             else:
                 arch, mode, endian = unicorn.UC_ARCH_X86, unicorn.UC_MODE_64, unicorn.UC_MODE_LITTLE_ENDIAN
 
+        # todo add arch arm/aarch/mips/mips64/sparc/sparc64
         if arch is None and mode is None and endian is None:
             raise Exception("Failed to get architecture parameter from mode")
 
@@ -77,6 +78,8 @@ class Emulator:
                          Architecture.X86_32_INTEL, Architecture.X86_32_ATT,
                          Architecture.X86_64_INTEL, Architecture.X86_64_ATT):
             return getattr(unicorn.x86_const, "UC_X86_REG_%s"%reg.upper())
+
+        # todo add arch arm/aarch/mips/mips64/sparc/sparc64
 
         raise Exception("Cannot find register '%s' for arch '%s'" % (reg, self.mode))
 
@@ -237,3 +240,10 @@ class Emulator:
         self.vm = None
         self.is_running = False
         return
+
+
+    def lookup_map(self, mapname):
+        for area in self.areas.keys():
+            if area == mapname:
+                return self.areas[area][0]
+        return None

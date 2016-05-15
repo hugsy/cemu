@@ -147,9 +147,13 @@ class RegistersWidget(QWidget):
         super(RegistersWidget, self).__init__()
         self.parent = parent
         self.old_register_values = {}
-        layout = QGridLayout()
+        layout = QVBoxLayout()
+        label = QLabel("Registers")
         self.values = QTableWidget(10, 2)
+        hdr = self.values.horizontalHeader()
+        hdr.setSectionResizeMode(QHeaderView.Stretch)
         self.values.setHorizontalHeaderLabels(["Register", "Value"])
+        layout.addWidget(label)
         layout.addWidget(self.values)
         self.setLayout(layout)
         self.updateGrid()
@@ -230,11 +234,17 @@ class MemoryWidget(QWidget):
         addr = self.address.text()
         if addr.startswith("0x") or addr.startswith("0X"):
             addr = addr[2:]
-        if not addr.isdigit():
-            return
+
+        if addr.startswith("@"):
+            addr = emu.lookup_map(addr[1:])
+            if addr is None:
+                return
+        else:
+            if not addr.isdigit():
+                return
+            addr = int(addr, 16)
 
         try:
-            addr = int(addr, 16)
             l = 256
             data = emu.vm.mem_read(addr, l)
         except unicorn.unicorn.UcError:
@@ -431,13 +441,11 @@ class EmulatorWindow(QMainWindow):
                 archAction.triggered.connect( functools.partial(self.updateMode, idx, archAction) )
                 archSubMenu.addAction(archAction)
 
-        templateMenu = menubar.addMenu("&Templates")
-        # TODO
         return
 
 
     def loadCode(self, title, widget):
-        qFiles = QFileDialog().getOpenFileName(self, "Open file", os.getenv("HOME"), title)
+        qFiles = QFileDialog().getOpenFileName(self, "Open file", ".", title)
         qFile = qFiles[0]
         if not os.access(qFile, os.R_OK):
             return
@@ -455,7 +463,7 @@ class EmulatorWindow(QMainWindow):
 
 
     def saveCode(self, title, widget, filter):
-        qFileName = QFileDialog().getSaveFileName(self, title, os.getenv("HOME"), filter=filter)
+        qFileName = QFileDialog().getSaveFileName(self, title, ".", filter=filter)
         if qFileName is None or len(qFileName)==0 or qFileName[0]=="":
             return
 
