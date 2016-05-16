@@ -54,16 +54,14 @@ class Emulator:
             return getattr(unicorn.arm_const, "UC_ARM_REG_%s"%reg.upper())
 
         if self.mode==Architecture.ARM_AARCH64:
-            return getattr(unicorn.arm64_const, "UC_ARM_REG64_%s"%reg.upper())
+            return getattr(unicorn.arm64_const, "UC_ARM64_REG_%s"%reg.upper())
 
         if self.mode in (Architecture.MIPS, Architecture.MIPS_BE,
                          Architecture.MIPS64, Architecture.MIPS64_BE):
-            return getattr(unicorn.arm_const, "UC_ARM_REG_%s"%reg.upper())
+            return getattr(unicorn.mips_const, "UC_MIPS_REG_%s" % reg.upper())
 
         if self.mode in (Architecture.SPARC, Architecture.SPARC64_BE):
-            return getattr(unicorn.arm_const, "UC_ARM_REG_%s"%reg.upper())
-
-        # todo add arch arm/aarch/mips/mips64/sparc/sparc64
+            return getattr(unicorn.sparc_const, "UC_SPARC_REG_%s" %reg.upper())
 
         raise Exception("Cannot find register '%s' for arch '%s'" % (reg, self.mode))
 
@@ -120,10 +118,6 @@ class Emulator:
 
 
     def compile_code(self, code, update_end_addr=True):
-        arch, mode, endian = get_arch_mode("keystone", self.mode)
-        ks = keystone.Ks(arch, mode | endian)
-        if self.mode in (Architecture.X86_16_ATT, Architecture.X86_32_ATT, Architecture.X86_64_ATT):
-            ks.syntax = keystone.KS_OPT_SYNTAX_ATT
         code = b" ; ".join(code)
         self.log(">>> Assembly using keystone: %s" % code)
         self.code, cnt = assemble(code, self.mode)

@@ -2,11 +2,9 @@
 # -*- coding: utf-8 -*-
 
 import sys
-from cemu.core import Cemu
-
 
 def check_dependencies():
-    deps = ["PyQt5", "unicorn", "capstone", "keystone"]
+    deps = ["PyQt5", "unicorn", "capstone", "keystone", "pygments"]
     for d in deps:
         try:
             __import__(d)
@@ -17,5 +15,7 @@ def check_dependencies():
 
 
 if __name__ == '__main__':
+    from cemu.core import Cemu
+
     check_dependencies()
     Cemu()

@@ -35,10 +35,10 @@ AARCH64_GPR = ["X%d"%i for i in range(31)]
 AARCH64_REGS = AARCH64_GPR + ["PC",]
 
 MIPS_GPR = ["%d"%i for i in range(32)]
-MIPS_REGS = AARCH64_GPR + ["PC",]
+MIPS_REGS = MIPS_GPR + ["PC",]
 
-SPARC_GPR = ["G%d"%i for i in range(8)] + ["O%d"%i for i in range(8)] + ["L%d"%i for i in range(8)] + ["I%d"%i for i in range(8)]
-SPARC_REGS = SPARC_GPR + ["PC",]
+SPARC_GPR = ["G%d"%i for i in range(8)] + ["L%d"%i for i in range(8)] + ["I%d"%i for i in range(8)] + ["O%d"%i for i in range(8)]
+SPARC_REGS = SPARC_GPR + ["PC", ]
 
 modes = {"x86":[ (Architecture.X86_16_INTEL, "16bit, Intel syntax", X86_16_REGS, "IP", "SP"),
                  (Architecture.X86_32_INTEL, "32bit, Intel syntax", X86_32_REGS, "EIP", "ESP"),
