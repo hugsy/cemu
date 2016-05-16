@@ -192,7 +192,6 @@ class Emulator:
 
 
     def run(self):
-        self.print(">>> Execution from %#x to %#x" % (self.start_addr, self.end_addr))
         try:
             self.vm.emu_start(self.start_addr, self.end_addr)
         except unicorn.unicorn.UcError as e:

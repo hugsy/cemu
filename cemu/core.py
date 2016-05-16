@@ -419,6 +419,7 @@ class CanvasWidget(QWidget):
 
         self.emu.run()
         self.regWidget.updateGrid()
+        self.memWidget.updateEditor()
         return
 
 
