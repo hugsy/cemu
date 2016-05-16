@@ -3,3 +3,4 @@ PyQt5
 unicorn
 keystone
 capstone
+pygments

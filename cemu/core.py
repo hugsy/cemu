@@ -1,11 +1,18 @@
 # -*- coding: utf-8 -*-
 
-import sys, os, functools
+import sys
+import os
+import functools
+import time
 import unicorn
 
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
+
+from pygments import highlight
+from pygments.lexers import *
+from pygments.formatter import Formatter
 
 from .arch import Architecture, modes, Mode
 from .emulator import Emulator
@@ -16,6 +23,69 @@ WINDOW_SIZE = (1600, 800)
 ICON = os.path.dirname(os.path.realpath(__file__)) + "/icon.png"
 TITLE = "Cheap EMUlator"
 
+
+class QFormatter(Formatter):
+    # from http://ralsina.me/static/highlighter.py
+    # todo: improve
+    def __init__(self, *args, **kwargs):
+        Formatter.__init__(self)
+        self.data=[]
+        self.styles={}
+        for token, style in self.style:
+            qtf=QTextCharFormat()
+            if style['color']:
+                qtf.setForeground(self.hex2QColor(style['color']))
+            if style['bgcolor']:
+                qtf.setBackground(self.hex2QColor(style['bgcolor']))
+            if style['bold']:
+                qtf.setFontWeight(QFont.Bold)
+            if style['italic']:
+                qtf.setFontItalic(True)
+            if style['underline']:
+                qtf.setFontUnderline(True)
+            self.styles[str(token)]=qtf
+        return
+
+
+    def hex2QColor(self, c):
+        r=int(c[0:2],16)
+        g=int(c[2:4],16)
+        b=int(c[4:6],16)
+        return QColor(r,g,b)
+
+
+    def format(self, tokensource, outfile):
+        self.data=[]
+        for ttype, value in tokensource:
+            l=len(value)
+            t=str(ttype)
+            self.data.extend([self.styles[t],]*l)
+        return
+
+
+class Highlighter(QSyntaxHighlighter):
+    def __init__(self, parent, mode):
+        QSyntaxHighlighter.__init__(self, parent)
+        self.tstamp=time.time()
+        self.formatter=QFormatter()
+        self.lexer=get_lexer_by_name(mode)
+        return
+
+
+    def highlightBlock(self, text):
+        cb = self.currentBlock()
+        p = cb.position()
+        text = self.document().toPlainText() +'\n'
+        highlight(text,self.lexer,self.formatter)
+        for i in range(len(text)):
+            try:
+                self.setFormat(i,1,self.formatter.data[p+i])
+            except IndexError:
+                pass
+        self.tstamp = time.time()
+        return
+
+
 class CodeWidget(QWidget):
     def __init__(self, *args, **kwargs):
         super(CodeWidget, self).__init__()
@@ -24,6 +94,7 @@ class CodeWidget(QWidget):
         self.editor = QTextEdit()
         self.editor.setFont(QFont('Courier', 11))
         self.editor.setFrameStyle(QFrame.Panel | QFrame.Plain)
+        self.highlighter = Highlighter(self.editor, "asm")
         layout.addWidget(label)
         layout.addWidget(self.editor)
         self.setLayout(layout)
@@ -201,6 +272,7 @@ class ScratchboardWidget(QWidget):
         self.editor = QTextEdit()
         self.editor.setFont(QFont('Courier', 11))
         self.editor.setFrameStyle(QFrame.Panel | QFrame.Plain)
+        self.highlighter = Highlighter(self.editor, "rest")
         layout.addWidget(label)
         layout.addWidget(self.editor)
         self.setLayout(layout)
