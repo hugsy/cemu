@@ -43,31 +43,75 @@ def format_address(addr, mode):
 
 def get_arch_mode(lib, m):
     arch = mode = endian = None
-    if   m==Architecture.X86_16_INTEL or m==Architecture.X86_16_ATT:
-        if lib=="keystone":
-            arch, mode, endian = keystone.KS_ARCH_X86, keystone.KS_MODE_16, keystone.KS_MODE_LITTLE_ENDIAN
-        elif lib=="capstone":
-            arch, mode, endian = capstone.CS_ARCH_X86, capstone.CS_MODE_16, capstone.CS_MODE_LITTLE_ENDIAN
-        else:
-            arch, mode, endian = unicorn.UC_ARCH_X86, unicorn.UC_MODE_16, unicorn.UC_MODE_LITTLE_ENDIAN
 
-    elif m==Architecture.X86_32_INTEL or m==Architecture.X86_32_ATT:
-        if lib=="keystone":
-            arch, mode, endian = keystone.KS_ARCH_X86, keystone.KS_MODE_32, keystone.KS_MODE_LITTLE_ENDIAN
-        elif lib=="capstone":
-            arch, mode, endian = capstone.CS_ARCH_X86, capstone.CS_MODE_32, capstone.CS_MODE_LITTLE_ENDIAN
-        else:
-            arch, mode, endian = unicorn.UC_ARCH_X86, unicorn.UC_MODE_32, unicorn.UC_MODE_LITTLE_ENDIAN
+    # x86
+    if m in (Architecture.X86_16_INTEL, Architecture.X86_16_ATT):
+        if lib=="keystone":      arch, mode, endian = keystone.KS_ARCH_X86, keystone.KS_MODE_16, keystone.KS_MODE_LITTLE_ENDIAN
+        elif lib=="capstone":    arch, mode, endian = capstone.CS_ARCH_X86, capstone.CS_MODE_16, capstone.CS_MODE_LITTLE_ENDIAN
+        else:                    arch, mode, endian = unicorn.UC_ARCH_X86, unicorn.UC_MODE_16, unicorn.UC_MODE_LITTLE_ENDIAN
 
-    elif m==Architecture.X86_64_INTEL or m==Architecture.X86_64_ATT:
-        if lib=="keystone":
-            arch, mode, endian = keystone.KS_ARCH_X86, keystone.KS_MODE_64, keystone.KS_MODE_LITTLE_ENDIAN
-        elif lib=="capstone":
-            arch, mode, endian = capstone.CS_ARCH_X86, capstone.CS_MODE_64, capstone.CS_MODE_LITTLE_ENDIAN
-        else:
-            arch, mode, endian = unicorn.UC_ARCH_X86, unicorn.UC_MODE_64, unicorn.UC_MODE_LITTLE_ENDIAN
+    elif m in (Architecture.X86_32_INTEL, Architecture.X86_32_ATT):
+        if lib=="keystone":     arch, mode, endian = keystone.KS_ARCH_X86, keystone.KS_MODE_32, keystone.KS_MODE_LITTLE_ENDIAN
+        elif lib=="capstone":   arch, mode, endian = capstone.CS_ARCH_X86, capstone.CS_MODE_32, capstone.CS_MODE_LITTLE_ENDIAN
+        else:                   arch, mode, endian = unicorn.UC_ARCH_X86, unicorn.UC_MODE_32, unicorn.UC_MODE_LITTLE_ENDIAN
 
-    # todo add arch arm/aarch/mips/mips64/sparc/sparc64
+    elif m in (Architecture.X86_64_INTEL, Architecture.X86_64_ATT):
+        if lib=="keystone":     arch, mode, endian = keystone.KS_ARCH_X86, keystone.KS_MODE_64, keystone.KS_MODE_LITTLE_ENDIAN
+        elif lib=="capstone":   arch, mode, endian = capstone.CS_ARCH_X86, capstone.CS_MODE_64, capstone.CS_MODE_LITTLE_ENDIAN
+        else:                   arch, mode, endian = unicorn.UC_ARCH_X86, unicorn.UC_MODE_64, unicorn.UC_MODE_LITTLE_ENDIAN
+
+    # arm
+    elif m==Architecture.ARM_LE:
+        if lib=="keystone":     arch, mode, endian = keystone.KS_ARCH_ARM, keystone.KS_MODE_ARM, keystone.KS_MODE_LITTLE_ENDIAN
+        elif lib=="capstone":   arch, mode, endian = capstone.CS_ARCH_ARM, capstone.CS_MODE_ARM, capstone.CS_MODE_LITTLE_ENDIAN
+        else:                   arch, mode, endian = unicorn.UC_ARCH_ARM, unicorn.UC_MODE_ARM, unicorn.UC_MODE_LITTLE_ENDIAN
+    elif m==Architecture.ARM_BE:
+        if lib=="keystone":     arch, mode, endian = keystone.KS_ARCH_ARM, keystone.KS_MODE_ARM, keystone.KS_MODE_BIG_ENDIAN
+        elif lib=="capstone":   arch, mode, endian = capstone.CS_ARCH_ARM, capstone.CS_MODE_ARM, capstone.CS_MODE_BIG_ENDIAN
+        else:                   arch, mode, endian = unicorn.UC_ARCH_ARM, unicorn.UC_MODE_ARM, unicorn.UC_MODE_BIG_ENDIAN
+    elif m==Architecture.ARM_THUMB_LE:
+        if lib=="keystone":     arch, mode, endian = keystone.KS_ARCH_ARM, keystone.KS_MODE_THUMB, keystone.KS_MODE_LITTLE_ENDIAN
+        elif lib=="capstone":   arch, mode, endian = capstone.CS_ARCH_ARM, capstone.CS_MODE_THUMB, capstone.CS_MODE_LITTLE_ENDIAN
+        else:                   arch, mode, endian = unicorn.UC_ARCH_ARM, unicorn.UC_MODE_THUMB, unicorn.UC_MODE_LITTLE_ENDIAN
+    elif m==Architecture.ARM_THUMB_BE:
+        if lib=="keystone":     arch, mode, endian = keystone.KS_ARCH_ARM, keystone.KS_MODE_THUMB, keystone.KS_MODE_BIG_ENDIAN
+        elif lib=="capstone":   arch, mode, endian = capstone.CS_ARCH_ARM, capstone.CS_MODE_THUMB, capstone.CS_MODE_BIG_ENDIAN
+        else:                   arch, mode, endian = unicorn.UC_ARCH_ARM, unicorn.UC_MODE_THUMB, unicorn.UC_MODE_BIG_ENDIAN
+
+    # aarch64
+    elif m==Architecture.ARM_AARCH64:
+        if lib=="keystone":     arch, mode, endian = keystone.KS_ARCH_ARM64, keystone.KS_MODE_ARM, keystone.KS_MODE_LITTLE_ENDIAN
+        elif lib=="capstone":   arch, mode, endian = capstone.CS_ARCH_ARM64, capstone.CS_MODE_ARM, capstone.CS_MODE_LITTLE_ENDIAN
+        else:                   arch, mode, endian = unicorn.UC_ARCH_ARM64, unicorn.UC_MODE_ARM, unicorn.UC_MODE_LITTLE_ENDIAN
+
+    # mips/mips64
+    elif m==Architecture.MIPS:
+        if lib=="keystone":     arch, mode, endian = keystone.KS_ARCH_MIPS, keystone.KS_MODE_MIPS32, keystone.KS_MODE_LITTLE_ENDIAN
+        elif lib=="capstone":   arch, mode, endian = capstone.CS_ARCH_MIPS, capstone.CS_MODE_MIPS32, capstone.CS_MODE_LITTLE_ENDIAN
+        else:                   arch, mode, endian = unicorn.UC_ARCH_MIPS, unicorn.UC_MODE_MIPS32, unicorn.UC_MODE_LITTLE_ENDIAN
+    elif m==Architecture.MIPS_BE:
+        if lib=="keystone":     arch, mode, endian = keystone.KS_ARCH_MIPS, keystone.KS_MODE_MIPS32, keystone.KS_MODE_BIG_ENDIAN
+        elif lib=="capstone":   arch, mode, endian = capstone.CS_ARCH_MIPS, capstone.CS_MODE_MIPS32, capstone.CS_MODE_BIG_ENDIAN
+        else:                   arch, mode, endian = unicorn.UC_ARCH_MIPS, unicorn.UC_MODE_MIPS32, unicorn.UC_MODE_BIG_ENDIAN
+    elif m==Architecture.MIPS64:
+        if lib=="keystone":     arch, mode, endian = keystone.KS_ARCH_MIPS, keystone.KS_MODE_MIPS64, keystone.KS_MODE_LITTLE_ENDIAN
+        elif lib=="capstone":   arch, mode, endian = capstone.CS_ARCH_MIPS, capstone.CS_MODE_MIPS64, capstone.CS_MODE_LITTLE_ENDIAN
+        else:                   arch, mode, endian = unicorn.UC_ARCH_MIPS, unicorn.UC_MODE_MIPS64, unicorn.UC_MODE_LITTLE_ENDIAN
+    elif m==Architecture.MIPS64_BE:
+        if lib=="keystone":     arch, mode, endian = keystone.KS_ARCH_MIPS, keystone.KS_MODE_MIPS64, keystone.KS_MODE_BIG_ENDIAN
+        elif lib=="capstone":   arch, mode, endian = capstone.CS_ARCH_MIPS, capstone.CS_MODE_MIPS64, capstone.CS_MODE_BIG_ENDIAN
+        else:                   arch, mode, endian = unicorn.UC_ARCH_MIPS, unicorn.UC_MODE_MIPS64, unicorn.UC_MODE_BIG_ENDIAN
+
+    # sparc/sparc64
+    elif m==Architecture.SPARC:
+        if lib=="keystone":     arch, mode, endian = keystone.KS_ARCH_SPARC, keystone.KS_MODE_SPARC32, keystone.KS_MODE_LITTLE_ENDIAN
+        elif lib=="capstone":   arch, mode, endian = capstone.CS_ARCH_SPARC, capstone.CS_MODE_SPARC32, capstone.CS_MODE_LITTLE_ENDIAN
+        else:                   arch, mode, endian = unicorn.UC_ARCH_SPARC, unicorn.UC_MODE_SPARC32, unicorn.UC_MODE_LITTLE_ENDIAN
+    elif m==Architecture.SPARC64_BE:
+        if lib=="keystone":     arch, mode, endian = keystone.KS_ARCH_SPARC, keystone.KS_MODE_SPARC64, keystone.KS_MODE_BIG_ENDIAN
+        elif lib=="capstone":   arch, mode, endian = capstone.CS_ARCH_SPARC, capstone.CS_MODE_SPARC64, capstone.CS_MODE_BIG_ENDIAN
+        else:                   arch, mode, endian = unicorn.UC_ARCH_SPARC, unicorn.UC_MODE_SPARC64, unicorn.UC_MODE_BIG_ENDIAN
+
     if arch is None and mode is None and endian is None:
         raise Exception("Failed to get architecture parameter from mode")
 

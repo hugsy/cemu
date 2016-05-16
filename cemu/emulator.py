@@ -5,6 +5,7 @@ import capstone
 from .arch import Architecture
 from .utils import get_arch_mode
 
+
 class Emulator:
 
     def __init__(self, mode, *args, **kwargs):
@@ -41,12 +42,25 @@ class Emulator:
         return
 
 
-
     def unicorn_register(self, reg):
         if self.mode in (Architecture.X86_16_INTEL, Architecture.X86_16_ATT,
                          Architecture.X86_32_INTEL, Architecture.X86_32_ATT,
                          Architecture.X86_64_INTEL, Architecture.X86_64_ATT):
             return getattr(unicorn.x86_const, "UC_X86_REG_%s"%reg.upper())
+
+        if self.mode in (Architecture.ARM_LE, Architecture.ARM_BE,
+                         Architecture.ARM_THUMB_LE, Architecture.ARM_THUMB_BE):
+            return getattr(unicorn.arm_const, "UC_ARM_REG_%s"%reg.upper())
+
+        if self.mode==Architecture.ARM_AARCH64:
+            return getattr(unicorn.arm64_const, "UC_ARM_REG64_%s"%reg.upper())
+
+        if self.mode in (Architecture.MIPS, Architecture.MIPS_BE,
+                         Architecture.MIPS64, Architecture.MIPS64_BE):
+            return getattr(unicorn.arm_const, "UC_ARM_REG_%s"%reg.upper())
+
+        if self.mode in (Architecture.SPARC, Architecture.SPARC64_BE):
+            return getattr(unicorn.arm_const, "UC_ARM_REG_%s"%reg.upper())
 
         # todo add arch arm/aarch/mips/mips64/sparc/sparc64
 
@@ -109,8 +123,8 @@ class Emulator:
         ks = keystone.Ks(arch, mode | endian)
         if self.mode in (Architecture.X86_16_ATT, Architecture.X86_32_ATT, Architecture.X86_64_ATT):
             ks.syntax = keystone.KS_OPT_SYNTAX_ATT
-        code = b";".join(code)
-        self.log(">>> Assembly using keystone: '%s'" % code)
+        code = b" ; ".join(code)
+        self.log(">>> Assembly using keystone: %s" % code)
         try:
             code, cnt = ks.asm(code)
             if cnt == 0:
