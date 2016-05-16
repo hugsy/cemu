@@ -133,3 +133,18 @@ def disassemble_file(fpath, mode):
         raw_data = f.read()
 
     return disassemble(raw_data, mode)
+
+
+def assemble(asm_code, mode):
+    arch, mode, endian = get_arch_mode("keystone", mode)
+    ks = keystone.Ks(arch, mode | endian)
+    if mode in (Architecture.X86_16_ATT, Architecture.X86_32_ATT, Architecture.X86_64_ATT):
+        ks.syntax = keystone.KS_OPT_SYNTAX_ATT
+
+    try:
+        code, cnt = ks.asm(asm_code)
+        code = bytes(bytearray(code))
+    except keystone.keystone.KsError:
+        code, cnt = (b"", -1)
+
+    return (code, cnt)

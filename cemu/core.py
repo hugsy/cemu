@@ -369,13 +369,17 @@ class CanvasWidget(QWidget):
         self.emuWidget.editor.clear()
         self.emu.widget = self
         maps = self.mapWidget.getMappings()
-        self.emu.populate_memory(maps)
+        if not self.emu.populate_memory(maps):
+            return False
         code = self.codeWidget.getCode()
-        self.emu.compile_code(code)
+        if not self.emu.compile_code(code):
+            return False
         regs = self.regWidget.getRegisters()
-        self.emu.populate_registers(regs)
-        self.emu.map_code()
-        return
+        if not self.emu.populate_registers(regs):
+            return False
+        if not self.emu.map_code():
+            return False
+        return True
 
 
     def stopCode(self):
@@ -404,7 +408,9 @@ class CanvasWidget(QWidget):
 
     def run(self):
         if not self.emu.is_running:
-            self.loadContext()
+            if not self.loadContext():
+                self.logWidget.editor.append("An error occured when loading context")
+                return
             self.emu.is_running = True
 
         self.emu.run()
@@ -515,6 +521,7 @@ class EmulatorWindow(QMainWindow):
                 body = f.read()
 
         self.canvas.codeWidget.editor.setPlainText( body )
+        self.canvas.logWidget.editor.append("Loaded '%s'" % qFile)
         return
 
 
@@ -526,22 +533,33 @@ class EmulatorWindow(QMainWindow):
         return self.loadCode("Open Raw file", "Raw binary files (*.raw)", True)
 
 
-    def saveCode(self, title, widget, filter):
-        qFileName = QFileDialog().getSaveFileName(self, title, ".", filter=filter)
-        if qFileName is None or len(qFileName)==0 or qFileName[0]=="":
+    def saveCode(self, title, filter, run_assembler):
+        qFile, qFilter = QFileDialog().getSaveFileName(self, title, ".", filter=filter)
+        if qFile is None or len(qFile)==0 or qFile=="":
             return
 
-        with open(qFileName[0], "w") as f:
-            f.write( widget.toPlainText() )
+        txt = self.canvas.codeWidget.editor.toPlainText()
+
+        if run_assembler:
+            asm = bytes(txt, encoding="utf-8")
+            txt, cnt = assemble(asm, self.mode)
+            if cnt < 0:
+                self.canvas.logWidget.editor.append("Failed to compile code")
+                return
+
+        with open(qFile, "wb") as f:
+            f.write(txt)
+
+        self.canvas.logWidget.editor.append("Saved as '%s'" % qFile)
         return
 
 
     def saveCodeText(self):
-        return self.saveCode("Save Assembly Pane As", self.canvas.codeWidget.editor, "*.asm")
+        return self.saveCode("Save Assembly Pane As", "*.asm", False)
 
 
     def saveCodeBin(self):
-        return self.saveCode("Save Raw Binary Pane As", self.canvas.binWidget.editor, "*.raw")
+        return self.saveCode("Save Raw Binary Pane As", "*.raw", True)
 
 
     def updateMode(self, idx, newAction):

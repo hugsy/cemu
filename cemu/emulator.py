@@ -3,7 +3,7 @@ import keystone
 import capstone
 
 from .arch import Architecture
-from .utils import get_arch_mode
+from .utils import get_arch_mode, assemble
 
 
 class Emulator:
@@ -100,7 +100,7 @@ class Emulator:
 
         self.start_addr = self.areas[".text"][0]
         self.end_addr = -1
-        return
+        return True
 
 
     def populate_registers(self, registers):
@@ -116,7 +116,7 @@ class Emulator:
         # fix $SP
         ur = self.unicorn_register(self.mode.get_sp())
         self.vm.reg_write(ur, self.areas[".stack"][0])
-        return
+        return True
 
 
     def compile_code(self, code, update_end_addr=True):
@@ -126,34 +126,31 @@ class Emulator:
             ks.syntax = keystone.KS_OPT_SYNTAX_ATT
         code = b" ; ".join(code)
         self.log(">>> Assembly using keystone: %s" % code)
-        try:
-            code, cnt = ks.asm(code)
-            if cnt == 0:
-                self.code = b""
-            else:
-                self.code = bytes(bytearray(code))
-                self.log(">>> %d instructions compiled" % cnt)
-
-        except keystone.keystone.KsError:
+        self.code, cnt = assemble(code, self.mode)
+        if cnt < 0:
             self.log(">>> Failed to compile code")
-            self.code = b""
-            return
+            return False
+
+        self.log(">>> %d instructions compiled" % cnt)
 
         # update end_addr since we know the size of the code to execute
         if update_end_addr:
             self.end_addr = self.start_addr + len(self.code)
-        return
+        return True
 
 
     def map_code(self):
         if ".text" not in self.areas.keys():
-            raise Exception("Missing text area")
+            self.log("Missing text area")
+            return False
         if self.code is None:
-            raise Exception("No code defined yet")
+            self.log("No code defined yet")
+            return False
+
         addr = self.areas[".text"][0]
         self.log(">>> mapping .text at %#x" % addr)
         self.vm.mem_write(addr, bytes(self.code))
-        return
+        return True
 
 
     def disassemble_one_instruction(self, code, addr):
