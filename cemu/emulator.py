@@ -170,7 +170,7 @@ class Emulator:
         insn = self.disassemble_one_instruction(code, address)
 
         if self.stop_now:
-            self.start_addr = self.get_register_value(self.mode.get_pc()) + insn.size
+            self.start_addr = self.get_register_value(self.mode.get_pc())
             emu.emu_stop()
             return
 
@@ -179,11 +179,6 @@ class Emulator:
 
         if self.use_step_mode:
             self.stop_now = True
-        return
-
-
-    def hook_block(self, emu, addr, size, misc):
-        self.print(">>> Entering new block at 0x{:x}".format(addr))
         return
 
 

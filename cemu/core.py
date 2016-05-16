@@ -390,6 +390,7 @@ class CanvasWidget(QWidget):
 
     def stepCode(self):
         self.emu.use_step_mode = True
+        self.emu.stop_now = False
         self.run()
         return
 
