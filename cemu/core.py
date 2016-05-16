@@ -396,6 +396,7 @@ class CanvasWidget(QWidget):
 
     def runCode(self):
         self.emu.use_step_mode = False
+        self.emu.stop_now = False
         self.run()
         return
 
@@ -521,7 +522,7 @@ class EmulatorWindow(QMainWindow):
 
 
     def loadCodeBin(self):
-        return self.loadCode("Open Raw file", "Raw binary files (*.bin)", True)
+        return self.loadCode("Open Raw file", "Raw binary files (*.raw)", True)
 
 
     def saveCode(self, title, widget, filter):

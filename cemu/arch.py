@@ -67,7 +67,7 @@ modes = {"x86":[ (Architecture.X86_16_INTEL, "16bit, Intel syntax", X86_16_REGS,
 class Mode:
 
     def __init__(self, *args, **kwargs):
-        # the default mode is x86 32b
+        # the default mode is x86-32
         self.set_new_mode(Architecture.X86_32_INTEL)
         return
 

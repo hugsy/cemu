@@ -20,6 +20,7 @@ class Emulator:
         self.code = None
         self.widget = None
         self.is_running = False
+        self.stop_now = False
         self.areas = {}
         self.registers = {}
         self.create_new_vm()
@@ -165,15 +166,19 @@ class Emulator:
 
 
     def hook_code(self, emu, address, size, user_data):
-        self.log(">> Executing instruction at 0x{:x}".format(address))
         code = self.vm.mem_read(address, size)
         insn = self.disassemble_one_instruction(code, address)
+
+        if self.stop_now:
+            self.start_addr = self.get_register_value(self.mode.get_pc()) + insn.size
+            emu.emu_stop()
+            return
+
+        self.log(">> Executing instruction at 0x{:x}".format(address))
         self.print(">>> 0x{:x}: {:s} {:s}".format(insn.address, insn.mnemonic, insn.op_str))
 
         if self.use_step_mode:
-            emu.emu_stop()
-            self.start_addr = self.get_register_value(self.mode.get_pc()) + insn.size
-            self.log("next start_addr = %#x"  % self.start_addr)
+            self.stop_now = True
         return
 
 
