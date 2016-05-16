@@ -553,6 +553,7 @@ class EmulatorWindow(QMainWindow):
                 return
 
         with open(qFile, "wb") as f:
+            txt = bytes(txt, encoding="utf-8")
             f.write(txt)
 
         self.canvas.logWidget.editor.append("Saved as '%s'" % qFile)

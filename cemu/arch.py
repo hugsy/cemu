@@ -35,8 +35,9 @@ ARM_REGS = ARM_GPR + ["PC",]
 AARCH64_GPR = ["X%d"%i for i in range(31)]
 AARCH64_REGS = AARCH64_GPR + ["PC",]
 
-MIPS_GPR = ["%d"%i for i in range(32)]
-MIPS_REGS = MIPS_GPR + ["PC",]
+# https://msdn.microsoft.com/en-us/library/ms253512(v=vs.90).aspx
+MIPS_GPR = ["ZERO", "AT", "V0", "V1" ] + ["A%d"%i for i in range(4)] + ["T%d"%i for i in range(10)] + ["S%d"%i for i in range(9)]  + ["S%d"%i for i in range(9)] + ["K0", "K1"]
+MIPS_REGS = MIPS_GPR + ["GP", "SP", "RA", "PC"]
 
 SPARC_GPR = ["G%d"%i for i in range(8)] + ["L%d"%i for i in range(8)] + ["I%d"%i for i in range(8)] + ["O%d"%i for i in range(8)]
 SPARC_REGS = SPARC_GPR + ["PC", ]
