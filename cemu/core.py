@@ -183,18 +183,18 @@ class CommandWidget(QWidget):
         self.parent = parent
         layout = QHBoxLayout()
         layout.addStretch(1)
-        runButton = QPushButton("Run all code")
-        runButton.clicked.connect( self.parent.runCode )
-        stepButton = QPushButton("Next instruction")
-        stepButton.clicked.connect( self.parent.stepCode )
-        stopButton = QPushButton("Stop")
-        stopButton.clicked.connect( self.parent.stopCode )
-        checkAsmButton = QPushButton("Check assembly code")
-        checkAsmButton.clicked.connect( self.parent.checkAsmCode )
-        layout.addWidget(runButton)
-        layout.addWidget(stepButton)
-        layout.addWidget(stopButton)
-        layout.addWidget(checkAsmButton)
+        self.runButton = QPushButton("Run all code")
+        self.runButton.clicked.connect( self.parent.runCode )
+        self.stepButton = QPushButton("Next instruction")
+        self.stepButton.clicked.connect( self.parent.stepCode )
+        self.stopButton = QPushButton("Stop")
+        self.stopButton.clicked.connect( self.parent.stopCode )
+        self.checkAsmButton = QPushButton("Check assembly code")
+        self.checkAsmButton.clicked.connect( self.parent.checkAsmCode )
+        layout.addWidget(self.runButton)
+        layout.addWidget(self.stepButton)
+        layout.addWidget(self.stopButton)
+        layout.addWidget(self.checkAsmButton)
         self.setLayout(layout)
         return
 
@@ -393,6 +393,9 @@ class CanvasWidget(QWidget):
         self.emu.stop()
         self.regWidget.updateGrid()
         self.logWidget.editor.append("Emulation context reset")
+        self.commandWidget.stopButton.setDisabled(True)
+        self.commandWidget.runButton.setDisabled(False)
+        self.commandWidget.stepButton.setDisabled(False)
         return
 
 
@@ -416,6 +419,7 @@ class CanvasWidget(QWidget):
                 self.logWidget.editor.append("An error occured when loading context")
                 return
             self.emu.is_running = True
+            self.commandWidget.stopButton.setDisabled(False)
 
         self.emu.run()
         self.regWidget.updateGrid()

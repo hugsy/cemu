@@ -201,6 +201,8 @@ class Emulator:
 
         if self.get_register_value( self.mode.get_pc() )==self.end_addr:
             self.print(">>> End of emulation")
+            self.widget.commandWidget.runButton.setDisabled(True)
+            self.widget.commandWidget.stepButton.setDisabled(True)
         return
 
 
