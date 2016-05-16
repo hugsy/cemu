@@ -112,20 +112,6 @@ class CodeWidget(QWidget):
         return code
 
 
-class BinaryWidget(QWidget):
-    def __init__(self, *args, **kwargs):
-        super(BinaryWidget, self).__init__()
-        layout = QVBoxLayout()
-        label = QLabel("Raw Binary")
-        self.editor = QTextEdit()
-        self.editor.setFont(QFont('Courier', 11))
-        self.editor.setFrameStyle(QFrame.Panel | QFrame.Plain)
-        layout.addWidget(label)
-        layout.addWidget(self.editor)
-        self.setLayout(layout)
-        return
-
-
 class MemoryMappingWidget(QWidget):
     def __init__(self, *args, **kwargs):
         super(MemoryMappingWidget, self).__init__()
@@ -341,7 +327,6 @@ class CanvasWidget(QWidget):
 
     def setCanvasWidgetLayout(self):
         self.codeWidget = CodeWidget()
-        self.binWidget = BinaryWidget()
         self.mapWidget = MemoryMappingWidget(self)
         self.emuWidget = EmulatorWidget(self)
         self.logWidget = LogWidget(self)
@@ -352,7 +337,6 @@ class CanvasWidget(QWidget):
 
         self.tabs = QTabWidget()
         self.tabs.addTab(self.codeWidget, "Assembly")
-        self.tabs.addTab(self.binWidget, "Binary")
         self.tabs.addTab(self.mapWidget, "Mappings")
 
         hboxTop2 = QHBoxLayout()
@@ -516,22 +500,28 @@ class EmulatorWindow(QMainWindow):
         return
 
 
-    def loadCode(self, title, widget):
-        qFiles = QFileDialog().getOpenFileName(self, "Open file", ".", title)
-        qFile = qFiles[0]
+    def loadCode(self, title, filter, run_disassembler):
+        qFile, qFilter = QFileDialog().getOpenFileName(self, title, ".", filter)
+
         if not os.access(qFile, os.R_OK):
             return
-        with open(qFile, 'r') as f:
-            widget.setPlainText( f.read() )
+
+        if run_disassembler:
+            body = disassemble_file(qFile, self.mode)
+        else:
+            with open(qFile, 'r') as f:
+                body = f.read()
+
+        self.canvas.codeWidget.editor.setPlainText( body )
         return
 
 
     def loadCodeText(self):
-        return self.loadCode("Assembly files (*.asm)", self.canvas.codeWidget.editor)
+        return self.loadCode("Open Assembly file", "Assembly files (*.asm)", False)
 
 
     def loadCodeBin(self):
-        return self.loadCode("Raw binary files (*.bin)", self.canvas.binWidget.editor)
+        return self.loadCode("Open Raw file", "Raw binary files (*.bin)", True)
 
 
     def saveCode(self, title, widget, filter):
@@ -549,7 +539,7 @@ class EmulatorWindow(QMainWindow):
 
 
     def saveCodeBin(self):
-        return self.saveCode("Save Raw Binary Pane As", self.canvas.binWidget.editor, "*.bin")
+        return self.saveCode("Save Raw Binary Pane As", self.canvas.binWidget.editor, "*.raw")
 
 
     def updateMode(self, idx, newAction):

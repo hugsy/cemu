@@ -3,6 +3,7 @@ import keystone
 import capstone
 
 from .arch import Architecture
+from .utils import get_arch_mode
 
 class Emulator:
 
@@ -40,38 +41,6 @@ class Emulator:
         return
 
 
-    def get_arch_mode(self, lib):
-        arch = mode = endian = None
-        if   self.mode==Architecture.X86_16_INTEL or self.mode==Architecture.X86_16_ATT:
-            if lib=="keystone":
-                arch, mode, endian = keystone.KS_ARCH_X86, keystone.KS_MODE_16, keystone.KS_MODE_LITTLE_ENDIAN
-            elif lib=="capstone":
-                arch, mode, endian = capstone.CS_ARCH_X86, capstone.CS_MODE_16, capstone.CS_MODE_LITTLE_ENDIAN
-            else:
-                arch, mode, endian = unicorn.UC_ARCH_X86, unicorn.UC_MODE_16, unicorn.UC_MODE_LITTLE_ENDIAN
-
-        elif self.mode==Architecture.X86_32_INTEL or self.mode==Architecture.X86_32_ATT:
-            if lib=="keystone":
-                arch, mode, endian = keystone.KS_ARCH_X86, keystone.KS_MODE_32, keystone.KS_MODE_LITTLE_ENDIAN
-            elif lib=="capstone":
-                arch, mode, endian = capstone.CS_ARCH_X86, capstone.CS_MODE_32, capstone.CS_MODE_LITTLE_ENDIAN
-            else:
-                arch, mode, endian = unicorn.UC_ARCH_X86, unicorn.UC_MODE_32, unicorn.UC_MODE_LITTLE_ENDIAN
-
-        elif self.mode==Architecture.X86_64_INTEL or self.mode==Architecture.X86_64_ATT:
-            if lib=="keystone":
-                arch, mode, endian = keystone.KS_ARCH_X86, keystone.KS_MODE_64, keystone.KS_MODE_LITTLE_ENDIAN
-            elif lib=="capstone":
-                arch, mode, endian = capstone.CS_ARCH_X86, capstone.CS_MODE_64, capstone.CS_MODE_LITTLE_ENDIAN
-            else:
-                arch, mode, endian = unicorn.UC_ARCH_X86, unicorn.UC_MODE_64, unicorn.UC_MODE_LITTLE_ENDIAN
-
-        # todo add arch arm/aarch/mips/mips64/sparc/sparc64
-        if arch is None and mode is None and endian is None:
-            raise Exception("Failed to get architecture parameter from mode")
-
-        return arch, mode, endian
-
 
     def unicorn_register(self, reg):
         if self.mode in (Architecture.X86_16_INTEL, Architecture.X86_16_ATT,
@@ -97,7 +66,7 @@ class Emulator:
 
 
     def create_new_vm(self):
-        arch, mode, endian = self.get_arch_mode("unicorn")
+        arch, mode, endian = get_arch_mode("unicorn", self.mode)
         self.vm = unicorn.Uc(arch, mode | endian)
         self.vm.hook_add(unicorn.UC_HOOK_BLOCK, self.hook_block)
         self.vm.hook_add(unicorn.UC_HOOK_CODE, self.hook_code)
@@ -136,7 +105,7 @@ class Emulator:
 
 
     def compile_code(self, code, update_end_addr=True):
-        arch, mode, endian = self.get_arch_mode("keystone")
+        arch, mode, endian = get_arch_mode("keystone", self.mode)
         ks = keystone.Ks(arch, mode | endian)
         if self.mode in (Architecture.X86_16_ATT, Architecture.X86_32_ATT, Architecture.X86_64_ATT):
             ks.syntax = keystone.KS_OPT_SYNTAX_ATT
@@ -172,8 +141,8 @@ class Emulator:
         return
 
 
-    def disassemble(self, code, addr):
-        arch, mode, endian = self.get_arch_mode("capstone")
+    def disassemble_one_instruction(self, code, addr):
+        arch, mode, endian = get_arch_mode("capstone", self.mode)
         cs = capstone.Cs(arch, mode | endian)
         if self.mode in (Architecture.X86_16_ATT, Architecture.X86_32_ATT, Architecture.X86_64_ATT):
             cs.syntax = capstone.CS_OPT_SYNTAX_ATT
@@ -184,7 +153,7 @@ class Emulator:
     def hook_code(self, emu, address, size, user_data):
         self.log(">> Executing instruction at 0x{:x}".format(address))
         code = self.vm.mem_read(address, size)
-        insn = self.disassemble(code, address)
+        insn = self.disassemble_one_instruction(code, address)
         self.print(">>> 0x{:x}: {:s} {:s}".format(insn.address, insn.mnemonic, insn.op_str))
 
         if self.use_step_mode:
