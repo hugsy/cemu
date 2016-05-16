@@ -22,7 +22,7 @@ Architecture = enum.Enum('Architecture',
                          "SPARC64 " + \
                          "SPARC64_BE" )
 
-X86_GPR = ["AX", "BX", "CX", "DX", "IP", "BP", "SP"]
+X86_GPR = ["AX", "BX", "CX", "DX", "SI", "DI", "IP", "BP", "SP"]
 X86_PGR = ["CS", "DS", "ES", "FS", "GS", "SS"]
 X86_16_REGS = X86_GPR
 X86_32_REGS = ["E"+x for x in X86_GPR]
