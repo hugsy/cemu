@@ -19,6 +19,7 @@ Architecture = enum.Enum('Architecture',
                          "MIPS64 " + \
                          "MIPS64_BE " + \
                          "SPARC " + \
+                         "SPARC_BE " + \
                          "SPARC64 " + \
                          "SPARC64_BE" )
 
@@ -59,6 +60,7 @@ modes = {"x86":[ (Architecture.X86_16_INTEL, "16bit, Intel syntax", X86_16_REGS,
                   (Architecture.MIPS64_BE, "MIPS64 - big endian", MIPS_REGS, "PC", "SP"), ],
 
          "sparc":[ (Architecture.SPARC, "SPARC - little endian", SPARC_REGS, "PC", "SP"),
+                   (Architecture.SPARC_BE, "SPARC - big endian", SPARC_REGS, "PC", "SP"),
                    (Architecture.SPARC64, "SPARC64 - little endian", SPARC_REGS, "PC", "SP"),
                    (Architecture.SPARC64_BE, "SPARC64 - big endian", SPARC_REGS, "PC", "SP"),],
 }

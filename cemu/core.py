@@ -230,10 +230,10 @@ class RegistersWidget(QWidget):
                 val = emu.get_register_value(reg)
             old_val = self.old_register_values.get(reg, 0)
             if val.__class__.__name__ == "int":
-                val = format_address(val, current_mode)
+                value = format_address(val, current_mode)
             else:
-                val = str(val)
-            value = QTableWidgetItem( val )
+                value = str(val)
+            value = QTableWidgetItem( value )
             if old_val != val:
                 self.old_register_values[reg] = val
                 value.setForeground(QColor(Qt.red))

@@ -60,7 +60,7 @@ class Emulator:
                          Architecture.MIPS64, Architecture.MIPS64_BE):
             return getattr(unicorn.mips_const, "UC_MIPS_REG_%s" % reg.upper())
 
-        if self.mode in (Architecture.SPARC, Architecture.SPARC64_BE):
+        if self.mode in (Architecture.SPARC, Architecture.SPARC_BE, Architecture.SPARC64):
             return getattr(unicorn.sparc_const, "UC_SPARC_REG_%s" %reg.upper())
 
         raise Exception("Cannot find register '%s' for arch '%s'" % (reg, self.mode))

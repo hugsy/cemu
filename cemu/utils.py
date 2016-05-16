@@ -105,11 +105,19 @@ def get_arch_mode(lib, m):
     # sparc/sparc64
     elif m==Architecture.SPARC:
         if lib=="keystone":     arch, mode, endian = keystone.KS_ARCH_SPARC, keystone.KS_MODE_SPARC32, keystone.KS_MODE_LITTLE_ENDIAN
-        elif lib=="capstone":   arch, mode, endian = capstone.CS_ARCH_SPARC, capstone.CS_MODE_SPARC32, capstone.CS_MODE_LITTLE_ENDIAN
+        elif lib=="capstone":   arch, mode, endian = capstone.CS_ARCH_SPARC, 0, capstone.CS_MODE_LITTLE_ENDIAN
         else:                   arch, mode, endian = unicorn.UC_ARCH_SPARC, unicorn.UC_MODE_SPARC32, unicorn.UC_MODE_LITTLE_ENDIAN
+    elif m==Architecture.SPARC_BE:
+        if lib=="keystone":     arch, mode, endian = keystone.KS_ARCH_SPARC, keystone.KS_MODE_SPARC32, keystone.KS_MODE_BIG_ENDIAN
+        elif lib=="capstone":   arch, mode, endian = capstone.CS_ARCH_SPARC, 0, capstone.CS_MODE_BIG_ENDIAN
+        else:                   arch, mode, endian = unicorn.UC_ARCH_SPARC, unicorn.UC_MODE_SPARC32, unicorn.UC_MODE_BIG_ENDIAN
+    elif m==Architecture.SPARC64:
+        if lib=="keystone":     arch, mode, endian = keystone.KS_ARCH_SPARC, keystone.KS_MODE_SPARC64, keystone.KS_MODE_LITTLE_ENDIAN
+        elif lib=="capstone":   arch, mode, endian = capstone.CS_ARCH_SPARC, 0, capstone.CS_MODE_LITTLE_ENDIAN
+        else:                   arch, mode, endian = unicorn.UC_ARCH_SPARC, unicorn.UC_MODE_SPARC64, unicorn.UC_MODE_LITTLE_ENDIAN
     elif m==Architecture.SPARC64_BE:
         if lib=="keystone":     arch, mode, endian = keystone.KS_ARCH_SPARC, keystone.KS_MODE_SPARC64, keystone.KS_MODE_BIG_ENDIAN
-        elif lib=="capstone":   arch, mode, endian = capstone.CS_ARCH_SPARC, capstone.CS_MODE_SPARC64, capstone.CS_MODE_BIG_ENDIAN
+        elif lib=="capstone":   arch, mode, endian = capstone.CS_ARCH_SPARC, 0, capstone.CS_MODE_BIG_ENDIAN
         else:                   arch, mode, endian = unicorn.UC_ARCH_SPARC, unicorn.UC_MODE_SPARC64, unicorn.UC_MODE_BIG_ENDIAN
 
     if arch is None and mode is None and endian is None:
