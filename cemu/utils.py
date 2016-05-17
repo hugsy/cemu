@@ -84,6 +84,16 @@ def get_arch_mode(lib, m):
         elif lib=="capstone":   arch, mode, endian = capstone.CS_ARCH_ARM64, capstone.CS_MODE_ARM, capstone.CS_MODE_LITTLE_ENDIAN
         else:                   arch, mode, endian = unicorn.UC_ARCH_ARM64, unicorn.UC_MODE_ARM, unicorn.UC_MODE_LITTLE_ENDIAN
 
+    # powerpc
+    elif m==Architecture.ARM:
+        if lib=="keystone":     arch, mode, endian = keystone.KS_ARCH_PPC, keystone.KS_MODE_PPC32, keystone.KS_MODE_BIG_ENDIAN
+        elif lib=="capstone":   arch, mode, endian = capstone.CS_ARCH_PPC, 0, capstone.CS_MODE_BIG_ENDIAN
+        else:                   arch, mode, endian = unicorn.UC_ARCH_PPC, unicorn.UC_MODE_PPC32, unicorn.UC_MODE_BIG_ENDIAN
+    elif m==Architecture.PPC64:
+        if lib=="keystone":     arch, mode, endian = keystone.KS_ARCH_PPC, keystone.KS_MODE_PPC64, keystone.KS_MODE_BIG_ENDIAN
+        elif lib=="capstone":   arch, mode, endian = capstone.CS_ARCH_PPC, 0, capstone.CS_MODE_BIG_ENDIAN
+        else:                   arch, mode, endian = unicorn.UC_ARCH_PPC, unicorn.UC_MODE_PPC64, unicorn.UC_MODE_BIG_ENDIAN
+
     # mips/mips64
     elif m==Architecture.MIPS:
         if lib=="keystone":     arch, mode, endian = keystone.KS_ARCH_MIPS, keystone.KS_MODE_MIPS32, keystone.KS_MODE_LITTLE_ENDIAN

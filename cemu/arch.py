@@ -18,6 +18,8 @@ Architecture = enum.Enum('Architecture',
                          "MIPS_BE " + \
                          "MIPS64 " + \
                          "MIPS64_BE " + \
+                         "PPC " + \
+                         "PPC64 " + \
                          "SPARC " + \
                          "SPARC_BE " + \
                          "SPARC64 " + \
@@ -29,8 +31,9 @@ X86_16_REGS = X86_GPR
 X86_32_REGS = ["E"+x for x in X86_GPR]
 X86_64_REGS = ["R"+x for x in X86_GPR] + ["R%d"%i for i in range(8,16)]
 
-ARM_GPR = ["R%d"%i for i in range(16)]
-ARM_REGS = ARM_GPR + ["PC",]
+# http://www.keil.com/support/man/docs/armasm/armasm_dom1359731128950.htm
+ARM_GPR = ["R%d"%i for i in range(11)] + ["R12",]
+ARM_REGS = ARM_GPR + ["FP", "SP", "LR", "PC",]
 
 AARCH64_GPR = ["X%d"%i for i in range(31)]
 AARCH64_REGS = AARCH64_GPR + ["PC",]
@@ -38,6 +41,9 @@ AARCH64_REGS = AARCH64_GPR + ["PC",]
 # https://msdn.microsoft.com/en-us/library/ms253512(v=vs.90).aspx
 MIPS_GPR = ["ZERO", "AT", "V0", "V1" ] + ["A%d"%i for i in range(4)] + ["T%d"%i for i in range(10)] + ["S%d"%i for i in range(9)]  + ["S%d"%i for i in range(9)] + ["K0", "K1"]
 MIPS_REGS = MIPS_GPR + ["GP", "SP", "RA", "PC"]
+
+PPC_GPR = ["R%d"%i for i in range(32)]
+PPC_REGS = PPC_GPR + ["PC", ]
 
 SPARC_GPR = ["G%d"%i for i in range(8)] + ["L%d"%i for i in range(8)] + ["I%d"%i for i in range(8)] + ["O%d"%i for i in range(8)]
 SPARC_REGS = SPARC_GPR + ["PC", ]
@@ -59,6 +65,9 @@ modes = {"x86":[ (Architecture.X86_16_INTEL, "16bit, Intel syntax", X86_16_REGS,
                   (Architecture.MIPS_BE, "MIPS - big endian", MIPS_REGS, "PC", "SP"),
                   (Architecture.MIPS64, "MIPS64 - little endian", MIPS_REGS, "PC", "SP"),
                   (Architecture.MIPS64_BE, "MIPS64 - big endian", MIPS_REGS, "PC", "SP"), ],
+
+#         "ppc": [ (Architecture.PPC, "PowerPC - big endian", PPC_REGS, "PC", "SP"),
+#                  (Architecture.PPC64, "PowerPC64 - big endian", PPC_REGS, "PC", "SP"),],
 
          "sparc":[ (Architecture.SPARC, "SPARC - little endian", SPARC_REGS, "PC", "SP"),
                    (Architecture.SPARC_BE, "SPARC - big endian", SPARC_REGS, "PC", "SP"),

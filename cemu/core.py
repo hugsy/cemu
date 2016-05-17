@@ -87,10 +87,11 @@ class Highlighter(QSyntaxHighlighter):
 
 
 class CodeWidget(QWidget):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, parent, *args, **kwargs):
         super(CodeWidget, self).__init__()
         layout = QVBoxLayout()
         label = QLabel("Code")
+        self.parent = parent
         self.editor = QTextEdit()
         self.editor.setFont(QFont('Courier', 11))
         self.editor.setFrameStyle(QFrame.Panel | QFrame.Plain)
@@ -325,12 +326,13 @@ class CanvasWidget(QWidget):
         self.parent = parent
         self.emu = self.parent.emulator
         self.setCanvasWidgetLayout()
+        self.commandWidget.stopButton.setDisabled(True)
         self.show()
         return
 
 
     def setCanvasWidgetLayout(self):
-        self.codeWidget = CodeWidget()
+        self.codeWidget = CodeWidget(self)
         self.mapWidget = MemoryMappingWidget(self)
         self.emuWidget = EmulatorWidget(self)
         self.logWidget = LogWidget(self)

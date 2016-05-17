@@ -21,6 +21,7 @@ class Emulator:
         self.widget = None
         self.is_running = False
         self.stop_now = False
+        self.num_insns = -1
         self.areas = {}
         self.registers = {}
         self.create_new_vm()
@@ -55,6 +56,9 @@ class Emulator:
 
         if self.mode==Architecture.ARM_AARCH64:
             return getattr(unicorn.arm64_const, "UC_ARM64_REG_%s"%reg.upper())
+
+        if self.mode in (Architecture.PPC, Architecture.PPC64):
+            return getattr(unicorn.ppc_const, "UC_PPC_REG_%s" % reg.upper())
 
         if self.mode in (Architecture.MIPS, Architecture.MIPS_BE,
                          Architecture.MIPS64, Architecture.MIPS64_BE):
@@ -120,12 +124,12 @@ class Emulator:
     def compile_code(self, code, update_end_addr=True):
         code = b" ; ".join(code)
         self.log(">>> Assembly using keystone: %s" % code)
-        self.code, cnt = assemble(code, self.mode)
-        if cnt < 0:
+        self.code, self.num_insns = assemble(code, self.mode)
+        if self.num_insns < 0:
             self.log(">>> Failed to compile code")
             return False
 
-        self.log(">>> %d instructions compiled" % cnt)
+        self.log(">>> %d instructions compiled" % self.num_insns)
 
         # update end_addr since we know the size of the code to execute
         if update_end_addr:
