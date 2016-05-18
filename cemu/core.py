@@ -320,6 +320,7 @@ class CanvasWidget(QWidget):
         super(CanvasWidget, self).__init__()
         self.parent = parent
         self.emu = self.parent.emulator
+        self.emu.widget = self
         self.setCanvasWidgetLayout()
         self.commandWidget.stopButton.setDisabled(True)
         self.show()
@@ -368,7 +369,6 @@ class CanvasWidget(QWidget):
         self.logWidget.editor.append("Starting new emulation")
         self.emu.reinit()
         self.emuWidget.editor.clear()
-        self.emu.widget = self
         maps = self.mapWidget.getMappings()
         if not self.emu.populate_memory(maps):
             return False

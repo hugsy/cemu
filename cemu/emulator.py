@@ -11,6 +11,7 @@ class Emulator:
     def __init__(self, mode, *args, **kwargs):
         self.mode = mode
         self.use_step_mode = False
+        self.widget = None
         self.reinit()
         return
 
@@ -18,7 +19,6 @@ class Emulator:
     def reinit(self):
         self.vm = None
         self.code = None
-        self.widget = None
         self.is_running = False
         self.stop_now = False
         self.num_insns = -1
