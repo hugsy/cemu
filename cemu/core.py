@@ -617,7 +617,7 @@ int main(int argc, char** argv, char** envp)
 """
         txt = self.canvas.codeWidget.editor.toPlainText()
         txt = bytes(txt, encoding="utf-8")
-        sc = b''
+        sc = b'""\n';
         i = 0
         for insn in txt.split(b'\n'):
             insn = insn.strip()
@@ -629,7 +629,7 @@ int main(int argc, char** argv, char** envp)
                 return
 
             c = b'"' + b''.join([ b'\\x%.2x'%txt[i] for i in range(len(txt)) ]) + b'"'
-            c+= b'\t\t'
+            c = c.ljust(80, b' ')
             c+= b'// ' + insn + b'\n'
             sc += b'\t' + c
             i += len(txt)
