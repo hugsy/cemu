@@ -21,6 +21,7 @@ def hexdump(source, length=0x10, separator='.', show_raw=False, base=0x00):
 
     return '\n'.join(result)
 
+
 def get_memory_alignment(mode):
     if mode in (Architecture.X86_16_INTEL, Architecture.ARM_THUMB_LE, Architecture.ARM_THUMB_BE):
         return 16
@@ -85,7 +86,7 @@ def get_arch_mode(lib, m):
         else:                   arch, mode, endian = unicorn.UC_ARCH_ARM64, unicorn.UC_MODE_ARM, unicorn.UC_MODE_LITTLE_ENDIAN
 
     # powerpc
-    elif m==Architecture.ARM:
+    elif m==Architecture.PPC:
         if lib=="keystone":     arch, mode, endian = keystone.KS_ARCH_PPC, keystone.KS_MODE_PPC32, keystone.KS_MODE_BIG_ENDIAN
         elif lib=="capstone":   arch, mode, endian = capstone.CS_ARCH_PPC, 0, capstone.CS_MODE_BIG_ENDIAN
         else:                   arch, mode, endian = unicorn.UC_ARCH_PPC, unicorn.UC_MODE_PPC32, unicorn.UC_MODE_BIG_ENDIAN
