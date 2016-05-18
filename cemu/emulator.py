@@ -123,7 +123,7 @@ class Emulator:
 
     def compile_code(self, code, update_end_addr=True):
         code = b" ; ".join(code)
-        self.log(">>> Assembly using keystone: %s" % code)
+        self.log(">>> Assembly using keystone for '%s': %s" % (self.mode.get_title(), code))
         self.code, self.num_insns = assemble(code, self.mode)
         if self.num_insns < 0:
             self.log(">>> Failed to compile code")

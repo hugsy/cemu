@@ -104,14 +104,8 @@ class CodeWidget(QWidget):
         return
 
     def getCode(self):
-        code = []
         text = self.editor.toPlainText()
-        for line in text.split("\n"):
-            line = line.strip()
-            if len(line)==0: continue
-            if line.startswith("#"): continue
-            if line.startswith(";"): continue
-            code.append(bytes(line, encoding="utf-8"))
+        code = [bytes(x, encoding="utf-8") for x in clean_code(text).split("\n")]
         return code
 
 
