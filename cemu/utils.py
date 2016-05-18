@@ -167,3 +167,20 @@ def assemble(asm_code, mode):
         code, cnt = (b"", -1)
 
     return (code, cnt)
+
+
+def clean_code(code):
+    """
+    Returns the code pane content cleaned of all comments.
+    """
+    comment_tags = ["#", ";", "--",]
+    clean = []
+    for line in code.split('\n'):
+        line = line.strip()
+        if len(line)==0:
+            continue
+        if line[0] in comment_tags:
+            continue
+        clean.append(line)
+
+    return '\n'.join(clean)

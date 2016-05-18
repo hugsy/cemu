@@ -615,14 +615,11 @@ int main(int argc, char** argv, char** envp)
     return 0;
 }
 """
-        txt = self.canvas.codeWidget.editor.toPlainText()
+        txt = clean_code( self.canvas.codeWidget.editor.toPlainText() )
         txt = bytes(txt, encoding="utf-8")
         sc = b'""\n';
         i = 0
         for insn in txt.split(b'\n'):
-            insn = insn.strip()
-            if insn.startswith(b"#"): continue
-            if len(insn)==0: continue
             txt, cnt = assemble(insn, self.mode)
             if cnt < 0:
                 self.canvas.logWidget.editor.append("Failed to compile code")
