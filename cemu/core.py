@@ -552,14 +552,16 @@ class EmulatorWindow(QMainWindow):
         txt = self.canvas.codeWidget.editor.toPlainText()
 
         if run_assembler:
+            txt = clean_code(txt)
             asm = bytes(txt, encoding="utf-8")
             txt, cnt = assemble(asm, self.mode)
             if cnt < 0:
                 self.canvas.logWidget.editor.append("Failed to compile code")
                 return
+        else:
+            txt = bytes(txt, encoding="utf-8")
 
         with open(qFile, "wb") as f:
-            txt = bytes(txt, encoding="utf-8")
             f.write(txt)
 
         self.canvas.logWidget.editor.append("Saved as '%s'" % qFile)
