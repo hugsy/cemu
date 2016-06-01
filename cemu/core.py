@@ -105,7 +105,10 @@ class CodeWidget(QWidget):
 
     def getCode(self):
         text = self.editor.toPlainText()
-        code = [bytes(x, encoding="utf-8") for x in clean_code(text).split("\n")]
+        if sys.version_info.major == 2:
+            code = [bytes(x) for x in clean_code(text).split("\n")]
+        else:
+            code = [bytes(x, encoding="utf-8") for x in clean_code(text).split("\n")]
         return code
 
 
@@ -553,13 +556,19 @@ class EmulatorWindow(QMainWindow):
 
         if run_assembler:
             txt = clean_code(txt)
-            asm = bytes(txt, encoding="utf-8")
+            if sys.version_info.major == 2:
+                asm = bytes(txt)
+            else:
+                asm = bytes(txt, encoding="utf-8")
             txt, cnt = assemble(asm, self.mode)
             if cnt < 0:
                 self.canvas.logWidget.editor.append("Failed to compile code")
                 return
         else:
-            txt = bytes(txt, encoding="utf-8")
+            if sys.version_info.major == 2:
+                txt = bytes(txt, encoding="utf-8")
+            else:
+                txt = bytes(txt)
 
         with open(qFile, "wb") as f:
             f.write(txt)
@@ -612,8 +621,11 @@ int main(int argc, char** argv, char** envp)
 }
 """
         txt = clean_code( self.canvas.codeWidget.editor.toPlainText() )
-        txt = bytes(txt, encoding="utf-8")
-        sc = b'""\n';
+        if sys.version_info.major == 2:
+            txt = bytes(txt)
+        else:
+            txt = bytes(txt, encoding="utf-8")
+        sc = b'""\n'
         i = 0
         for insn in txt.split(b'\n'):
             txt, cnt = assemble(insn, self.mode)
@@ -627,8 +639,11 @@ int main(int argc, char** argv, char** envp)
             sc += b'\t' + c
             i += len(txt)
 
-        sc += b'\t""';
-        title = bytes(self.mode.get_title(), encoding="utf-8")
+        sc += b'\t""'
+        if sys.version_info.major == 2:
+            txt = bytes(self.mode.get_title())
+        else:
+            title = bytes(self.mode.get_title(), encoding="utf-8")
         body = template % (title, i, sc)
         fd, fpath = tempfile.mkstemp(suffix=".c")
         os.write(fd, body)

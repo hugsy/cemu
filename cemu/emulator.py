@@ -28,7 +28,7 @@ class Emulator:
         return
 
 
-    def print(self, x):
+    def pprint(self, x):
         if self.widget is None:
             print(x)
         else:
@@ -170,7 +170,7 @@ class Emulator:
             return
 
         self.log(">> Executing instruction at 0x{:x}".format(address))
-        self.print(">>> 0x{:x}: {:s} {:s}".format(insn.address, insn.mnemonic, insn.op_str))
+        self.pprint(">>> 0x{:x}: {:s} {:s}".format(insn.address, insn.mnemonic, insn.op_str))
 
         if self.use_step_mode:
             self.stop_now = True
@@ -178,20 +178,20 @@ class Emulator:
 
 
     def hook_block(self, emu, addr, size, misc):
-        self.print(">>> Entering new block at 0x{:x}".format(addr))
+        self.pprint(">>> Entering new block at 0x{:x}".format(addr))
         return
 
 
     def hook_interrupt(self, emu, intno, data):
-        self.print(">>> Triggering interrupt #{:d}".format(intno))
+        self.pprint(">>> Triggering interrupt #{:d}".format(intno))
         return
 
 
     def hook_mem_access(self, emu, access, address, size, value, user_data):
         if access == unicorn.UC_MEM_WRITE:
-            self.print(">>> MEM_WRITE : *%#x = %#x (size = %u)"% (address, value, size))
+            self.pprint(">>> MEM_WRITE : *%#x = %#x (size = %u)"% (address, value, size))
         elif access == unicorn.UC_MEM_READ:
-            self.print(">>> MEM_READ : reg = *%#x (size = %u)" % (address, size))
+            self.pprint(">>> MEM_READ : reg = *%#x (size = %u)" % (address, size))
         return
 
 
@@ -204,7 +204,7 @@ class Emulator:
             return
 
         if self.get_register_value( self.mode.get_pc() )==self.end_addr:
-            self.print(">>> End of emulation")
+            self.pprint(">>> End of emulation")
             self.widget.commandWidget.runButton.setDisabled(True)
             self.widget.commandWidget.stepButton.setDisabled(True)
         return
