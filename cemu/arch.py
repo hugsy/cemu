@@ -27,16 +27,19 @@ Architecture = enum.Enum('Architecture',
 
 X86_GPR = ["AX", "BX", "CX", "DX", "SI", "DI", "IP", "BP", "SP"]
 X86_PGR = ["CS", "DS", "ES", "FS", "GS", "SS"]
+X86_FLAG = ["EFLAGS", ]
 X86_16_REGS = X86_GPR
-X86_32_REGS = ["E"+x for x in X86_GPR]
-X86_64_REGS = ["R"+x for x in X86_GPR] + ["R%d"%i for i in range(8,16)]
+X86_32_REGS = ["E"+x for x in X86_GPR] + X86_FLAG
+X86_64_REGS = ["R"+x for x in X86_GPR] + ["R%d"%i for i in range(8,16)] + X86_FLAG
 
 # http://www.keil.com/support/man/docs/armasm/armasm_dom1359731128950.htm
 ARM_GPR = ["R%d"%i for i in range(11)] + ["R12",]
-ARM_REGS = ARM_GPR + ["FP", "SP", "LR", "PC",]
+ARM_FLAG = ["CPSR", ]
+ARM_REGS = ARM_GPR + ["FP", "SP", "LR", "PC",] + ARM_FLAG
 
 AARCH64_GPR = ["X%d"%i for i in range(31)]
-AARCH64_REGS = AARCH64_GPR + ["PC",]
+AARCH64_FLAG = ["NZCV", ] # http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dui0801a/BABIBIGB.html
+AARCH64_REGS = AARCH64_GPR + ["PC",] + AARCH64_FLAG
 
 # https://msdn.microsoft.com/en-us/library/ms253512(v=vs.90).aspx
 MIPS_GPR = ["ZERO", "AT", "V0", "V1" ] + ["A%d"%i for i in range(4)] + ["T%d"%i for i in range(10)] + ["S%d"%i for i in range(9)]  + ["S%d"%i for i in range(9)] + ["K0", "K1"]
@@ -46,7 +49,8 @@ PPC_GPR = ["R%d"%i for i in range(32)]
 PPC_REGS = PPC_GPR + ["PC", ]
 
 SPARC_GPR = ["G%d"%i for i in range(8)] + ["L%d"%i for i in range(8)] + ["I%d"%i for i in range(8)] + ["O%d"%i for i in range(8)]
-SPARC_REGS = SPARC_GPR + ["PC", ]
+SPARC_FLAG = ["ICC", ] # incomplete https://www.kernel.org/pub/linux/kernel/people/marcelo/linux-2.4/include/asm-sparc/psr.h
+SPARC_REGS = SPARC_GPR + ["PC", ] + SPARC_FLAG
 
 modes = {"x86":[ (Architecture.X86_16_INTEL, "16bit, Intel syntax", X86_16_REGS, "IP", "SP"),
                  (Architecture.X86_32_INTEL, "32bit, Intel syntax", X86_32_REGS, "EIP", "ESP"),
