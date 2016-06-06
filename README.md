@@ -30,24 +30,29 @@ write assembly code, all of this for the following architectures:
 
 ## Requirements
 
+### Automatically
+
+Run the install script `./requirements.sh`.
+
 ### Manually
 ```bash
 # keystone
 $ git clone https://github.com/keystone-engine/keystone.git
-$ mkdir -p keystone/build && keystone/build
+$ mkdir -p keystone/build && cd keystone/build
 $ cmake .. && make -j8
 $ sudo make install
 $ cd ../bindings/python && sudo make install # or sudo make install3 for Python3
 
 # capstone
 $ git clone https://github.com/aquynh/capstone.git
-$ mkdir -p capstone/build && capstone/build
+$ mkdir -p capstone/build && cd capstone/build
 $ cmake .. && make -j8
 $ sudo make install
 $ cd ../bindings/python && sudo make install # or sudo make install3 for Python3
 
 # unicorn
 $ git clone https://github.com/unicorn-engine/unicorn.git
+$ cd unicorn
 $ ./make.sh -j8
 $ sudo ./make.sh install
 $ cd ./bindings/python && sudo make install # or sudo make install3 for Python3
