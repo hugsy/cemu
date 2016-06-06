@@ -25,6 +25,7 @@ sudo make install3
 # unicorn
 cd /tmp
 git clone https://github.com/unicorn-engine/unicorn.git
+cd unicorn
 ./make.sh -j8
 sudo ./make.sh install
 cd ./bindings/python 
