@@ -1,6 +1,3 @@
 python-qt5
 PyQt5
-unicorn
-keystone
-capstone
 pygments
