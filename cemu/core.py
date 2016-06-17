@@ -448,7 +448,6 @@ class EmulatorWindow(QMainWindow):
 
     def setMainWindowProperty(self):
         self.resize(*WINDOW_SIZE)
-        self.setFixedSize(*WINDOW_SIZE)
         self.updateTitle()
         self.centerMainWindow()
         qApp.setStyle("Cleanlooks")
