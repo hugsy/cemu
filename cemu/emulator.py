@@ -1,3 +1,5 @@
+import os
+
 import unicorn
 import keystone
 import capstone
@@ -94,11 +96,18 @@ class Emulator:
 
 
     def populate_memory(self, areas):
-        for name, address, size, permission in areas:
+        for name, address, size, permission, input_file in areas:
             perm = self.unicorn_permissions(permission)
             self.vm.mem_map(address, size, perm)
             self.areas[name] = [address, size, permission,]
-            self.log(">>> map %s @%x (size=%d,perm=%s)" % (name, address, size, permission))
+
+            msg = ">>> map %s @%x (size=%d,perm=%s)" % (name, address, size, permission)
+            if input_file is not None and os.access(input_file, os.R_OK):
+                code = open(input_file, 'rb').read()
+                self.vm.mem_write(address, bytes(code[:size]))
+                msg += " and content from '%s'" % input_file
+
+            self.log(msg)
 
         self.start_addr = self.areas[".text"][0]
         self.end_addr = -1
@@ -139,8 +148,9 @@ class Emulator:
 
     def map_code(self):
         if ".text" not in self.areas.keys():
-            self.log("Missing text area")
+            self.log("Missing text area (add a .text section in the Mapping tab)")
             return False
+
         if self.code is None:
             self.log("No code defined yet")
             return False

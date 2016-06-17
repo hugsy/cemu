@@ -116,7 +116,7 @@ class MemoryMappingWidget(QWidget):
     def __init__(self, *args, **kwargs):
         super(MemoryMappingWidget, self).__init__()
         layout = QVBoxLayout()
-        label = QLabel("Memory Mapping (name   address  size   permission)")
+        label = QLabel("Memory Mapping (name   address  size   permission   [input_file])")
         self.editor = QTextEdit()
         self.editor.setFont(QFont('Courier', 11))
         self.editor.setFrameStyle(QFrame.Panel | QFrame.Plain)
@@ -138,10 +138,19 @@ class MemoryMappingWidget(QWidget):
         maps = []
         lines = self.editor.toPlainText().split("\n")
         for line in lines:
-            name, address, size, permission = line.split()
+            line = line.strip()
+            if line.startswith("#"):
+                continue
+
+            parts = line.split()
+            read_from_file = None
+            if len(parts)==5:
+                read_from_file = parts[4]
+
+            name, address, size, permission = parts[0:4]
             address = int(address, 0x10)
             size = int(size, 0x10)
-            maps.append( [name, address, size, permission] )
+            maps.append( [name, address, size, permission, read_from_file] )
         return maps
 
 
