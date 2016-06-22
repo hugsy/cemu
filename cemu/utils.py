@@ -81,7 +81,7 @@ def get_arch_mode(lib, m):
 
     # aarch64
     elif m==Architecture.ARM_AARCH64:
-        if lib=="keystone":     arch, mode, endian = keystone.KS_ARCH_ARM64, keystone.KS_MODE_ARM, keystone.KS_MODE_LITTLE_ENDIAN
+        if lib=="keystone":     arch, mode, endian = keystone.KS_ARCH_ARM64, 0, keystone.KS_MODE_LITTLE_ENDIAN
         elif lib=="capstone":   arch, mode, endian = capstone.CS_ARCH_ARM64, capstone.CS_MODE_ARM, capstone.CS_MODE_LITTLE_ENDIAN
         else:                   arch, mode, endian = unicorn.UC_ARCH_ARM64, unicorn.UC_MODE_ARM, unicorn.UC_MODE_LITTLE_ENDIAN
 
