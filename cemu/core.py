@@ -579,9 +579,9 @@ class EmulatorWindow(QMainWindow):
                 return
         else:
             if sys.version_info.major == 2:
-                txt = bytes(txt, encoding="utf-8")
-            else:
                 txt = bytes(txt)
+            else:
+                txt = bytes(txt, encoding="utf-8")
 
         with open(qFile, "wb") as f:
             f.write(txt)

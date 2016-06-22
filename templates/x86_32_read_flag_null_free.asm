@@ -1,5 +1,5 @@
 #
-# linux shellcode x86-32:  write(1, read(open("flag"), &content, 256) )
+# linux shellcode x86-32:  write(1, read(open("flag"), &esp, 256) )
 # assumes esp is valid
 # 
 # @_hugsy_
