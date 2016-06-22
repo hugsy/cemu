@@ -714,7 +714,7 @@ int main(int argc, char** argv, char** envp)
                 return
 
             c = b'"' + b''.join([ b'\\x%.2x'%txt[i] for i in range(len(txt)) ]) + b'"'
-            c = c.ljust(80, b' ')
+            c = c.ljust(60, b' ')
             c+= b'// ' + insn + b'\n'
             sc += b'\t' + c
             i += len(txt)
