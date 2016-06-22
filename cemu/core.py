@@ -5,6 +5,7 @@ import os
 import functools
 import time
 import tempfile
+import binascii
 
 import unicorn
 
@@ -103,13 +104,86 @@ class CodeWidget(QWidget):
         self.setLayout(layout)
         return
 
-    def getCode(self):
-        text = self.editor.toPlainText()
+
+    def getCleanCodeAsByte(self, as_string=False, parse_string=False):
+        """
+        Returns the content of the Code widget as a byte array.
+        """
+        code = self.editor.toPlainText().split("\n")
         if sys.version_info.major == 2:
-            code = [bytes(x) for x in clean_code(text).split("\n")]
+            code = [bytes(x) for x in code]
         else:
-            code = [bytes(x, encoding="utf-8") for x in clean_code(text).split("\n")]
+            code = [bytes(x, encoding="utf-8") for x in code]
+
+        # remove comments
+        code = self.getCleanCode(code)
+
+        # parse strings
+        if parse_string:
+            code = self.parseStringInCode(code)
+
+        if as_string:
+            return b'\n'.join(code)
+
         return code
+
+
+    def getCleanCode(self, code, as_string=False):
+        """
+        Returns the code pane content cleaned of all comments.
+        """
+        comment_tags = ["#", ";", "--",]
+        clean = []
+        for line in code:
+            line = line.strip()
+            if len(line)==0:
+                continue
+            c = line[0]
+            if sys.version_info.major == 3:
+                c = chr(line[0])
+            if c in comment_tags:
+                continue
+            clean.append(line)
+
+        if as_string:
+            return b"\n".join(clean)
+
+        return clean
+
+
+    def parseStringInCode(self, code, as_string=False):
+        """
+        This function will search for every line of assembly for quote(")
+        pattern and convert it as a hexadecimal number.
+        """
+        parsed = []
+        for line in code:
+            i = line.find(b'"')
+            if i==-1:
+                # no string
+                parsed.append(line)
+                continue
+
+            j = line[i+1:].find(b'"')
+            if j==-1:
+                # unfinished string
+                parsed.append(line)
+                continue
+
+            if j != self.parent.parent.emulator.get_register_size():
+                # incorrect size
+                parsed.append(line)
+                continue
+
+            origstr = line[i+1:i+j+1]
+            hexstr  = binascii.hexlify(origstr)
+            newline = line.replace(b'"%s"'%origstr, b'0x%s'%hexstr)
+            parsed.append(newline)
+
+        if as_string:
+            return b'\n'.join(parsed)
+
+        return parsed
 
 
 class MemoryMappingWidget(QWidget):
@@ -384,7 +458,7 @@ class CanvasWidget(QWidget):
         maps = self.mapWidget.getMappings()
         if not self.emu.populate_memory(maps):
             return False
-        code = self.codeWidget.getCode()
+        code = self.codeWidget.getCleanCodeAsByte(as_string=False, parse_string=True)
         if not self.emu.compile_code(code):
             return False
         regs = self.regWidget.getRegisters()
@@ -437,7 +511,7 @@ class CanvasWidget(QWidget):
 
 
     def checkAsmCode(self):
-        code = self.codeWidget.getCode()
+        code = self.codeWidget.getCleanCodeAsByte()
         self.emu.compile_code(code, False)
         return
 
@@ -565,23 +639,14 @@ class EmulatorWindow(QMainWindow):
         if qFile is None or len(qFile)==0 or qFile=="":
             return
 
-        txt = self.canvas.codeWidget.editor.toPlainText()
-
         if run_assembler:
-            txt = clean_code(txt)
-            if sys.version_info.major == 2:
-                asm = bytes(txt)
-            else:
-                asm = bytes(txt, encoding="utf-8")
+            asm = self.canvas.codeWidget.getCleanCodeAsByte(as_string=True)
             txt, cnt = assemble(asm, self.mode)
             if cnt < 0:
                 self.canvas.logWidget.editor.append("Failed to compile code")
                 return
         else:
-            if sys.version_info.major == 2:
-                txt = bytes(txt)
-            else:
-                txt = bytes(txt, encoding="utf-8")
+            txt = self.canvas.codeWidget.getCleanCodeAsByte(as_string=True)
 
         with open(qFile, "wb") as f:
             f.write(txt)
@@ -634,16 +699,15 @@ int main(int argc, char** argv, char** envp)
     return 0;
 }
 """
-        txt = clean_code( self.canvas.codeWidget.editor.toPlainText() )
+        insns = self.canvas.codeWidget.getCleanCodeAsByte(as_string=False)
         if sys.version_info.major == 2:
-            txt = bytes(txt)
             title = bytes(self.mode.get_title())
         else:
-            txt = bytes(txt, encoding="utf-8")
             title = bytes(self.mode.get_title(), encoding="utf-8")
+
         sc = b'""\n'
         i = 0
-        for insn in txt.split(b'\n'):
+        for insn in insns:
             txt, cnt = assemble(insn, self.mode)
             if cnt < 0:
                 self.canvas.logWidget.editor.append("Failed to compile code")
@@ -685,12 +749,10 @@ _start:
 ;;;
 ;;;
 """
-        txt = clean_code( self.canvas.codeWidget.editor.toPlainText() )
+        txt = self.canvas.codeWidget.getCleanCodeAsByte(as_string=True)
         if sys.version_info.major == 2:
-            txt = bytes(txt)
             title = bytes(self.mode.get_title())
         else:
-            txt = bytes(txt, encoding="utf-8")
             title = bytes(self.mode.get_title(), encoding="utf-8")
 
         asm = asm_fmt % (title, b'\n'.join([b"\t%s"%x for x in txt.split(b'\n')]))
