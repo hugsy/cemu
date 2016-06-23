@@ -294,7 +294,7 @@ class RegistersWidget(QWidget):
         layout = QVBoxLayout()
         label = QLabel("Registers")
         self.values = QTableWidget(10, 2)
-        self.values.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.values.horizontalHeader().setStretchLastSection(True)
         self.values.setHorizontalHeaderLabels(["Register", "Value"])
         layout.addWidget(label)
         layout.addWidget(self.values)
