@@ -116,3 +116,16 @@ class Mode:
 
     def __eq__(self, x):
         return x==self.get_id()
+
+    def get_memory_alignment(self):
+        if self.get_id() in (Architecture.X86_16_INTEL,
+                               Architecture.ARM_THUMB_LE,
+                               Architecture.ARM_THUMB_BE):
+            return 16
+
+        if self.get_id() in (Architecture.X86_64_INTEL,
+                               Architecture.X86_64_ATT,
+                               Architecture.ARM_AARCH64):
+            return 64
+
+        return 32

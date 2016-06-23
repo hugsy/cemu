@@ -22,18 +22,9 @@ def hexdump(source, length=0x10, separator='.', show_raw=False, base=0x00):
     return '\n'.join(result)
 
 
-def get_memory_alignment(mode):
-    if mode in (Architecture.X86_16_INTEL, Architecture.ARM_THUMB_LE, Architecture.ARM_THUMB_BE):
-        return 16
-
-    if mode in (Architecture.X86_64_INTEL, Architecture.X86_64_ATT):
-        return 64
-
-    return 32
-
 
 def format_address(addr, mode):
-    memalign_size = get_memory_alignment(mode)
+    memalign_size = mode.get_memory_alignment()
     if memalign_size == 16:
         return "%#.4x" % (addr & 0xFFFF)
     elif memalign_size == 32:

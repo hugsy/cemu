@@ -77,17 +77,6 @@ class Emulator:
         return self.vm.reg_read(ur)
 
 
-    def get_register_size(self):
-        if self.mode in (Architecture.X86_16_INTEL, Architecture.X86_16_ATT):
-            return 2
-
-        if self.mode in (Architecture.X86_64_INTEL, Architecture.X86_64_ATT,
-                         Architecture.ARM_AARCH64):
-            return 8
-
-        return 4
-
-
     def unicorn_permissions(self, perms):
         p = 0
         for perm in perms.split("|"):

@@ -170,7 +170,7 @@ class CodeWidget(QWidget):
                 parsed.append(line)
                 continue
 
-            if j != self.parent.parent.emulator.get_register_size():
+            if (j*8) != self.parent.parent.emulator.mode.get_memory_alignment():
                 # incorrect size
                 parsed.append(line)
                 continue
