@@ -13,9 +13,12 @@ def check_dependencies():
             sys.exit(1)
     return
 
+def run():
+    from cemu.core import Cemu
+    Cemu()
+    return
 
 if __name__ == '__main__':
-    from cemu.core import Cemu
-
     check_dependencies()
-    Cemu()
+    run()
+    sys.exit(0)
