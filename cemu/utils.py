@@ -153,6 +153,8 @@ def assemble(asm_code, mode):
 
     try:
         code, cnt = ks.asm(asm_code)
+        if cnt==0:
+            code = b""
         code = bytes(bytearray(code))
     except keystone.keystone.KsError:
         code, cnt = (b"", -1)

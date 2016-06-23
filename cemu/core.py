@@ -109,7 +109,11 @@ class CodeWidget(QWidget):
         """
         Returns the content of the Code widget as a byte array.
         """
-        code = self.editor.toPlainText().split("\n")
+        code = self.editor.toPlainText()
+        if code is None or len(code)==0:
+            return [] if not as_string else b""
+
+        code = code.split("\n")
         if sys.version_info.major == 2:
             code = [bytes(x) for x in code]
         else:
