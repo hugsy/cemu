@@ -26,7 +26,7 @@ write assembly code, all of this for the following architectures:
 
 ## Show Me
 
-![demo](https://i.imgur.com/7CZbuHO.png)
+![demo](https://i.imgur.com/1vep3WM.png)
 
 ## Requirements
 
