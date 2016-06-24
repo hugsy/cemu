@@ -45,4 +45,4 @@ sudo make install3
 
 popd
 
-sudo pip3 install -r ./requirements.txt
+sudo ${PIP3} install -r ./requirements.txt
