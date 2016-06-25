@@ -26,6 +26,9 @@ WINDOW_SIZE = (1600, 800)
 ICON = os.path.dirname(os.path.realpath(__file__)) + "/icon.png"
 TITLE = "Cheap EMUlator"
 
+if sys.version_info.major == 3:
+    long = int
+
 
 class QFormatter(Formatter):
     # from http://ralsina.me/static/highlighter.py
@@ -315,7 +318,7 @@ class RegistersWidget(QWidget):
             else:
                 val = emu.get_register_value(reg)
             old_val = self.old_register_values.get(reg, 0)
-            if val.__class__.__name__ == "int":
+            if type(val) in (int, long):
                 value = format_address(val, current_mode)
             else:
                 value = str(val)

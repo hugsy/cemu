@@ -1,3 +1,2 @@
 python-qt5
-PyQt5
 pygments
