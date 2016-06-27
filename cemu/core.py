@@ -17,8 +17,10 @@ from pygments import highlight
 from pygments.lexers import *
 from pygments.formatter import Formatter
 
+
 from .arch import Architecture, modes, Mode
 from .emulator import Emulator
+from .reil import Reil
 from .utils import *
 
 
@@ -235,6 +237,25 @@ class MemoryMappingWidget(QWidget):
         return maps
 
 
+class SymR(QWidget):
+     def __init__(self, parent, *args, **kwargs):
+        super(SymR, self).__init__()
+        self.parent = parent
+        self.symr = self.parent.symr
+        layout = QVBoxLayout()
+        label = QLabel("OpenREIL context")
+        self.editor = QTextEdit()
+        self.editor.setFont(QFont('Courier', 11))
+        self.editor.setFrameStyle(QFrame.Panel | QFrame.Plain)
+        self.editor.setReadOnly(True)
+        layout.addWidget(label)
+        layout.addWidget(self.editor)
+        self.setLayout(layout)
+        return
+
+
+
+
 class EmulatorWidget(QWidget):
      def __init__(self, parent, *args, **kwargs):
         super(EmulatorWidget, self).__init__()
@@ -281,10 +302,13 @@ class CommandWidget(QWidget):
         self.stopButton.clicked.connect( self.parent.stopCode )
         self.checkAsmButton = QPushButton("Check assembly code")
         self.checkAsmButton.clicked.connect( self.parent.checkAsmCode )
+        self.symButton = QPushButton("Symbolic expressions")
+        self.symButton.clicked.connect( self.parent.SymCode)
         layout.addWidget(self.runButton)
         layout.addWidget(self.stepButton)
         layout.addWidget(self.stopButton)
         layout.addWidget(self.checkAsmButton)
+        layout.addWidget(self.symButton)
         self.setLayout(layout)
         return
 
@@ -414,6 +438,8 @@ class CanvasWidget(QWidget):
         self.parent = parent
         self.emu = self.parent.emulator
         self.emu.widget = self
+        self.symr = self.parent.reil
+        self.symr.widget = self
         self.setCanvasWidgetLayout()
         self.commandWidget.stopButton.setDisabled(True)
         self.show()
@@ -423,6 +449,7 @@ class CanvasWidget(QWidget):
     def setCanvasWidgetLayout(self):
         self.codeWidget = CodeWidget(self)
         self.mapWidget = MemoryMappingWidget(self)
+        self.Symrwidget = SymR(self)
         self.emuWidget = EmulatorWidget(self)
         self.logWidget = LogWidget(self)
         self.commandWidget = CommandWidget(self)
@@ -444,6 +471,7 @@ class CanvasWidget(QWidget):
 
         self.tabs2 = QTabWidget()
         self.tabs2.addTab(self.emuWidget, "Emulator")
+        self.tabs2.addTab(self.Symrwidget, "IR Context")
         self.tabs2.addTab(self.logWidget, "Log")
 
         hboxBottom = QHBoxLayout()
@@ -502,6 +530,14 @@ class CanvasWidget(QWidget):
         self.run()
         return
 
+    def SymCode(self):
+        if sys.version_info[:2] > (2, 7):
+            self.Symrwidget.editor.append("Must use Python 2.x")
+            return
+
+        self.commandWidget.stopButton.setDisabled(False)
+        self.symr.entry()
+        return
 
     def run(self):
         if not self.emu.is_running:
@@ -528,6 +564,7 @@ class EmulatorWindow(QMainWindow):
         super(EmulatorWindow, self).__init__()
         self.mode = Mode()
         self.emulator = Emulator(self.mode)
+        self.reil = Reil(self.mode)
         self.canvas = CanvasWidget(self)
         self.setMainWindowProperty()
         self.setMainWindowMenuBar()
