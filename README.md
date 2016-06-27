@@ -15,6 +15,15 @@ write assembly code, all of this for the following architectures:
    - (more to come)
 
 
+## Added OpenREIL library. 
+OpenREIL is open source library that implements translator and tools for REIL. OpenREIL library can be used optionally. Current version of OpenREIL still has only support x86 (Intel) architecture. 
+
+#Installation and Other information
+https://github.com/Cr4sh/openreil
+
+
+![cemu-reil](https://raw.githubusercontent.com/drmint80/cemu/master/screen.png)
+
 ## Pre-Requisites
 
   - `unicorn` and its Python bindings, as the emulation engine
