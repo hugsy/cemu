@@ -1,2 +1,2 @@
-python-qt5
 pygments
+python-qt5
