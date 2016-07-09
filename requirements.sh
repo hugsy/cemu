@@ -46,7 +46,7 @@ if [ $? -ne 0 ]; then
     sudo make install3
 fi
 
-${PYTHON3} -c 'import capstone' 2>/dev/null
+${PYTHON3} -c 'import unicorn' 2>/dev/null
 if [ $? -ne 0 ]; then
     echo "[+] Installing unicorn + bindings"
     cd /tmp
