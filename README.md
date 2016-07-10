@@ -41,28 +41,25 @@ write assembly code, all of this for the following architectures:
 
 ## Requirements ##
 
-### Linux ###
+### Linux / OSX ###
 
-Use your distribution package manager to ensure that you have:
+Use the script `requirements.sh` to install all the dependencies required for
+`cemu`.
 
-  * `cmake`
-  * Python3 (prefered, but Python 2 works as well) + `pip3`
-  * a C compiler (gcc, clang, etc.)
+Since some packages can be installed via your package manager, the script may
+ask for your root password if required.
 
-Then run the install script `./requirements.sh`.
+```bash
+$ ./requirements.sh
+```
 
+By default, the script will install the dependencies to have `cemu` running with
+Python3. If you prefer to use Python2, simply add `--python2` to the command
+line, like this:
 
-### OSX ###
-
-Use `brew` to install:
-
-  * `cmake`
-  * Python3 (`pip3` will be automatically installed)
-  * `pkg-config`
-  * `glib`
-
-Finally you can execute the script `./requirements.sh` that will install the
-rest of the requirements to run `cemu`.
+```bash
+$ ./requirements.sh --python2
+```
 
 
 ### Windows

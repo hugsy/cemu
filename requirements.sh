@@ -20,6 +20,7 @@ elif [ "$(uname)" == "Linux" ]; then
             fi
         fi
     fi
+    PKG="sudo ${PKG}"
 else
     echo "[-] Unsupported OS (this script supports only Linux or OSX)"
     exit 1
