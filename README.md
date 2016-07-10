@@ -83,15 +83,17 @@ package `enum34`.
 
 ## OpenReil integration
 
-[`OpenREIL`](https://github.com/Cr4sh/openreil) is open source library that implements translator and tools for
-REIL. OpenREIL library can be used optionally. Current version of OpenREIL still
-has only support x86 (Intel) architecture.
+[`OpenREIL`](https://github.com/Cr4sh/openreil) is an Open Source library
+created by [@Cr4sh](https://twitter.com/@d_olex) that implements a translator
+and tools for generating Intermediate Language level code (REIL). OpenREIL
+library can be used optionally with `cemu`. The Current version of OpenREIL only
+providessupport for x86 (Intel) architecture.
 
-
-If you use `cemu` with Python 2.7, you can also use [`OpenReil`](https://github.com/Cr4sh/openreil) to generate IR
+If you use `cemu` with Python 2.7, you can also use
+[`OpenReil`](https://github.com/Cr4sh/openreil) to generate IR
 code based on the content of the `Code` panel.
 
 ![cemu-openreil](http://i.imgur.com/R1wXLpG.png)
 
-Follow the installation procedure for `OpenReil` by following the steps
+To do so, follow the installation procedure for `OpenReil` by following the steps
 [here](https://github.com/Cr4sh/openreil#_2).
