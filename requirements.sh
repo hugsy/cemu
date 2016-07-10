@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Basic requirement installer for cemu
+# Requirement installer for cemu
 #
 
 
