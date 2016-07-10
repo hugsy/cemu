@@ -61,7 +61,6 @@ line, like this:
 $ ./requirements.sh --python2
 ```
 
-
 ### Windows
 
 The fastest way for Windows is to install the packaged binaries for:
@@ -73,9 +72,14 @@ The fastest way for Windows is to install the packaged binaries for:
      (http://www.unicorn-engine.org/download/)
 
 Then spawn `cmd.exe` and install the missing Python packages: `python-qt5`,
-`pygments`). If you are running Python2, you will also need to install the
-package `enum34`.
+`pygments`).
 
+```bash
+C:>pip.exe install python-qt5 pygments
+```
+
+If you are running Python2, you will also need to install the
+package `enum34`.
 
 ## OpenReil integration
 
