@@ -15,8 +15,8 @@ write assembly code, all of this for the following architectures:
    - (more to come)
 
 
-## Added OpenREIL library. 
-OpenREIL is open source library that implements translator and tools for REIL. OpenREIL library can be used optionally. Current version of OpenREIL still has only support x86 (Intel) architecture. 
+## Added OpenREIL library.
+OpenREIL is open source library that implements translator and tools for REIL. OpenREIL library can be used optionally. Current version of OpenREIL still has only support x86 (Intel) architecture.
 
 #Installation and Other information
 https://github.com/Cr4sh/openreil
@@ -87,3 +87,14 @@ The fastest way for Windows is to install the packaged binaries for:
 Then spawn `cmd.exe` and install the missing Python packages: `python-qt5`,
 `pygments`). If you are running Python2, you will also need to install the
 package `enum34`.
+
+
+## OpenReil integration
+
+If you use `cemu` with Python 2.7, you can also use [`OpenReil`](https://github.com/Cr4sh/openreil) to generate IR
+code based on the content of the `Code` panel.
+
+![cemu-openreil](http://i.imgur.com/R1wXLpG.png)
+
+Follow the installation procedure for `OpenReil` by following the steps
+[here](https://github.com/Cr4sh/openreil#_2).
