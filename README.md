@@ -87,7 +87,7 @@ package `enum34`.
 created by [@Cr4sh](https://twitter.com/@d_olex) that implements a translator
 and tools for generating Intermediate Language level code (REIL). OpenREIL
 library can be used optionally with `cemu`. The Current version of OpenREIL only
-providessupport for x86 (Intel) architecture.
+provides support for x86 (Intel) architecture.
 
 If you use `cemu` with Python 2.7, you can also use
 [`OpenReil`](https://github.com/Cr4sh/openreil) to generate IR
