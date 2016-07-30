@@ -56,7 +56,7 @@ if [ ${PIP} == "pip" ]; then
 fi
 
 # install pyqt5
-if [ ${PKG}==brew ]; then
+if [ ${PKG} == "brew" ]; then
     ${PKG} install pyqt5 pkg-config glib
 else
     ${PKG} install ${PYTHON}-pyqt5 pkg-config libglib2.0-dev
