@@ -64,8 +64,6 @@ fi
 
 pushd .
 
-set +e 
-
 # install keystone/capstone/unicorn
 ${PYTHON} -c 'import keystone' 2>/dev/null
 if [ $? -ne 0 ]; then
