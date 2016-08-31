@@ -51,12 +51,12 @@ done
 set -e
 
 # installing enum module for python2
-if [ ${PIP} == "pip" ]; then
+if [ "${PIP}" == "pip" ]; then
     ${PIP} install enum34
 fi
 
 # install pyqt5
-if [ "${PKG}"" == "brew" ]; then
+if [ "${PKG}" == "brew" ]; then
     ${PKG} install pyqt5 pkg-config glib
 else
     ${PKG} install ${PYTHON}-pyqt5 pkg-config libglib2.0-dev
