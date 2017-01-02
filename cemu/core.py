@@ -471,7 +471,8 @@ class CanvasWidget(QWidget):
 
         self.tabs2 = QTabWidget()
         self.tabs2.addTab(self.emuWidget, "Emulator")
-        self.tabs2.addTab(self.Symrwidget, "IR Context")
+        if "pyopenreil" in sys.modules.keys():
+            self.tabs2.addTab(self.Symrwidget, "IR Context")
         self.tabs2.addTab(self.logWidget, "Log")
 
         hboxBottom = QHBoxLayout()

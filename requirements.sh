@@ -6,20 +6,26 @@
 
 if [ "$(uname)" == "Darwin" ]; then
     echo "[+] Install for OSX"
-    PKG="$(which brew >/dev/null)"
+    PKG="$(which brew)"
+    if [ $? -ne 0 ]; then
+        echo "[-] brew is missing"
+        exit 1
+    fi
+
 elif [ "$(uname)" == "Linux" ]; then
     echo "[+] Install for Linux"
-    PKG="$(which dnf >/dev/null)"
-    if [ $? -ne 0 ]; then
-        PKG="$(which yum >/dev/null)"
-        if [ $? -ne 0 ]; then
-            PKG="$(which apt >/dev/null)"
-            if [ $? -ne 0 ]; then
-                echo "[-] No valid package manager found"
-                exit 1
-            fi
+    for pm in dnf yum apt; do
+        p="$(which ${pm} | grep -v 'not found')"
+        if [ -n "${p}" ]; then
+            PKG="${p}"
+            break
         fi
+    done
+    if [ -z "${PKG}" ]; then
+        echo "[-] Invalid package manager"
+        exit 1
     fi
+
     PKG="sudo ${PKG}"
 else
     echo "[-] Unsupported OS (this script supports only Linux or OSX)"
@@ -28,7 +34,7 @@ fi
 
 echo "[+] Using package manager '${PKG}'"
 
-if [ $1 == "--python2" ]; then
+if [ "$1" == "--python2" ]; then
     PYTHON=python2
     PIP=pip
     echo "[+] Install for python2"
@@ -41,7 +47,7 @@ fi
 # install build tools
 for req in git cmake ${PYTHON} ${PIP}
 do
-    dep="$(which $i)"
+    dep="$(which $req)"
     if [ $? -ne 0 ]; then
         echo "[-] '${req}' is missing, installing..."
         ${PKG} install ${req}
@@ -56,7 +62,7 @@ if [ "${PIP}" == "pip" ]; then
 fi
 
 # install pyqt5
-if [ "${PKG}" == "brew" ]; then
+if [ "$(uname)" == "Darwin" ]; then
     ${PKG} install pyqt5 pkg-config glib
 else
     ${PKG} install ${PYTHON}-pyqt5 pkg-config libglib2.0-dev
