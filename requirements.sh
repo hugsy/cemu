@@ -54,7 +54,6 @@ do
     fi
 done
 
-set -e
 
 # installing enum module for python2
 if [ "${PIP}" == "pip" ]; then
@@ -92,7 +91,7 @@ if [ $? -ne 0 ]; then
     echo "[+] Installing capstone + bindings"
     cd /tmp
     git clone https://github.com/aquynh/capstone.git
-    mkdir -p capstone/build && cd capstone/build
+    cd capstone
     ./make.sh
     sudo ./make.sh install
     cd ./bindings/python
