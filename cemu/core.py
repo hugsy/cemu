@@ -22,6 +22,7 @@ from .arch import Architecture, modes, Mode
 from .emulator import Emulator
 from .reil import Reil
 from .utils import *
+from .shortcuts import Shortcut
 
 
 WINDOW_SIZE = (1600, 800)
@@ -292,16 +293,26 @@ class CommandWidget(QWidget):
      def __init__(self, parent, *args, **kwargs):
         super(CommandWidget, self).__init__()
         self.parent = parent
+        sc = self.parent.parent.shortcuts
         layout = QHBoxLayout()
         layout.addStretch(1)
+
         self.runButton = QPushButton("Run all code")
         self.runButton.clicked.connect( self.parent.runCode )
+        self.runButton.setShortcut(sc.shortcut("emulator_run_all"))
+
         self.stepButton = QPushButton("Next instruction")
         self.stepButton.clicked.connect( self.parent.stepCode )
+        self.stepButton.setShortcut(sc.shortcut("emulator_step"))
+
         self.stopButton = QPushButton("Stop")
+        self.stopButton.setShortcut(sc.shortcut("emulator_stop"))
         self.stopButton.clicked.connect( self.parent.stopCode )
+
         self.checkAsmButton = QPushButton("Check assembly code")
+        self.checkAsmButton.setShortcut(sc.shortcut("emulator_check"))
         self.checkAsmButton.clicked.connect( self.parent.checkAsmCode )
+
         layout.addWidget(self.runButton)
         layout.addWidget(self.stepButton)
         layout.addWidget(self.stopButton)
@@ -566,7 +577,7 @@ class CanvasWidget(QWidget):
             msg = "Some errors were found in your code, please check..."
             popup = QMessageBox.warning
 
-        popup(self,"Checking assembly code syntax...",msg)
+        popup(self,"Checking assembly code syntax...", msg)
         return
 
 
@@ -574,6 +585,7 @@ class EmulatorWindow(QMainWindow):
     def __init__(self, *args, **kwargs):
         super(EmulatorWindow, self).__init__()
         self.mode = Mode()
+        self.shortcuts = Shortcut()
         self.emulator = Emulator(self.mode)
         self.reil = Reil(self.mode)
         self.canvas = CanvasWidget(self)
@@ -601,44 +613,51 @@ class EmulatorWindow(QMainWindow):
         return
 
 
+    def add_menu_item(self, title, callback, description=None, shortcut=None):
+        action = QAction(QIcon(), title, self)
+        action.triggered.connect( callback )
+        if description:
+            action.setStatusTip(description)
+        if shortcut:
+            action.setShortcut(shortcut)
+        return action
+
+
     def setMainWindowMenuBar(self):
-        loadAsmAction = QAction(QIcon(), "Load Assembly", self)
-        loadAsmAction.setShortcut("Ctrl+O")
-        loadAsmAction.triggered.connect( self.loadCodeText )
-        loadAsmAction.setStatusTip("Load an assembly file.")
-
-        loadBinAction = QAction(QIcon(), "Load Binary", self)
-        loadBinAction.setShortcut("Ctrl+B")
-        loadBinAction.triggered.connect( self.loadCodeBin )
-        loadBinAction.setStatusTip("Load a raw binary file.")
-
-        saveAsmAction = QAction(QIcon(), "Save Assembly", self)
-        saveAsmAction.setShortcut("Ctrl+S")
-        saveAsmAction.triggered.connect( self.saveCodeText )
-        saveAsmAction.setStatusTip("Save the content of the assembly pane in a file.")
-
-        saveBinAction = QAction(QIcon(), "Save Binary", self)
-        saveBinAction.setShortcut("Ctrl+N")
-        saveBinAction.triggered.connect( self.saveCodeBin )
-        saveBinAction.setStatusTip("Save the content of the raw binary pane in a file.")
-
-        saveCAction = QAction(QIcon(), "Generate C code", self)
-        saveCAction.triggered.connect( self.saveAsCFile )
-        saveCAction.setStatusTip("Save the content as a compilable C file.")
-
-        saveAsAsmAction = QAction(QIcon(), "Generate Assembly code", self)
-        saveAsAsmAction.triggered.connect( self.saveAsAsmFile )
-        saveAsAsmAction.setStatusTip("Save the content as a compilable Assembly file.")
-
-        quitAction = QAction(QIcon(), "Quit", self)
-        quitAction.setShortcut("Alt+F4")
-        quitAction.triggered.connect(QApplication.quit)
-        quitAction.setStatusTip("Exit the application")
-
         self.statusBar()
-
         menubar = self.menuBar()
+
+        # Add File menu bar
         fileMenu = menubar.addMenu("&File")
+
+        loadAsmAction = self.add_menu_item("Load Assembly", self.loadCodeText,
+                                           self.shortcuts.description("load_assembly"),
+                                           self.shortcuts.shortcut("load_assembly"))
+
+        loadBinAction = self.add_menu_item("Load Binary", self.loadCodeBin,
+                                           self.shortcuts.description("load_binary"),
+                                           self.shortcuts.shortcut("load_binary"))
+
+        saveAsmAction = self.add_menu_item("Save Assembly", self.saveCodeText,
+                                           self.shortcuts.description("save_as_asm"),
+                                           self.shortcuts.shortcut("save_as_asm"))
+
+        saveBinAction = self.add_menu_item ("Save Binary", self.saveCodeBin,
+                                            self.shortcuts.description("save_as_binary"),
+                                            self.shortcuts.shortcut("save_as_binary"))
+
+        saveCAction = self.add_menu_item("Generate C code", self.saveAsCFile,
+                                         self.shortcuts.description("generate_c_file"),
+                                         self.shortcuts.shortcut("generate_c_file"))
+
+        saveAsAsmAction = self.add_menu_item("Generate Assembly code", self.saveAsAsmFile,
+                                             self.shortcuts.description("generate_asm_file"),
+                                             self.shortcuts.shortcut("generate_asm_file"))
+
+        quitAction = self.add_menu_item("Quit", QApplication.quit,
+                                        self.shortcuts.shortcut("exit_application"),
+                                        self.shortcuts.description("exit_application"))
+
         fileMenu.addAction(loadAsmAction)
         fileMenu.addAction(loadBinAction)
         fileMenu.addAction(saveAsmAction)
@@ -647,8 +666,8 @@ class EmulatorWindow(QMainWindow):
         fileMenu.addAction(saveAsAsmAction)
         fileMenu.addAction(quitAction)
 
+        # Add Architecture menu bar
         archMenu = menubar.addMenu("&Architecture")
-
         for arch in modes.keys():
             archSubMenu = archMenu.addMenu(arch)
             for idx, title, _, _, _ in modes[arch]:
@@ -661,6 +680,17 @@ class EmulatorWindow(QMainWindow):
                 archAction.triggered.connect( functools.partial(self.updateMode, idx, archAction) )
                 archSubMenu.addAction(archAction)
 
+        # Add Help menu bar
+        helpMenu = menubar.addMenu("&Help")
+        shortcutAction = self.add_menu_item("Shortcuts", self.showShortcutPopup,
+                                            self.shortcuts.description("shortcut_popup"),
+                                            self.shortcuts.shortcut("shortcut_popup"))
+
+        aboutAction = self.add_menu_item("About", self.showAboutPopup,
+                                         self.shortcuts.description("about_popup"))
+
+        helpMenu.addAction(shortcutAction)
+        helpMenu.addAction(aboutAction)
         return
 
 
@@ -829,6 +859,80 @@ _start:
 
     def updateTitle(self):
         self.setWindowTitle("%s (%s)" % (TITLE, self.mode.get_title()))
+        return
+
+
+
+    def showShortcutPopup(self):
+        msgbox = QMessageBox(self)
+        msgbox.setWindowTitle("CEMU Shortcuts")
+
+        wid = QWidget()
+        grid = QGridLayout()
+        for j, title in enumerate(["Shortcut", "Description"]):
+            lbl = QLabel()
+            lbl.setTextFormat(Qt.RichText)
+            lbl.setText("<b>{}</b>".format(title))
+            grid.addWidget(lbl, 0, j)
+
+        for i, config_item in enumerate(self.shortcuts._config):
+            sc, desc = self.shortcuts._config[config_item]
+            if not sc:
+                continue
+            grid.addWidget(QLabel(sc), i+1, 0)
+            grid.addWidget(QLabel(desc), i+1, 1)
+
+        wid.setMinimumWidth(800)
+        wid.setLayout(grid)
+        msgbox.layout().addWidget(wid)
+        msgbox.exec()
+        return
+
+    def showAboutPopup(self):
+        desc = \
+"""
+<b>CEMU</b>: Cheap EMUlator
+<br>
+Created and maintained by @_hugsy_ (<a href="https://github.com/hugsy/cemu">Link on GitHub</a>)
+<br>
+<br>
+CEMU allows you to play easily with assembly on many architectures (x86, ARM, MIPS, etc.),
+compile execute the result in an emulated environment.
+<br>
+It is a perfect tool to learn assembly, load raw binary dumps captured, or build your custom
+shellcodes.
+<br>
+<br>
+The software is distributed freely under the MIT license.
+This tool relies on the fantastic libraries/framworks:
+<br>
+<ul>
+<li><a href="http://www.keystone-engine.org/">Keystone</a></li>
+<li><a href="http://www.capstone-engine.org/">Capstone</a></li>
+<li><a href="http://www.unicorn-engine.org/">Unicorn</a></li>
+<li><a href="http://pygments.org/">Pygments</a></li>
+<li><a href="https://www.riverbankcomputing.com/software/pyqt/">PyQt5</a></li>
+</ul>
+<br>
+<br>
+For issues, please send detailed reports <a href="https://github.com/hugsy/cemu/issues">here</a> <br>
+<br>
+Thanks for using <b>CEMU</b>.
+<br>
+<br>
+<i>hugsy</i>
+<br>
+<a href="https://twitter.com/_hugsy_">Twitter</a>
+<br>
+<a href="https://github.com/hugsy">GitHub</a>
+"""
+        msgbox = QMessageBox(self)
+        msgbox.setIcon(QMessageBox.Information)
+        msgbox.setWindowTitle("About CEMU")
+        msgbox.setTextFormat(Qt.RichText)
+        msgbox.setText(desc)
+        msgbox.setStandardButtons(QMessageBox.Ok)
+        msgbox.exec()
         return
 
 
