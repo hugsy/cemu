@@ -302,13 +302,16 @@ class CommandWidget(QWidget):
         self.stopButton.clicked.connect( self.parent.stopCode )
         self.checkAsmButton = QPushButton("Check assembly code")
         self.checkAsmButton.clicked.connect( self.parent.checkAsmCode )
-        self.symButton = QPushButton("Symbolic expressions")
-        self.symButton.clicked.connect( self.parent.SymCode)
         layout.addWidget(self.runButton)
         layout.addWidget(self.stepButton)
         layout.addWidget(self.stopButton)
         layout.addWidget(self.checkAsmButton)
-        layout.addWidget(self.symButton)
+
+        if self.parent.parent.reil.reiluse:
+            self.symButton = QPushButton("Symbolic expressions")
+            self.symButton.clicked.connect( self.parent.SymCode)
+            layout.addWidget(self.symButton)
+
         self.setLayout(layout)
         return
 

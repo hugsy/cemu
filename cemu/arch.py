@@ -42,7 +42,11 @@ AARCH64_FLAG = ["NZCV", ] # http://infocenter.arm.com/help/index.jsp?topic=/com.
 AARCH64_REGS = AARCH64_GPR + ["PC",] + AARCH64_FLAG
 
 # https://msdn.microsoft.com/en-us/library/ms253512(v=vs.90).aspx
-MIPS_GPR = ["ZERO", "AT", "V0", "V1" ] + ["A%d"%i for i in range(4)] + ["T%d"%i for i in range(10)] + ["S%d"%i for i in range(9)]  + ["S%d"%i for i in range(9)] + ["K0", "K1"]
+MIPS_GPR = ["ZERO", "AT", "V0", "V1" ] + \
+           ["A%d"%i for i in range(4)] + \
+           ["T%d"%i for i in range(10)] + \
+           ["S%d"%i for i in range(9)]  + \
+           ["S%d"%i for i in range(9)] + ["K0", "K1"]
 MIPS_REGS = MIPS_GPR + ["GP", "SP", "RA", "PC"]
 
 PPC_GPR = ["R%d"%i for i in range(32)]
@@ -70,8 +74,9 @@ modes = {"x86":[ (Architecture.X86_16_INTEL, "16bit, Intel syntax", X86_16_REGS,
                   (Architecture.MIPS64, "MIPS64 - little endian", MIPS_REGS, "PC", "SP"),
                   (Architecture.MIPS64_BE, "MIPS64 - big endian", MIPS_REGS, "PC", "SP"), ],
 
-#         "ppc": [ (Architecture.PPC, "PowerPC - big endian", PPC_REGS, "PC", "SP"),
-#                  (Architecture.PPC64, "PowerPC64 - big endian", PPC_REGS, "PC", "SP"),],
+         # PPC is currently unsupported by unicorn: https://github.com/unicorn-engine/unicorn/blob/master/include/unicorn/unicorn.h#L94
+         "ppc": [ (Architecture.PPC, "PowerPC - big endian", PPC_REGS, "PC", "SP"),
+                  (Architecture.PPC64, "PowerPC64 - big endian", PPC_REGS, "PC", "SP"),],
 
          "sparc":[ (Architecture.SPARC, "SPARC - little endian", SPARC_REGS, "PC", "SP"),
                    (Architecture.SPARC_BE, "SPARC - big endian", SPARC_REGS, "PC", "SP"),
