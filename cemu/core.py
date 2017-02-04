@@ -452,7 +452,6 @@ class CanvasWidget(QWidget):
     def setCanvasWidgetLayout(self):
         self.codeWidget = CodeWidget(self)
         self.mapWidget = MemoryMappingWidget(self)
-        self.Symrwidget = SymR(self)
         self.emuWidget = EmulatorWidget(self)
         self.logWidget = LogWidget(self)
         self.commandWidget = CommandWidget(self)
@@ -474,9 +473,10 @@ class CanvasWidget(QWidget):
 
         self.tabs2 = QTabWidget()
         self.tabs2.addTab(self.emuWidget, "Emulator")
-        if "pyopenreil" in sys.modules.keys():
-            self.tabs2.addTab(self.Symrwidget, "IR Context")
         self.tabs2.addTab(self.logWidget, "Log")
+        if self.parent.reil.reiluse:
+            self.Symrwidget = SymR(self)
+            self.tabs2.addTab(self.Symrwidget, "IR Context")
 
         hboxBottom = QHBoxLayout()
         hboxBottom.addWidget(self.tabs2)
@@ -559,7 +559,14 @@ class CanvasWidget(QWidget):
 
     def checkAsmCode(self):
         code = self.codeWidget.getCleanCodeAsByte()
-        self.emu.compile_code(code, False)
+        if self.emu.compile_code(code, False):
+            msg = "Your code is syntaxically valid."
+            popup = QMessageBox.information
+        else:
+            msg = "Some errors were found in your code, please check..."
+            popup = QMessageBox.warning
+
+        popup(self,"Checking assembly code syntax...",msg)
         return
 
 

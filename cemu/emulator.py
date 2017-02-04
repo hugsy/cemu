@@ -130,15 +130,16 @@ class Emulator:
         return True
 
 
-    def compile_code(self, code, update_end_addr=True):
-        code = b" ; ".join(code)
-        self.log(">>> Assembly using keystone for '%s': %s" % (self.mode.get_title(), code))
+    def compile_code(self, code_list, update_end_addr=True):
+        n = len(code_list)
+        code = b" ; ".join(code_list)
+        self.log(">>> Attempting to assembly {} instructions for {}:\n{}".format(n, self.mode.get_title(), code))
         self.code, self.num_insns = assemble(code, self.mode)
         if self.num_insns < 0:
             self.log(">>> Failed to compile code")
             return False
 
-        self.log(">>> %d instructions compiled" % self.num_insns)
+        self.log(">>> {} instruction(s) compiled".format(self.num_insns))
 
         # update end_addr since we know the size of the code to execute
         if update_end_addr:
