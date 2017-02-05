@@ -262,7 +262,7 @@ class PythonConsoleWidget(QWidget):
         self.parent = parent
         layout = QVBoxLayout()
         layout.addWidget(QLabel("Python Interpreter"))
-        console = PythonConsole(startup_message="[+] Welcome to Python in CEMU", parent=parent)
+        console = PythonConsole(startup_message="[+] Welcome to Python in CEMU", parent=self)
         highlighter = Highlighter(console, "py")
         layout.addWidget(console)
         self.setLayout(layout)

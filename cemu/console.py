@@ -137,7 +137,7 @@ class PythonConsole(QTextEdit):
                 traceback_lines = traceback.format_exc().split('\n')
                 for i in (3,2,1,-1):
                     traceback_lines.pop(i)
-                self.appendPlainText('\n'.join(traceback_lines))
+                self.appendPlainText('\n'.join(traceback_lines)+'\n')
             sys.stdout = old_stdout
             sys.stderr = old_stderr
 
@@ -168,3 +168,18 @@ class PythonConsole(QTextEdit):
 
         super(PythonConsole, self).keyPressEvent(event)
         return
+
+
+    @property
+    def emu(self):
+        return self.parent.parent.emu
+
+
+    @property
+    def vm(self):
+        return self.emu.vm
+
+
+    @property
+    def arch(self):
+        return self.emu.mode

@@ -31,6 +31,8 @@ class Emulator:
         self.create_new_vm()
         return
 
+    def __str__(self):
+        return "Emulator instance {}running".format("" if self.is_running else "not ")
 
     def __xlog(self, wid, text, category):
         if self.widget is None:

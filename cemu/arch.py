@@ -134,3 +134,6 @@ class Mode:
             return 64
 
         return 32
+
+    def __str__(self):
+        return self.get_title()
