@@ -50,7 +50,7 @@ class Emulator:
         return
 
 
-    def pprint(self, x, category="Generic"):
+    def pprint(self, x, category="Runtime"):
         return self.__xlog(Emulator.EMU, x, category)
 
 

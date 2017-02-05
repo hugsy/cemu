@@ -112,7 +112,7 @@ class CodeWidget(QWidget):
         return
 
 
-    def getCleanCodeAsByte(self, as_string=False, parse_string=False):
+    def getCleanCodeAsByte(self, as_string=False, parse_string=True):
         """
         Returns the content of the Code widget as a byte array.
         """
@@ -532,11 +532,11 @@ class CanvasWidget(QWidget):
 
     def stopCode(self):
         if not self.emu.is_running:
-            self.logWidget.editor.append("No emulation context loaded.")
+            self.logWidget.editor.append("[logger] No emulation context loaded.")
             return
         self.emu.stop()
         self.regWidget.updateGrid()
-        self.logWidget.editor.append("Emulation context reset")
+        self.logWidget.editor.append("[logger] Emulation context reset")
         self.commandWidget.stopButton.setDisabled(True)
         self.commandWidget.runButton.setDisabled(False)
         self.commandWidget.stepButton.setDisabled(False)
