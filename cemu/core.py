@@ -23,6 +23,7 @@ from .emulator import Emulator
 from .reil import Reil
 from .utils import *
 from .shortcuts import Shortcut
+from .console import PythonConsole
 
 
 WINDOW_SIZE = (1600, 800)
@@ -255,6 +256,17 @@ class SymR(QWidget):
         return
 
 
+class PythonConsoleWidget(QWidget):
+     def __init__(self, parent, *args, **kwargs):
+        super(PythonConsoleWidget, self).__init__()
+        self.parent = parent
+        layout = QVBoxLayout()
+        layout.addWidget(QLabel("Python Interpreter"))
+        console = PythonConsole(startup_message="[+] Welcome to Python in CEMU", parent=parent)
+        highlighter = Highlighter(console, "py")
+        layout.addWidget(console)
+        self.setLayout(layout)
+        return
 
 
 class EmulatorWidget(QWidget):
@@ -463,6 +475,7 @@ class CanvasWidget(QWidget):
         self.mapWidget = MemoryMappingWidget(self)
         self.emuWidget = EmulatorWidget(self)
         self.logWidget = LogWidget(self)
+        self.consoleWidget = PythonConsoleWidget(self)
         self.commandWidget = CommandWidget(self)
         self.regWidget = RegistersWidget(self)
         self.memWidget = MemoryWidget(self)
@@ -483,6 +496,7 @@ class CanvasWidget(QWidget):
         self.tabs2 = QTabWidget()
         self.tabs2.addTab(self.emuWidget, "Emulator")
         self.tabs2.addTab(self.logWidget, "Log")
+        self.tabs2.addTab(self.consoleWidget, "Python")
         if self.parent.reil.reiluse:
             self.Symrwidget = SymR(self)
             self.tabs2.addTab(self.Symrwidget, "IR Context")
