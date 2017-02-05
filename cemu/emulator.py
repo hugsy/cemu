@@ -9,6 +9,8 @@ from .utils import get_arch_mode, assemble
 
 
 class Emulator:
+    EMU = 0
+    LOG = 1
 
     def __init__(self, mode, *args, **kwargs):
         self.mode = mode
@@ -30,20 +32,30 @@ class Emulator:
         return
 
 
-    def pprint(self, x):
+    def __xlog(self, wid, text, category):
         if self.widget is None:
-            print(x)
+            print("{} - {}".format(category, text))
+            return
+
+        if   wid==Emulator.EMU:
+            widget = self.widget.emuWidget
+            msg = "{:1s} - {}".format(category, text)
+        elif wid==Emulator.LOG:
+            widget = self.widget.logWidget
+            msg = "[{}] {} - {}".format("logger", category, text)
         else:
-            self.widget.emuWidget.editor.append(x)
+            raise Exception("Invalid widget")
+
+        widget.editor.append(msg)
         return
 
 
-    def log(self, x):
-        if self.widget is None:
-            print(x)
-        else:
-            self.widget.logWidget.editor.append(x)
-        return
+    def pprint(self, x, category="Generic"):
+        return self.__xlog(Emulator.EMU, x, category)
+
+
+    def log(self, x, category="Generic"):
+        return self.__xlog(Emulator.LOG, x, category)
 
 
     def unicorn_register(self, reg):
@@ -101,13 +113,13 @@ class Emulator:
             self.vm.mem_map(address, size, perm)
             self.areas[name] = [address, size, permission,]
 
-            msg = ">>> map %s @%x (size=%d,perm=%s)" % (name, address, size, permission)
+            msg = "Map %s @%x (size=%d,perm=%s)" % (name, address, size, permission)
             if input_file is not None and os.access(input_file, os.R_OK):
                 code = open(input_file, 'rb').read()
                 self.vm.mem_write(address, bytes(code[:size]))
                 msg += " and content from '%s'" % input_file
 
-            self.log(msg)
+            self.log(msg, "Setup")
 
         self.start_addr = self.areas[".text"][0]
         self.end_addr = -1
@@ -118,7 +130,7 @@ class Emulator:
         for r in registers.keys():
             ur = self.unicorn_register(r)
             self.vm.reg_write(ur, registers[r])
-            self.log(">>> register %s = %x" % (r, registers[r]))
+            self.log("Register '{:s}' = {:#x}".format(r, registers[r]), "Setup")
 
         # fix $PC
         ur = self.unicorn_register(self.mode.get_pc())
@@ -133,13 +145,13 @@ class Emulator:
     def compile_code(self, code_list, update_end_addr=True):
         n = len(code_list)
         code = b" ; ".join(code_list)
-        self.log(">>> Attempting to assembly {} instructions for {}:\n{}".format(n, self.mode.get_title(), code))
+        self.log("Assembling {} instructions for {}:\n{}".format(n, self.mode.get_title(), code), "Compilation")
         self.code, self.num_insns = assemble(code, self.mode)
-        if self.num_insns < 0:
-            self.log(">>> Failed to compile code")
+        if self.num_insns != n:
+            self.log("Failed to compile code", "Error")
             return False
 
-        self.log(">>> {} instruction(s) compiled".format(self.num_insns))
+        self.log("{} instruction(s) compiled".format(self.num_insns), "Compilation")
 
         # update end_addr since we know the size of the code to execute
         if update_end_addr:
@@ -157,7 +169,7 @@ class Emulator:
             return False
 
         addr = self.areas[".text"][0]
-        self.log(">>> mapping .text at %#x" % addr)
+        self.log("Mapping .text at %#x" % addr, "Setup")
         self.vm.mem_write(addr, bytes(self.code))
         return True
 
@@ -180,8 +192,8 @@ class Emulator:
             emu.emu_stop()
             return
 
-        self.log(">> Executing instruction at 0x{:x}".format(address))
-        self.pprint(">>> 0x{:x}: {:s} {:s}".format(insn.address, insn.mnemonic, insn.op_str))
+        self.log("Executing instruction at 0x{:x}".format(address), "Runtime")
+        self.pprint("0x{:x}: {:s} {:s}".format(insn.address, insn.mnemonic, insn.op_str))
 
         if self.use_step_mode:
             self.stop_now = True
@@ -189,33 +201,34 @@ class Emulator:
 
 
     def hook_block(self, emu, addr, size, misc):
-        self.pprint(">>> Entering new block at 0x{:x}".format(addr))
+        self.pprint("Entering new block at 0x{:x}".format(addr), "Event")
         return
 
 
     def hook_interrupt(self, emu, intno, data):
-        self.pprint(">>> Triggering interrupt #{:d}".format(intno))
+        self.pprint("Triggering interrupt #{:d}".format(intno), "Event")
         return
 
 
     def hook_mem_access(self, emu, access, address, size, value, user_data):
         if access == unicorn.UC_MEM_WRITE:
-            self.pprint(">>> MEM_WRITE : *%#x = %#x (size = %u)"% (address, value, size))
+            self.pprint("*%#x = %#x (size = %u)"% (address, value, size), "MEM_WRITE")
         elif access == unicorn.UC_MEM_READ:
-            self.pprint(">>> MEM_READ : reg = *%#x (size = %u)" % (address, size))
+            self.pprint("reg = *%#x (size = %u)" % (address, size), "MEM_READ")
         return
 
 
     def run(self):
+        self.pprint("Starting of emulation")
         try:
             self.vm.emu_start(self.start_addr, self.end_addr)
         except unicorn.unicorn.UcError as e:
             self.vm.emu_stop()
-            self.log("An error occured during emulation")
+            self.log("An error occured: {}".format(str(e)), "Error")
             return
 
         if self.get_register_value( self.mode.get_pc() )==self.end_addr:
-            self.pprint(">>> End of emulation")
+            self.pprint("End of emulation")
             self.widget.commandWidget.runButton.setDisabled(True)
             self.widget.commandWidget.stepButton.setDisabled(True)
         return

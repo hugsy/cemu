@@ -262,12 +262,10 @@ class EmulatorWidget(QWidget):
         super(EmulatorWidget, self).__init__()
         self.parent = parent
         layout = QVBoxLayout()
-        label = QLabel("Emulation")
         self.editor = QTextEdit()
         self.editor.setFont(QFont('Courier', 11))
         self.editor.setFrameStyle(QFrame.Panel | QFrame.Plain)
         self.editor.setReadOnly(True)
-        layout.addWidget(label)
         layout.addWidget(self.editor)
         self.setLayout(layout)
         return
@@ -502,7 +500,6 @@ class CanvasWidget(QWidget):
 
 
     def loadContext(self):
-        self.logWidget.editor.append("Starting new emulation")
         self.emu.reinit()
         self.emuWidget.editor.clear()
         maps = self.mapWidget.getMappings()
