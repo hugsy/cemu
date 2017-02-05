@@ -44,9 +44,9 @@ AARCH64_REGS = AARCH64_GPR + ["PC",] + AARCH64_FLAG
 # https://msdn.microsoft.com/en-us/library/ms253512(v=vs.90).aspx
 MIPS_GPR = ["ZERO", "AT", "V0", "V1" ] + \
            ["A%d"%i for i in range(4)] + \
-           ["T%d"%i for i in range(10)] + \
            ["S%d"%i for i in range(9)]  + \
-           ["S%d"%i for i in range(9)] + ["K0", "K1"]
+           ["T%d"%i for i in range(10)] + \
+           ["K0", "K1"] + ["HI", "LO"]
 MIPS_REGS = MIPS_GPR + ["GP", "SP", "RA", "PC"]
 
 PPC_GPR = ["R%d"%i for i in range(32)]
