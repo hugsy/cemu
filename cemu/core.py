@@ -28,7 +28,7 @@ from .console import PythonConsole
 
 WINDOW_SIZE = (1600, 800)
 ICON = os.path.dirname(os.path.realpath(__file__)) + "/icon.png"
-TITLE = "Cheap EMUlator"
+TITLE = "CEMU - Cheap EMUlator"
 
 if sys.version_info.major == 3:
     long = int
@@ -341,6 +341,7 @@ class RegistersWidget(QWidget):
     def __init__(self, parent, *args, **kwargs):
         super(RegistersWidget, self).__init__()
         self.parent = parent
+        self.row_size = 15
         self.old_register_values = {}
         layout = QVBoxLayout()
         label = QLabel("Registers")
@@ -359,6 +360,7 @@ class RegistersWidget(QWidget):
         registers = current_mode.get_registers()
         self.values.setRowCount(len(registers))
         for i, reg in enumerate(registers):
+            self.values.setRowHeight(i, self.row_size)
             name = QTableWidgetItem(reg)
             name.setFlags(Qt.NoItemFlags)
             if emu.vm is None:
@@ -410,18 +412,22 @@ class MemoryWidget(QWidget):
     def __init__(self, parent, *args, **kwargs):
         super(MemoryWidget, self).__init__()
         self.parent = parent
-        layout = QVBoxLayout()
-        label = QLabel("Memory viewer")
+        title_layout = QHBoxLayout()
+        title_layout.addWidget(QLabel("Memory viewer"))
         self.address = QLineEdit()
         self.address.textChanged.connect( self.updateEditor )
+        title_layout.addWidget(self.address)
+        title_widget = QWidget()
+        title_widget.setLayout(title_layout)
+
+        memview_layout = QVBoxLayout()
         self.editor = QTextEdit()
         self.editor.setFrameStyle(QFrame.Panel | QFrame.Plain)
         self.editor.setFont(QFont('Courier', 10))
         self.editor.setReadOnly(True)
-        layout.addWidget(label)
-        layout.addWidget(self.address)
-        layout.addWidget(self.editor)
-        self.setLayout(layout)
+        memview_layout.addWidget(title_widget)
+        memview_layout.addWidget(self.editor)
+        self.setLayout(memview_layout)
         return
 
     def updateEditor(self):
@@ -446,12 +452,11 @@ class MemoryWidget(QWidget):
         try:
             l = 256
             data = emu.vm.mem_read(addr, l)
+            text = hexdump(data, base=addr)
+            self.editor.setText(text)
         except unicorn.unicorn.UcError:
             self.editor.setText("Cannot read at address %x" % addr)
-            return
 
-        text = hexdump(data, base=addr)
-        self.editor.setText(text)
         return
 
 
@@ -532,11 +537,11 @@ class CanvasWidget(QWidget):
 
     def stopCode(self):
         if not self.emu.is_running:
-            self.logWidget.editor.append("[logger] No emulation context loaded.")
+            self.emu.log("No emulation context loaded.")
             return
         self.emu.stop()
         self.regWidget.updateGrid()
-        self.logWidget.editor.append("[logger] Emulation context reset")
+        self.emu.log("Emulation context reset")
         self.commandWidget.stopButton.setDisabled(True)
         self.commandWidget.runButton.setDisabled(False)
         self.commandWidget.stepButton.setDisabled(False)
@@ -869,7 +874,7 @@ _start:
 
 
     def updateTitle(self):
-        self.setWindowTitle("%s (%s)" % (TITLE, self.mode.get_title()))
+        self.setWindowTitle("{} ({})".format(TITLE, self.mode.get_title()))
         return
 
 
@@ -949,6 +954,18 @@ Thanks for using <b>CEMU</b>.
 
 def Cemu():
     app = QApplication(sys.argv)
+    style = """
+    QMainWindow, QWidget{
+    background-color: darkgray;
+    }
+
+    QTextEdit, QLineEdit, QTableWidget{
+    background-color: white;
+    }
+    """
+    app.setStyleSheet(style)
     app.setWindowIcon(QIcon(ICON))
     emu = EmulatorWindow()
+    # emu.setWindowFlags(QtCore.Qt.FramelessWindowHint)
+    # emu.show()
     sys.exit(app.exec_())
