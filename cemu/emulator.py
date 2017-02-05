@@ -89,6 +89,14 @@ class Emulator:
         return self.vm.reg_read(ur)
 
 
+    def pc(self):
+        return self.get_register_value(self.mode.get_pc())
+
+
+    def sp(self):
+        return self.get_register_value(self.mode.get_sp())
+
+
     def unicorn_permissions(self, perms):
         p = 0
         for perm in perms.split("|"):
@@ -193,7 +201,7 @@ class Emulator:
             return
 
         self.log("Executing instruction at 0x{:x}".format(address), "Runtime")
-        self.pprint("0x{:x}: {:s} {:s}".format(insn.address, insn.mnemonic, insn.op_str))
+        self.pprint("0x{:x}: {:s} {:s}".format(insn.address, insn.mnemonic, insn.op_str), "Executing")
 
         if self.use_step_mode:
             self.stop_now = True
@@ -212,23 +220,24 @@ class Emulator:
 
     def hook_mem_access(self, emu, access, address, size, value, user_data):
         if access == unicorn.UC_MEM_WRITE:
-            self.pprint("*%#x = %#x (size = %u)"% (address, value, size), "MEM_WRITE")
+            self.pprint("Write: *%#x = %#x (size = %u)"% (address, value, size), "Memory")
         elif access == unicorn.UC_MEM_READ:
-            self.pprint("reg = *%#x (size = %u)" % (address, size), "MEM_READ")
+            self.pprint("Read: *%#x (size = %u)" % (address, size), "Memory")
         return
 
 
     def run(self):
-        self.pprint("Starting of emulation")
+        self.pprint("Starting emulation context")
         try:
             self.vm.emu_start(self.start_addr, self.end_addr)
         except unicorn.unicorn.UcError as e:
-            self.vm.emu_stop()
             self.log("An error occured: {}".format(str(e)), "Error")
+            self.pprint("pc={:#x} , sp={:#x}: {:s}".format(self.pc(), self.sp(), str(e)), "Exception")
+            self.vm.emu_stop()
             return
 
-        if self.get_register_value( self.mode.get_pc() )==self.end_addr:
-            self.pprint("End of emulation")
+        if self.pc()==self.end_addr:
+            self.pprint("Ending emulation context")
             self.widget.commandWidget.runButton.setDisabled(True)
             self.widget.commandWidget.stepButton.setDisabled(True)
         return
