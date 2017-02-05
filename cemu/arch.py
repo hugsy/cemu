@@ -75,8 +75,8 @@ modes = {"x86":[ (Architecture.X86_16_INTEL, "16bit, Intel syntax", X86_16_REGS,
                   (Architecture.MIPS64_BE, "MIPS64 - big endian", MIPS_REGS, "PC", "SP"), ],
 
          # PPC is currently unsupported by unicorn: https://github.com/unicorn-engine/unicorn/blob/master/include/unicorn/unicorn.h#L94
-         "ppc": [ (Architecture.PPC, "PowerPC - big endian", PPC_REGS, "PC", "SP"),
-                  (Architecture.PPC64, "PowerPC64 - big endian", PPC_REGS, "PC", "SP"),],
+         # "ppc": [ (Architecture.PPC, "PowerPC - big endian", PPC_REGS, "PC", "SP"),
+         #          (Architecture.PPC64, "PowerPC64 - big endian", PPC_REGS, "PC", "SP"),],
 
          "sparc":[ (Architecture.SPARC, "SPARC - little endian", SPARC_REGS, "PC", "SP"),
                    (Architecture.SPARC_BE, "SPARC - big endian", SPARC_REGS, "PC", "SP"),
