@@ -122,3 +122,7 @@ popd
 
 # install pip missing packages
 sudo ${PIP} install pygments
+
+if [ "$(uname)" == "Linux" ]; then
+    sudo ldconfig
+fi
