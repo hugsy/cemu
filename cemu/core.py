@@ -35,8 +35,6 @@ if sys.version_info.major == 3:
 
 
 class QFormatter(Formatter):
-    # from http://ralsina.me/static/highlighter.py
-    # todo: improve
     def __init__(self, *args, **kwargs):
         Formatter.__init__(self)
         self.data=[]
@@ -168,6 +166,8 @@ class CodeWidget(QWidget):
         pattern and convert it as a hexadecimal number.
         """
         parsed = []
+        register_size = self.parent.parent.emulator.mode.get_memory_alignment()
+
         for line in code:
             i = line.find(b'"')
             if i==-1:
@@ -181,7 +181,7 @@ class CodeWidget(QWidget):
                 parsed.append(line)
                 continue
 
-            if (j*8) != self.parent.parent.emulator.mode.get_memory_alignment():
+            if (j*8) != register_size:
                 # incorrect size
                 parsed.append(line)
                 continue
@@ -201,47 +201,78 @@ class MemoryMappingWidget(QWidget):
     def __init__(self, *args, **kwargs):
         super(MemoryMappingWidget, self).__init__()
         layout = QVBoxLayout()
-        label = QLabel("Memory Mapping (name   address  size   permission   [input_file])")
-        self.editor = QTextEdit()
-        self.editor.setFont(QFont('Courier', 11))
-        self.editor.setFrameStyle(QFrame.Panel | QFrame.Plain)
-        layout.addWidget(label)
-        layout.addWidget(self.editor)
+        self.title = ["Name", "Base address", "Size", "Permission", "Raw data file"]
+        self.memory_mapping = QTableWidget(10, len(self.title))
+        self.memory_mapping.setHorizontalHeaderLabels(self.title)
+        self.memory_mapping.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch);
+        layout.addWidget(self.memory_mapping)
         self.setLayout(layout)
-        self.setDefaultMemoryLayout()
+        self.populateWithInitialValues()
         return
 
-    def setDefaultMemoryLayout(self):
-        txt = [".text   0x40000   0x1000   READ|EXEC",
-               ".data   0x60000   0x1000   READ|WRITE",
-               ".stack  0x800000  0x4000   READ|WRITE",
-               ".misc   0x1000000 0x1000   ALL"]
-        self.editor.insertPlainText("\n".join(txt))
+    def initialMemoryLayout(self):
+        return [
+            [".text", 0x40000, 0x1000, "READ|EXEC", None],
+            [".data", 0x60000, 0x1000, "READ|WRITE", None],
+            [".stack", 0x800000, 0x4000, "READ|WRITE", None],
+            [".misc", 0x900000, 0x1000, "ALL", None],
+        ]
+
+    def populateWithInitialValues(self):
+        self._maps = self.initialMemoryLayout()
+        for i in range(self.memory_mapping.rowCount()):
+            self.memory_mapping.setRowHeight(i, 20)
+
+        for i, mem_map in enumerate(self._maps):
+            for j, entry in enumerate(mem_map):
+                if isinstance(entry, int): entry = hex(entry)
+                elif entry is None: entry = ""
+                item = QTableWidgetItem(entry)
+                if i in (0, 2):
+                    # make sure .text and .stack exist
+                    item.setFlags(Qt.ItemIsEnabled)
+                else:
+                    item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable)
+                self.memory_mapping.setItem(i, j, item)
         return
 
-    def getMappings(self):
-        maps = []
-        lines = self.editor.toPlainText().split("\n")
-        for line in lines:
-            line = line.strip()
-            if line.startswith("#"):
+    def getMappingsFromTable(self):
+        self._maps = []
+        sz = self.memory_mapping.rowCount()
+        for i in range(sz):
+            name = self.memory_mapping.item(i, 0)
+            if not name:
                 continue
+            name = name.text()
 
-            parts = line.split()
-            read_from_file = None
-            if len(parts)==5:
-                read_from_file = parts[4]
+            address = self.memory_mapping.item(i, 1)
+            if address:
+                address = int(address.text(), 0x10) if ishex(address.text()) else int(address.text())
 
-            name, address, size, permission = parts[0:4]
-            address = int(address, 0x10)
-            size = int(size, 0x10)
-            maps.append( [name, address, size, permission, read_from_file] )
-        return maps
+            size = self.memory_mapping.item(i, 2)
+            if size:
+                size = int(size.text(), 0x10) if ishex(size.text()) else int(size.text())
+
+            permission = self.memory_mapping.item(i, 3)
+            if permission:
+                permission = permission.text()
+
+            read_from_file = self.memory_mapping.item(i, 4)
+            if read_from_file and not os.access(read_from_file.text(), os.R_OK):
+                read_from_file = None
+
+            self._maps.append([name, address, size, permission, read_from_file])
+        return
+
+    @property
+    def maps(self):
+        self.getMappingsFromTable()
+        return self._maps
 
 
-class SymR(QWidget):
+class SymRWidget(QWidget):
      def __init__(self, parent, *args, **kwargs):
-        super(SymR, self).__init__()
+        super(SymRWidget, self).__init__()
         self.parent = parent
         self.symr = self.parent.symr
         layout = QVBoxLayout()
@@ -503,7 +534,7 @@ class CanvasWidget(QWidget):
         self.tabs2.addTab(self.logWidget, "Log")
         self.tabs2.addTab(self.consoleWidget, "Python")
         if self.parent.reil.reiluse:
-            self.Symrwidget = SymR(self)
+            self.Symrwidget = SymRWidget(self)
             self.tabs2.addTab(self.Symrwidget, "IR Context")
 
         hboxBottom = QHBoxLayout()
@@ -521,7 +552,7 @@ class CanvasWidget(QWidget):
     def loadContext(self):
         self.emu.reinit()
         self.emuWidget.editor.clear()
-        maps = self.mapWidget.getMappings()
+        maps = self.mapWidget.maps
         if not self.emu.populate_memory(maps):
             return False
         code = self.codeWidget.getCleanCodeAsByte(as_string=False, parse_string=True)

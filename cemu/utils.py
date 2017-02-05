@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import string
 
 import capstone
 import keystone
@@ -160,3 +161,9 @@ def assemble(asm_code, mode):
         code, cnt = (b"", -1)
 
     return (code, cnt)
+
+
+def ishex(x):
+    if x.startswith("0x") or x.startswith("0X"):
+        x = x[2:]
+    return all([c in string.hexdigits for c in x])
