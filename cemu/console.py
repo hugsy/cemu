@@ -26,6 +26,8 @@ class PythonConsole(QTextEdit):
         self.construct = []
         self.parent = parent
         self.startup_message = startup_message
+        self.__locales = locals()
+        self.__globals = globals()
 
         self.setWordWrapMode(QTextOption.WrapAnywhere)
         self.setUndoRedoEnabled(False)
@@ -79,13 +81,9 @@ class PythonConsole(QTextEdit):
             else:
                 return command
 
-    def getHistory(self):
-        return self.history
 
-    def setHisory(self, history):
-        self.history = history
-
-    def addToHistory(self, command):
+    def add_last_command_to_history(self):
+        command = self.getCommand().rstrip()
         if command and (not self.history or self.history[-1] != command):
             self.history.append(command)
         self.history_index = len(self.history)
@@ -105,65 +103,95 @@ class PythonConsole(QTextEdit):
                 return self.history[self.history_index]
         return ''
 
-    def getCursorPosition(self):
+
+    def get_current_position(self):
         return self.textCursor().columnNumber() - len(self.prompt)
 
-    def setCursorPosition(self, position):
+
+    def move_cursor_to(self, position):
         self.moveCursor(QTextCursor.StartOfLine)
         for i in range(len(self.prompt) + position):
             self.moveCursor(QTextCursor.Right)
         return
 
-    def runCommand(self):
+
+    def run_command(self):
         command = self.getCommand()
-        self.addToHistory(command)
         command = self.getConstruct(command)
 
         if command:
             self.appendPlainText("\n")
-            old_stdout = sys.stdout
-            old_stderr = sys.stderr
-            sys.stdout = StdoutRedirector(self.appendPlainText)
-            sys.stderr = sys.stdout
             try:
-                result = eval(command)
-                if result is None:
-                    self.appendPlainText("\n<<< {}\n".format(result))
+                old_stdout = sys.stdout
+                old_stderr = sys.stderr
+                sys.stdout = StdoutRedirector(self.appendPlainText)
+                sys.stderr = sys.stdout
+
+                result = eval(command, self.__locales, self.__globals)
+                if result is not None:
+                    self.appendPlainText("{}\n".format(result))
+
             except SyntaxError:
-                exec(command)
+                exec(command, self.__locales, self.__globals)
+
             except SystemExit:
                 self.setText(self.startup_message+'\n')
+
             except Exception:
                 traceback_lines = traceback.format_exc().split('\n')
                 for i in (3,2,1,-1):
                     traceback_lines.pop(i)
                 self.appendPlainText('\n'.join(traceback_lines)+'\n')
-            sys.stdout = old_stdout
-            sys.stderr = old_stderr
+
+            finally:
+                sys.stdout = old_stdout
+                sys.stderr = old_stderr
 
         self.newPrompt()
         return
 
+
+    def enter_handle(self):
+        self.run_command()
+        self.add_last_command_to_history()
+        return
+
+
+    def home_handle(self):
+        self.move_cursor_to(0)
+        return
+
+
+    def pageup_handle(self):
+        return
+
+
     def keyPressEvent(self, event):
         if event.key() in (Qt.Key_Enter, Qt.Key_Return):
-            self.runCommand()
+            self.enter_handle()
             return
 
         if event.key() == Qt.Key_Home:
-            self.setCursorPosition(0)
+            self.home_handle()
             return
+
         if event.key() == Qt.Key_PageUp:
+            self.pageup_handle()
             return
-        elif event.key() in (Qt.Key_Left, Qt.Key_Backspace):
-            if self.getCursorPosition() == 0:
+
+        if event.key() in (Qt.Key_Left, Qt.Key_Backspace):
+            if self.get_current_position() == 0:
                 return
-        elif event.key() == Qt.Key_Up:
+
+        if event.key() == Qt.Key_Up:
             self.setCommand(self.getPrevHistoryEntry())
             return
-        elif event.key() == Qt.Key_Down:
+
+        if event.key() == Qt.Key_Down:
             self.setCommand(self.getNextHistoryEntry())
             return
-        elif event.key() == Qt.Key_D and event.modifiers() == Qt.ControlModifier:
+
+        if event.key() == Qt.Key_D and event.modifiers() == Qt.ControlModifier:
             self.close()
 
         super(PythonConsole, self).keyPressEvent(event)

@@ -157,9 +157,12 @@ class Emulator:
         code = b" ; ".join(code_list)
         self.log("Assembling {} instructions for {}:\n{}".format(n, self.mode.get_title(), code), "Compilation")
         self.code, self.num_insns = assemble(code, self.mode)
-        if self.num_insns != n:
+        if self.num_insns == -1:
             self.log("Failed to compile code", "Error")
             return False
+
+        if self.num_insns != n:
+            self.log("Unexpected number of compiled instructions (got {}, compiled {})".format(self.num_insns,n), "Warning")
 
         self.log("{} instruction(s) compiled".format(self.num_insns), "Compilation")
 
