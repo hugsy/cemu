@@ -2,11 +2,13 @@
 
 ## Description
 
-Writing assembly is fun. Assembly is the lowest language (humanly understandable) available to 
-communicate with computers, and is crucial to understand the internal mechanisms of any machine. 
+![cemu-linux](https://i.imgur.com/1vep3WM.png)
+
+Writing assembly is fun. Assembly is the lowest language (humanly understandable) available to
+communicate with computers, and is crucial to understand the internal mechanisms of any machine.
 Unfortunately, setting up an environment to write, compile and run assembly for various architectures
 (x86, ARM, MIPS, SPARC) has always been painful. **CEmu** is an attempt to fix this by providing a
-bundled GUI application that empowers users to write assembly and test it by compiling it to bytecode 
+bundled GUI application that empowers users to write assembly and test it by compiling it to bytecode
 and executing it in an QEMU-based emulator.
 
 **Cheap EMUlator** combines all the advantages of a basic assembly IDE, compilation and execution environment, by relying on the great libraries [Keystone](https://github.com/keystone-engine/keystone),
@@ -21,6 +23,8 @@ write assembly code, all of this for the following architectures:
    - SPARC / SPARC64
    - (more to come)
 
+`CEmu` was tested and works on Linux, Windows and MacOSX.
+
 
 ## Pre-Requisites
 
@@ -31,22 +35,15 @@ write assembly code, all of this for the following architectures:
   - `pygments` for the text colorization
 
 
-## Show Me ##
-
-### Linux ###
-
-![cemu-linux](https://i.imgur.com/1vep3WM.png)
-
-### Windows ###
-
-![cemu-win](http://i.imgur.com/rn183yR.png)
-
-### OSX ###
-
-![cemu-osx](https://i.imgur.com/8tGqwE7.png)
-
 
 ## Requirements ##
+
+### Quick install ###
+
+On your system, or using `virtualenv` or `pipenv`:
+```
+pip3 install --user --upgrade .
+```
 
 ### Linux / OSX ###
 
