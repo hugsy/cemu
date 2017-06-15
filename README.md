@@ -1,8 +1,9 @@
 # cemu
 
+![cemu-linux](https://i.imgur.com/1vep3WM.png)
+
 ## Description
 
-![cemu-linux](https://i.imgur.com/1vep3WM.png)
 
 Writing assembly is fun. Assembly is the lowest language (humanly understandable) available to
 communicate with computers, and is crucial to understand the internal mechanisms of any machine.
