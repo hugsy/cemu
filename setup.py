@@ -21,6 +21,7 @@ setup(
     author='_hugsy_',
     version='0.1',
     license='MIT',
+    include_package_data=True,
     packages=find_packages(),
     install_requires=[
         'capstone>=3.0.4',

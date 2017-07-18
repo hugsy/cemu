@@ -1,0 +1,3 @@
+include cemu/templates/*.raw
+include cemu/templates/*.asm
+include cemu/img/icon.png

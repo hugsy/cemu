@@ -27,7 +27,7 @@ from .console import PythonConsole
 
 
 WINDOW_SIZE = (1600, 800)
-ICON = os.path.dirname(os.path.realpath(__file__)) + "/icon.png"
+ICON = os.path.dirname(os.path.realpath(__file__)) + "/img/icon.png"
 TITLE = "CEMU - Cheap EMUlator"
 
 if sys.version_info.major == 3:
