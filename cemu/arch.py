@@ -83,12 +83,24 @@ modes = {"x86":[ (Architecture.X86_16_INTEL, "16bit, Intel syntax", X86_16_REGS,
          # "ppc": [ (Architecture.PPC, "PowerPC - big endian", PPC_REGS, "PC", "SP"),
          #          (Architecture.PPC64, "PowerPC64 - big endian", PPC_REGS, "PC", "SP"),],
 
-         "sparc":[ (Architecture.SPARC, "SPARC - little endian", SPARC_REGS, "PC", "SP", Endianness.LITTLE),
+         "sparc":[ # (Architecture.SPARC, "SPARC - little endian", SPARC_REGS, "PC", "SP", Endianness.LITTLE),
                    (Architecture.SPARC_BE, "SPARC - big endian", SPARC_REGS, "PC", "SP", Endianness.BIG),
-                   (Architecture.SPARC64, "SPARC64 - little endian", SPARC_REGS, "PC", "SP", Endianness.LITTLE),
+                   # (Architecture.SPARC64, "SPARC64 - little endian", SPARC_REGS, "PC", "SP", Endianness.LITTLE),
                    (Architecture.SPARC64_BE, "SPARC64 - big endian", SPARC_REGS, "PC", "SP", Endianness.BIG),],
 }
 
+
+def is_x86(m): return m.get_id() in (Architecture.X86_16_INTEL, Architecture.X86_32_INTEL, Architecture.X86_16_ATT, Architecture.X86_32_ATT)
+def is_x86_16(m): return m.get_id() in (Architecture.X86_16_INTEL, Architecture.X86_16_ATT)
+def is_x86_32(m): return m.get_id() in (Architecture.X86_32_INTEL, Architecture.X86_32_ATT)
+def is_x86_64(m): return m.get_id() in (Architecture.X86_64_INTEL, Architecture.X86_64_ATT,)
+def is_arm(m): return m.get_id() in (Architecture.ARM_LE, Architecture.ARM_LE)
+def is_arm_thumb(m): return m.get_id() in (Architecture.ARM_THUMB_LE, Architecture.ARM_THUMB_LE)
+def is_aarch64(m): return m.get_id() in (Architecture.ARM_AARCH64, )
+def is_mips(m): return m.get_id() in (Architecture.MIPS, Architecture.MIPS_BE)
+def is_mips64(m): return m.get_id() in (Architecture.MIPS64, Architecture.MIPS64_BE)
+def is_sparc(m): return m.get_id() in (Architecture.SPARC, Architecture.SPARC_BE)
+def is_sparc64(m): return m.get_id() in (Architecture.SPARC64, Architecture.SPARC64_BE)
 
 class Mode:
     DEFAULT_MODE = Architecture.X86_32_INTEL
@@ -135,14 +147,10 @@ class Mode:
         return x==self.get_id()
 
     def get_memory_alignment(self):
-        if self.get_id() in (Architecture.X86_16_INTEL,
-                               Architecture.ARM_THUMB_LE,
-                               Architecture.ARM_THUMB_BE):
+        if is_x86_16(self) or is_arm_thumb(self):
             return 16
 
-        if self.get_id() in (Architecture.X86_64_INTEL,
-                               Architecture.X86_64_ATT,
-                               Architecture.ARM_AARCH64):
+        if is_x86_64(self) or is_aarch64(self):
             return 64
 
         return 32
@@ -161,14 +169,27 @@ class Mode:
     def get_syscalls(self):
         path = os.path.dirname(os.path.realpath(__file__)) + "/syscalls"
 
-        if self.get_id() in (Architecture.X86_16_INTEL, Architecture.X86_32_INTEL, Architecture.X86_16_ATT, Architecture.X86_32_ATT):
+        if is_x86(self):
             fname = "x86"
-        elif self.get_id() in (Architecture.X86_64_INTEL, Architecture.X86_64_ATT,):
+        elif is_x86_64(self):
             fname = "x86-64"
-        elif self.get_id() in (Architecture.ARM_AARCH64, ):
+        elif is_arm_thumb(self):
+            fname = "arm-thumb"
+        elif is_arm(self):
+            fname = "arm"
+        elif is_aarch64(self):
             fname = "aarch64"
+        elif is_mips(self):
+            fname = "mips"
+        elif is_mips64:
+            fname = "mips64"
+        elif is_sparc(m):
+            fname = "sparc"
+        elif is_sparc64(m):
+            fname = "sparc"
+
         else:
-            raise NotImplementedError("No syscalls for '{}'".format(str(self)))
+            return {}
 
         fpath = "{}/{}.csv".format(path, fname)
         syscalls = {}
