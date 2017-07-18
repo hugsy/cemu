@@ -24,11 +24,15 @@ from .reil import Reil
 from .utils import *
 from .shortcuts import Shortcut
 from .console import PythonConsole
+from .parser import CodeParser
 
 
 WINDOW_SIZE = (1600, 800)
-ICON = os.path.dirname(os.path.realpath(__file__)) + "/img/icon.png"
+PKG_PATH = os.path.dirname(os.path.realpath(__file__))
+ICON_PATH = "{}/img/icon.png".format(PKG_PATH)
+TEMPLATES_PATH = "{}/templates".format(PKG_PATH)
 TITLE = "CEMU - Cheap EMUlator"
+HOME = os.getenv("HOME")
 
 if sys.version_info.major == 3:
     long = int
@@ -107,94 +111,9 @@ class CodeWidget(QWidget):
         layout.addWidget(label)
         layout.addWidget(self.editor)
         self.setLayout(layout)
+        self.parser = CodeParser(self)
         return
 
-
-    def getCleanCodeAsByte(self, as_string=False, parse_string=True):
-        """
-        Returns the content of the Code widget as a byte array.
-        """
-        code = self.editor.toPlainText()
-        if code is None or len(code)==0:
-            return [] if not as_string else b""
-
-        code = code.split("\n")
-        if sys.version_info.major == 2:
-            code = [bytes(x) for x in code]
-        else:
-            code = [bytes(x, encoding="utf-8") for x in code]
-
-        # remove comments
-        code = self.getCleanCode(code)
-
-        # parse strings
-        if parse_string:
-            code = self.parseStringInCode(code)
-
-        if as_string:
-            return b'\n'.join(code)
-
-        return code
-
-
-    def getCleanCode(self, code, as_string=False):
-        """
-        Returns the code pane content cleaned of all comments.
-        """
-        comment_tags = ["#", ";", "--",]
-        clean = []
-        for line in code:
-            line = line.strip()
-            if len(line)==0:
-                continue
-            c = line[0]
-            if sys.version_info.major == 3:
-                c = chr(line[0])
-            if c in comment_tags:
-                continue
-            clean.append(line)
-
-        if as_string:
-            return b"\n".join(clean)
-
-        return clean
-
-
-    def parseStringInCode(self, code, as_string=False):
-        """
-        This function will search for every line of assembly for quote(")
-        pattern and convert it as a hexadecimal number.
-        """
-        parsed = []
-        register_size = self.parent.parent.emulator.mode.get_memory_alignment()
-
-        for line in code:
-            i = line.find(b'"')
-            if i==-1:
-                # no string
-                parsed.append(line)
-                continue
-
-            j = line[i+1:].find(b'"')
-            if j==-1:
-                # unfinished string
-                parsed.append(line)
-                continue
-
-            if (j*8) != register_size:
-                # incorrect size
-                parsed.append(line)
-                continue
-
-            origstr = line[i+1:i+j+1]
-            hexstr  = binascii.hexlify(origstr)
-            newline = line.replace(b'"%s"'%origstr, b'0x%s'%hexstr)
-            parsed.append(newline)
-
-        if as_string:
-            return b'\n'.join(parsed)
-
-        return parsed
 
 
 class MemoryMappingWidget(QWidget):
@@ -556,7 +475,7 @@ class CanvasWidget(QWidget):
         maps = self.mapWidget.maps
         if not self.emu.populate_memory(maps):
             return False
-        code = self.codeWidget.getCleanCodeAsByte(as_string=False, parse_string=True)
+        code = self.codeWidget.parser.getCleanCodeAsByte(as_string=False, parse_string=True)
         if not self.emu.compile_code(code):
             return False
         regs = self.regWidget.getRegisters()
@@ -617,7 +536,7 @@ class CanvasWidget(QWidget):
 
 
     def checkAsmCode(self):
-        code = self.codeWidget.getCleanCodeAsByte()
+        code = self.codeWidget.parser.getCleanCodeAsByte()
         if self.emu.compile_code(code, False):
             msg = "Your code is syntaxically valid."
             popup = QMessageBox.information
@@ -630,9 +549,14 @@ class CanvasWidget(QWidget):
 
 
 class EmulatorWindow(QMainWindow):
+    MaxRecentFiles = 5
+
     def __init__(self, *args, **kwargs):
         super(EmulatorWindow, self).__init__()
         self.mode = Mode()
+        self.recentFileActions = []
+        self.current_file = None
+        self.setAttribute(Qt.WA_DeleteOnClose)
         self.shortcuts = Shortcut()
         self.emulator = Emulator(self.mode)
         self.reil = Reil(self.mode)
@@ -686,6 +610,12 @@ class EmulatorWindow(QMainWindow):
                                            self.shortcuts.description("load_binary"),
                                            self.shortcuts.shortcut("load_binary"))
 
+        for i in range(EmulatorWindow.MaxRecentFiles):
+            self.recentFileActions.append(QAction(self, visible=False, triggered=self.openRecentFile))
+
+        clearRecentFilesAction = self.add_menu_item("Clear Recent Files", self.clearRecentFiles,
+                                                    "Clear Recent Files", "")
+
         saveAsmAction = self.add_menu_item("Save Assembly", self.saveCodeText,
                                            self.shortcuts.description("save_as_asm"),
                                            self.shortcuts.shortcut("save_as_asm"))
@@ -708,17 +638,29 @@ class EmulatorWindow(QMainWindow):
 
         fileMenu.addAction(loadAsmAction)
         fileMenu.addAction(loadBinAction)
+        fileMenu.addSeparator()
+
+        for i in range(EmulatorWindow.MaxRecentFiles):
+            fileMenu.addAction(self.recentFileActions[i])
+        self.updateRecentFileActions()
+        fileMenu.addSeparator()
+
+        fileMenu.addAction(clearRecentFilesAction)
+        fileMenu.addSeparator()
+
         fileMenu.addAction(saveAsmAction)
         fileMenu.addAction(saveBinAction)
         fileMenu.addAction(saveCAction)
         fileMenu.addAction(saveAsAsmAction)
+        fileMenu.addSeparator()
+
         fileMenu.addAction(quitAction)
 
         # Add Architecture menu bar
         archMenu = menubar.addMenu("&Architecture")
         for arch in modes.keys():
             archSubMenu = archMenu.addMenu(arch)
-            for idx, title, _, _, _ in modes[arch]:
+            for idx, title, _, _, _, _ in modes[arch]:
                 archAction = QAction(QIcon(), title, self)
                 if self.mode.get_id() == idx:
                     archAction.setEnabled(False)
@@ -742,20 +684,33 @@ class EmulatorWindow(QMainWindow):
         return
 
 
+    def loadFile(self, fname, data=None):
+        if data is None:
+            data = open(fname, 'r').read()
+        self.canvas.codeWidget.editor.setPlainText(data)
+        self.canvas.logWidget.editor.append("Loaded '%s'" % fname)
+        self.updateRecentFileActions(fname)
+        self.current_file = fname
+        self.updateTitle(self.current_file)
+        return
+
+    def openRecentFile(self):
+        action = self.sender()
+        if action:
+            self.loadFile(action.data())
+        return
+
     def loadCode(self, title, filter, run_disassembler):
-        qFile, qFilter = QFileDialog().getOpenFileName(self, title, ".", filter)
+        qFile, qFilter = QFileDialog.getOpenFileName(self, title, TEMPLATES_PATH, filter)
 
         if not os.access(qFile, os.R_OK):
             return
 
-        if run_disassembler:
+        if run_disassembler or qFile.endswith(".raw"):
             body = disassemble_file(qFile, self.mode)
+            self.loadFile(qFile, data=body)
         else:
-            with open(qFile, 'r') as f:
-                body = f.read()
-
-        self.canvas.codeWidget.editor.setPlainText( body )
-        self.canvas.logWidget.editor.append("Loaded '%s'" % qFile)
+            self.loadFile(qFile)
         return
 
 
@@ -768,18 +723,18 @@ class EmulatorWindow(QMainWindow):
 
 
     def saveCode(self, title, filter, run_assembler):
-        qFile, qFilter = QFileDialog().getSaveFileName(self, title, ".", filter=filter)
+        qFile, qFilter = QFileDialog().getSaveFileName(self, title, HOME, filter=filter)
         if qFile is None or len(qFile)==0 or qFile=="":
             return
 
         if run_assembler:
-            asm = self.canvas.codeWidget.getCleanCodeAsByte(as_string=True)
+            asm = self.canvas.codeWidget.parser.getCleanCodeAsByte(as_string=True)
             txt, cnt = assemble(asm, self.mode)
             if cnt < 0:
                 self.canvas.logWidget.editor.append("Failed to compile code")
                 return
         else:
-            txt = self.canvas.codeWidget.getCleanCodeAsByte(as_string=True)
+            txt = self.canvas.codeWidget.parser.getCleanCodeAsByte(as_string=True)
 
         with open(qFile, "wb") as f:
             f.write(txt)
@@ -832,7 +787,7 @@ int main(int argc, char** argv, char** envp)
     return 0;
 }
 """
-        insns = self.canvas.codeWidget.getCleanCodeAsByte(as_string=False)
+        insns = self.canvas.codeWidget.parser.getCleanCodeAsByte(as_string=False)
         if sys.version_info.major == 2:
             title = bytes(self.mode.get_title())
         else:
@@ -882,7 +837,7 @@ _start:
 ;;;
 ;;;
 """
-        txt = self.canvas.codeWidget.getCleanCodeAsByte(as_string=True)
+        txt = self.canvas.codeWidget.parser.getCleanCodeAsByte(as_string=True)
         if sys.version_info.major == 2:
             title = bytes(self.mode.get_title())
         else:
@@ -905,8 +860,11 @@ _start:
         return
 
 
-    def updateTitle(self):
-        self.setWindowTitle("{} ({})".format(TITLE, self.mode.get_title()))
+    def updateTitle(self, msg=None):
+        title = "{} ({} - {} endian)".format(TITLE, self.mode.get_title(), self.mode.endian_str)
+        if msg:
+            title+=": {}".format(msg)
+        self.setWindowTitle(title)
         return
 
 
@@ -983,6 +941,47 @@ Thanks for using <b>CEMU</b>.
         msgbox.exec()
         return
 
+    def updateRecentFileActions(self, insert_file=None):
+        settings = QSettings('Cemu', 'Recent Files')
+        files = settings.value('recentFileList')
+        if files is None:
+            # if setting doesn't exist, create it
+            settings.setValue('recentFileList', [])
+            files = settings.value('recentFileList')
+
+        maxRecentFiles = EmulatorWindow.MaxRecentFiles
+
+        if insert_file:
+            # insert new file to list
+            if insert_file not in files:
+                files.insert(0, insert_file)
+            # ensure list size
+            if len(files) > maxRecentFiles:
+                files = files[0:maxRecentFiles]
+            # save the setting
+            settings.setValue('recentFileList', files)
+
+        numRecentFiles = min(len(files), maxRecentFiles)
+
+        for i in range(numRecentFiles):
+            text = "&%d %s" % (i + 1, self.strippedName(files[i]))
+            self.recentFileActions[i].setText(text)
+            self.recentFileActions[i].setData(files[i])
+            self.recentFileActions[i].setVisible(True)
+
+        for j in range(numRecentFiles, maxRecentFiles):
+            self.recentFileActions[j].setVisible(False)
+        return
+
+    def strippedName(self, fullFileName):
+        return QFileInfo(fullFileName).fileName()
+
+    def clearRecentFiles(self):
+        settings = QSettings('Cemu', 'Recent Files')
+        settings.setValue('recentFileList', [])
+        self.updateRecentFileActions()
+        return
+
 
 def Cemu():
     app = QApplication(sys.argv)
@@ -996,8 +995,6 @@ def Cemu():
     }
     """
     app.setStyleSheet(style)
-    app.setWindowIcon(QIcon(ICON))
+    app.setWindowIcon(QIcon(ICON_PATH))
     emu = EmulatorWindow()
-    # emu.setWindowFlags(QtCore.Qt.FramelessWindowHint)
-    # emu.show()
     sys.exit(app.exec_())
