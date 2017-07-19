@@ -387,16 +387,27 @@ class MemoryWidget(QWidget):
             self.editor.setText("VM not running")
             return
 
-        addr = self.address.text()
-        if addr.startswith("0x") or addr.startswith("0X"):
-            addr = addr[2:]
+        value = self.address.text()
+        if value.startswith("0x") or value.startswith("0X"):
+            value = value[2:]
 
-        if addr.startswith("@"):
-            addr = emu.lookup_map(addr[1:])
+        if value.startswith("@"):
+            # if the value of the "memory viewer" field starts with @.<section_name>
+            addr = emu.lookup_map(value[1:])
             if addr is None:
                 return
+
+        elif value.startswith("$"):
+            # if the value of the "memory viewer" field starts with $<register_name>
+            reg_name = value[1:].upper()
+            if reg_name not in emu.mode.get_registers():
+                return
+            addr = emu.get_register_value(reg_name)
+            if addr is None:
+                return
+
         else:
-            if not addr.isdigit():
+            if not value.isdigit():
                 return
             addr = int(addr, 16)
 
