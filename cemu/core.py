@@ -370,6 +370,7 @@ class MemoryWidget(QWidget):
         title_layout.addWidget(self.address)
         title_widget = QWidget()
         title_widget.setLayout(title_layout)
+        title_widget.setMouseTracking(True)
 
         memview_layout = QVBoxLayout()
         self.editor = QTextEdit()
@@ -379,6 +380,15 @@ class MemoryWidget(QWidget):
         memview_layout.addWidget(title_widget)
         memview_layout.addWidget(self.editor)
         self.setLayout(memview_layout)
+        return
+
+    def enterEvent(self, evt):
+        return
+
+    def leaveEvent(self, evt):
+        return
+
+    def mouseMoveEvent(self, evt):
         return
 
     def updateEditor(self):
