@@ -27,7 +27,21 @@ write assembly code, all of this for the following architectures:
 `CEmu` was tested and works on Linux, Windows and MacOSX.
 
 
-## Pre-Requisites
+## Installation ##
+
+### Quick install via PIP ###
+
+This is the recommended way to install `cemu` as it will work out of the box.
+You can install `cemu` on your system or using `virtualenv` or `pipenv`, by running:
+```
+pip3 install --user --upgrade .
+```
+
+
+### Manual installation ###
+
+If for some reason the installation via PIP fails, you can always run `cemu` by
+installing manually the following dependencies:
 
   - `unicorn` and its Python bindings, as the emulation engine
   - `keystone` and its Python bindings, as the assembly engine
@@ -36,17 +50,7 @@ write assembly code, all of this for the following architectures:
   - `pygments` for the text colorization
 
 
-
-## Requirements ##
-
-### Quick install ###
-
-On your system, or using `virtualenv` or `pipenv`:
-```
-pip3 install --user --upgrade .
-```
-
-### Linux / OSX ###
+#### Linux / OSX ####
 
 Use the script `requirements.sh` to install all the dependencies required for
 `cemu`.
@@ -66,13 +70,13 @@ line, like this:
 $ ./requirements.sh --python2
 ```
 
-### Windows
+#### Windows ####
 
 The fastest way for Windows is to install the packaged binaries for:
    * Keystone
-     (http://www.keystone-engine.org/download/#python-module-for-windows-32---binaries-img-srcimagespythonpng-height28-width28-img-srcimageswindowspng-height28-width28)
+     (http://www.keystone-engine.org/download/)
    * Capstone
-     (http://www.capstone-engine.org/download.html)
+     (http://www.capstone-engine.org/download)
    * Unicorn
      (http://www.unicorn-engine.org/download/)
 
@@ -102,3 +106,10 @@ code based on the content of the `Code` panel.
 
 To do so, follow the installation procedure for `OpenReil` by following the steps
 [here](https://github.com/Cr4sh/openreil#_2).
+
+
+## Contribution ##
+
+`cemu` was created and maintained by myself,
+[`@_hugsy_`](https://twitter.com/_hugsy_), but kept fresh thanks to [all
+the contributors](https://github.com/hugsy/cemu/graphs/contributors).
