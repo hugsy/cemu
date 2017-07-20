@@ -4,7 +4,13 @@ import unicorn
 import keystone
 import capstone
 
-from .arch import Architecture
+from cemu.arch import Syntax, \
+    is_x86_16, is_x86_32, is_x86_64, is_x86, \
+    is_arm, is_arm_thumb, is_aarch64, \
+    is_mips, is_mips64, \
+    is_sparc, is_sparc64, \
+    is_ppc
+
 from .utils import get_arch_mode, assemble
 
 
@@ -12,8 +18,8 @@ class Emulator:
     EMU = 0
     LOG = 1
 
-    def __init__(self, mode, *args, **kwargs):
-        self.mode = mode
+    def __init__(self, parent, *args, **kwargs):
+        self.parent = parent
         self.use_step_mode = False
         self.widget = None
         self.reinit()
@@ -61,29 +67,26 @@ class Emulator:
 
 
     def unicorn_register(self, reg):
-        if self.mode in (Architecture.X86_16_INTEL, Architecture.X86_16_ATT,
-                         Architecture.X86_32_INTEL, Architecture.X86_32_ATT,
-                         Architecture.X86_64_INTEL, Architecture.X86_64_ATT):
+        curarch = self.parent.arch
+        if is_x86(curarch):
             return getattr(unicorn.x86_const, "UC_X86_REG_%s"%reg.upper())
 
-        if self.mode in (Architecture.ARM_LE, Architecture.ARM_BE,
-                         Architecture.ARM_THUMB_LE, Architecture.ARM_THUMB_BE):
+        if is_arm(curarch) or is_arm_thumb(curarch):
             return getattr(unicorn.arm_const, "UC_ARM_REG_%s"%reg.upper())
 
-        if self.mode==Architecture.ARM_AARCH64:
+        if is_aarch64(curarch):
             return getattr(unicorn.arm64_const, "UC_ARM64_REG_%s"%reg.upper())
 
-        if self.mode in (Architecture.PPC, Architecture.PPC64):
+        if is_ppc(curarch):
             return getattr(unicorn.ppc_const, "UC_PPC_REG_%s" % reg.upper())
 
-        if self.mode in (Architecture.MIPS, Architecture.MIPS_BE,
-                         Architecture.MIPS64, Architecture.MIPS64_BE):
+        if is_mips(curarch) or is_mips64(curarch):
             return getattr(unicorn.mips_const, "UC_MIPS_REG_%s" % reg.upper())
 
-        if self.mode in (Architecture.SPARC, Architecture.SPARC_BE, Architecture.SPARC64):
+        if is_sparc(curarch) or is_sparc64(curarch):
             return getattr(unicorn.sparc_const, "UC_SPARC_REG_%s" %reg.upper())
 
-        raise Exception("Cannot find register '%s' for arch '%s'" % (reg, self.mode))
+        raise Exception("Cannot find register '%s' for arch '%s'" % (reg, curarch))
 
 
     def get_register_value(self, r):
@@ -92,11 +95,11 @@ class Emulator:
 
 
     def pc(self):
-        return self.get_register_value(self.mode.get_pc())
+        return self.get_register_value(self.parent.arch.pc)
 
 
     def sp(self):
-        return self.get_register_value(self.mode.get_sp())
+        return self.get_register_value(self.parent.arch.sp)
 
 
     def unicorn_permissions(self, perms):
@@ -107,7 +110,7 @@ class Emulator:
 
 
     def create_new_vm(self):
-        arch, mode, endian = get_arch_mode("unicorn", self.mode)
+        arch, mode, endian = get_arch_mode("unicorn", self.parent.arch)
         self.vm = unicorn.Uc(arch, mode | endian)
         self.vm.hook_add(unicorn.UC_HOOK_BLOCK, self.hook_block)
         self.vm.hook_add(unicorn.UC_HOOK_CODE, self.hook_code)
@@ -143,11 +146,11 @@ class Emulator:
             self.log("Register '{:s}' = {:#x}".format(r, registers[r]), "Setup")
 
         # fix $PC
-        ur = self.unicorn_register(self.mode.get_pc())
+        ur = self.unicorn_register(self.parent.arch.pc)
         self.vm.reg_write(ur, self.areas[".text"][0])
 
         # fix $SP
-        ur = self.unicorn_register(self.mode.get_sp())
+        ur = self.unicorn_register(self.parent.arch.sp)
         self.vm.reg_write(ur, self.areas[".stack"][0])
         return True
 
@@ -155,8 +158,8 @@ class Emulator:
     def compile_code(self, code_list, update_end_addr=True):
         n = len(code_list)
         code = b" ; ".join(code_list)
-        self.log("Assembling {} instructions for {}:\n{}".format(n, self.mode.get_title(), code), "Compilation")
-        self.code, self.num_insns = assemble(code, self.mode)
+        self.log("Assembling {} instructions for {}:\n{}".format(n, self.parent.arch.name, code), "Compilation")
+        self.code, self.num_insns = assemble(code, self.parent.arch)
         if self.num_insns == -1:
             self.log("Failed to compile code", "Error")
             return False
@@ -188,9 +191,10 @@ class Emulator:
 
 
     def disassemble_one_instruction(self, code, addr):
-        arch, mode, endian = get_arch_mode("capstone", self.mode)
+        curarch = self.parent.arch
+        arch, mode, endian = get_arch_mode("capstone", curarch)
         cs = capstone.Cs(arch, mode | endian)
-        if self.mode in (Architecture.X86_16_ATT, Architecture.X86_32_ATT, Architecture.X86_64_ATT):
+        if is_x86(curarch) and curarch.syntax == Syntax.ATT:
             cs.syntax = capstone.CS_OPT_SYNTAX_ATT
         for i in cs.disasm(bytes(code), addr):
             return i
@@ -201,7 +205,7 @@ class Emulator:
         insn = self.disassemble_one_instruction(code, address)
 
         if self.stop_now:
-            self.start_addr = self.get_register_value(self.mode.get_pc())
+            self.start_addr = self.get_register_value(self.parent.arch.pc)
             emu.emu_stop()
             return
 

@@ -18,8 +18,9 @@ setup(
         'Topic :: Software Development :: Assemblers',
         'Natural Language :: English',
     ],
-    author='_hugsy_',
-    version='0.1',
+    author='hugsy',
+    author_email='hugsy@blah.cat',
+    version='0.2',
     license='MIT',
     include_package_data=True,
     packages=find_packages(),
@@ -33,5 +34,6 @@ setup(
     ],
     entry_points={
         'console_scripts': ['cemu=cemu.__main__:main'],
-    }
+    },
+    keywords = ['assembly', 'disassembly', 'emulation', 'x86', 'arm', 'mips', 'powerpc', 'sparc'],
 )

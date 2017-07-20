@@ -18,7 +18,7 @@ from pygments.lexers import *
 from pygments.formatter import Formatter
 
 
-from .arch import Architecture, modes, Mode
+from cemu.arch import Architectures, DEFAULT_ARCHITECTURE
 from .emulator import Emulator
 from .reil import Reil
 from .utils import *
@@ -213,7 +213,8 @@ class PythonConsoleWidget(QWidget):
         layout = QVBoxLayout()
         layout.addWidget(QLabel("Python Interpreter"))
         ver = "{}.{}.{}-{}.{}".format(*sys.version_info)
-        console = PythonConsole(startup_message="[+] Welcome to CEMU Python console (v{})".format(ver), parent=self)
+        msg = "[+] Welcome to CEMU Python console (v{})".format(ver)
+        console = PythonConsole(startup_message=msg, parent=self)
         highlighter = Highlighter(console, "py")
         layout.addWidget(console)
         self.setLayout(layout)
@@ -305,19 +306,18 @@ class RegistersWidget(QWidget):
         self.updateGrid()
         return
 
+
     def updateGrid(self):
-        emu = self.parent.parent.emulator
-        current_mode = self.parent.parent.mode
-        registers = current_mode.get_registers()
+        emuwin = self.parent.parent
+        emu = emuwin.emulator
+        current_mode = emuwin.arch
+        registers = current_mode.registers
         self.values.setRowCount(len(registers))
         for i, reg in enumerate(registers):
             self.values.setRowHeight(i, self.row_size)
             name = QTableWidgetItem(reg)
             name.setFlags(Qt.NoItemFlags)
-            if emu.vm is None:
-                val = 0
-            else:
-                val = emu.get_register_value(reg)
+            val = emu.get_register_value(reg) if emu.vm else 0
             old_val = self.old_register_values.get(reg, 0)
             if type(val) in (int, long):
                 value = format_address(val, current_mode)
@@ -332,10 +332,11 @@ class RegistersWidget(QWidget):
             self.values.setItem(i, 1, value)
         return
 
+
     def getRegisters(self):
         regs = {}
-        current_mode = self.parent.parent.mode
-        registers = current_mode.get_registers()
+        current_mode = self.parent.parent.arch
+        registers = current_mode.registers
         for i, reg in enumerate(registers):
             name = self.values.item(i, 0).text()
             value = self.values.item(i, 1).text()
@@ -410,7 +411,7 @@ class MemoryWidget(QWidget):
         elif value.startswith("$"):
             # if the value of the "memory viewer" field starts with $<register_name>
             reg_name = value[1:].upper()
-            if reg_name not in emu.mode.get_registers():
+            if reg_name not in emu.arch.registers:
                 return
             addr = emu.get_register_value(reg_name)
             if addr is None:
@@ -574,13 +575,13 @@ class EmulatorWindow(QMainWindow):
 
     def __init__(self, *args, **kwargs):
         super(EmulatorWindow, self).__init__()
-        self.mode = Mode()
+        self.arch = DEFAULT_ARCHITECTURE
         self.recentFileActions = []
         self.current_file = None
         self.setAttribute(Qt.WA_DeleteOnClose)
         self.shortcuts = Shortcut()
-        self.emulator = Emulator(self.mode)
-        self.reil = Reil(self.mode)
+        self.emulator = Emulator(self)
+        self.reil = Reil(self.arch)
         self.canvas = CanvasWidget(self)
         self.setMainWindowProperty()
         self.setMainWindowMenuBar()
@@ -679,16 +680,16 @@ class EmulatorWindow(QMainWindow):
 
         # Add Architecture menu bar
         archMenu = menubar.addMenu("&Architecture")
-        for arch in modes.keys():
-            archSubMenu = archMenu.addMenu(arch)
-            for idx, title, _, _, _, _ in modes[arch]:
-                archAction = QAction(QIcon(), title, self)
-                if self.mode.get_id() == idx:
+        for abi in Architectures.keys():
+            archSubMenu = archMenu.addMenu(abi)
+            for arch in Architectures[abi]:
+                archAction = QAction(QIcon(), str(arch), self)
+                if isinstance(arch, self.arch.__class__) and self.arch.endianness==arch.endianness and self.arch.syntax==arch.syntax:
                     archAction.setEnabled(False)
                     self.currentAction = archAction
 
-                archAction.setStatusTip("Switch context to architecture: '%s'" % title)
-                archAction.triggered.connect( functools.partial(self.updateMode, idx, archAction) )
+                archAction.setStatusTip("Switch context to architecture: '%s'" % arch)
+                archAction.triggered.connect( functools.partial(self.updateMode, arch, archAction) )
                 archSubMenu.addAction(archAction)
 
         # Add Help menu bar
@@ -728,7 +729,7 @@ class EmulatorWindow(QMainWindow):
             return
 
         if run_disassembler or qFile.endswith(".raw"):
-            body = disassemble_file(qFile, self.mode)
+            body = disassemble_file(qFile, self.arch)
             self.loadFile(qFile, data=body)
         else:
             self.loadFile(qFile)
@@ -750,7 +751,7 @@ class EmulatorWindow(QMainWindow):
 
         if run_assembler:
             asm = self.canvas.codeWidget.parser.getCleanCodeAsByte(as_string=True)
-            txt, cnt = assemble(asm, self.mode)
+            txt, cnt = assemble(asm, self.arch)
             if cnt < 0:
                 self.canvas.logWidget.editor.append("Failed to compile code")
                 return
@@ -810,14 +811,14 @@ int main(int argc, char** argv, char** envp)
 """
         insns = self.canvas.codeWidget.parser.getCleanCodeAsByte(as_string=False)
         if sys.version_info.major == 2:
-            title = bytes(self.mode.get_title())
+            title = bytes(self.arch.name)
         else:
-            title = bytes(self.mode.get_title(), encoding="utf-8")
+            title = bytes(self.arch.name, encoding="utf-8")
 
         sc = b'""\n'
         i = 0
         for insn in insns:
-            txt, cnt = assemble(insn, self.mode)
+            txt, cnt = assemble(insn, self.arch)
             if cnt < 0:
                 self.canvas.logWidget.editor.append("Failed to compile code")
                 return
@@ -860,9 +861,9 @@ _start:
 """
         txt = self.canvas.codeWidget.parser.getCleanCodeAsByte(as_string=True)
         if sys.version_info.major == 2:
-            title = bytes(self.mode.get_title())
+            title = bytes(self.arch.name)
         else:
-            title = bytes(self.mode.get_title(), encoding="utf-8")
+            title = bytes(self.arch.name, encoding="utf-8")
 
         asm = asm_fmt % (title, b'\n'.join([b"\t%s"%x for x in txt.split(b'\n')]))
         fd, fpath = tempfile.mkstemp(suffix=".asm")
@@ -871,9 +872,11 @@ _start:
         self.canvas.logWidget.editor.append("Saved as '%s'" % fpath)
 
 
-    def updateMode(self, idx, newAction):
+    def updateMode(self, arch, newAction):
         self.currentAction.setEnabled(True)
-        self.mode.set_new_mode(idx)
+        self.arch = arch
+        print("Switching to '%s'" % self.arch)
+        self.canvas.logWidget.editor.append("Switching to '%s'" % self.arch)
         self.canvas.regWidget.updateGrid()
         newAction.setEnabled(False)
         self.currentAction = newAction
@@ -882,7 +885,7 @@ _start:
 
 
     def updateTitle(self, msg=None):
-        title = "{} ({} - {} endian)".format(TITLE, self.mode.get_title(), self.mode.endian_str)
+        title = "{} ({})".format(TITLE, self.arch)
         if msg:
             title+=": {}".format(msg)
         self.setWindowTitle(title)

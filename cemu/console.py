@@ -210,4 +210,4 @@ class PythonConsole(QTextEdit):
 
     @property
     def arch(self):
-        return self.emu.mode
+        return self.emu.arch

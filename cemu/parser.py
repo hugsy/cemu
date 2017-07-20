@@ -72,7 +72,7 @@ class CodeParser():
         pattern and convert it as a hexadecimal number.
         """
         parsed = []
-        register_size = self.emulator.mode.ptrsize
+        arch = self.emulator.parent.arch
 
         for line in code:
             i = line.find(b'"')
@@ -87,7 +87,7 @@ class CodeParser():
                 parsed.append(line)
                 continue
 
-            if (j*8) != register_size:
+            if j != arch.ptrsize:
                 # incorrect size
                 parsed.append(line)
                 continue
@@ -109,7 +109,7 @@ class CodeParser():
         """
 
         parsed = []
-        syscalls = self.emulator.mode.get_syscalls()
+        syscalls = self.emulator.parent.arch.syscalls
         syscall_names = syscalls.keys()
         for line in code:
             for sysname in syscall_names:
