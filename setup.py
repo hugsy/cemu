@@ -4,13 +4,22 @@ def readme():
     with open('README.md') as f:
         return f.read()
 
+PROGNAME = 'cemu'
+AUTHOR = 'hugsy'
+EMAIL = 'hugsy@blah.cat'
+VERSION = '0.2'
+URL = 'https://github.com/{}/{}'.format(AUTHOR, PROGNAME)
+RELEASE_LINK = '{}/archive/{}.tar.gz'.format(URL, VERSION)
+LICENSE = 'MIT'
+
 setup(
-    name='cemu',
+    name=PROGNAME,
     description='''Cemu is a Cheap EMUlator, that combines all the advantages of a basic assembly IDE,
     compilation and execution environment by relying on the great libraries Keystone, Unicorn and
     Capstone engines in a Qt powered GUI.''',
     long_description=readme(),
-    url='https://github.com/hugsy/cemu',
+    url=URL,
+    download_url=RELEASE_LINK,
     classifiers=[
         'Development Status :: 4 - Beta',
         'License :: OSI Approved :: MIT License',
@@ -18,10 +27,10 @@ setup(
         'Topic :: Software Development :: Assemblers',
         'Natural Language :: English',
     ],
-    author='hugsy',
-    author_email='hugsy@blah.cat',
-    version='0.2',
-    license='MIT',
+    author=AUTHOR,
+    author_email=EMAIL,
+    version=VERSION,
+    license=LICENSE,
     include_package_data=True,
     packages=find_packages(),
     install_requires=[
