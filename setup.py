@@ -14,9 +14,7 @@ LICENSE = 'MIT'
 
 setup(
     name=PROGNAME,
-    description='''Cemu is a Cheap EMUlator, that combines all the advantages of a basic assembly IDE,
-    compilation and execution environment by relying on the great libraries Keystone, Unicorn and
-    Capstone engines in a Qt powered GUI.''',
+    description='''Cemu is a Cheap EMUlator, that combines all the advantages of a basic assembly IDE, compilation and execution environment by relying on the great libraries Keystone, Unicorn and Capstone engines in a Qt powered GUI.''',
     long_description=readme(),
     url=URL,
     download_url=RELEASE_LINK,
