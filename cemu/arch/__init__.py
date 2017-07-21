@@ -32,11 +32,10 @@ class Architecture(object):
     def syscall_filename(self):           pass
     @property
     def endian_str(self):                 return "big" if self.is_big_endian() else "little"
-
     def is_big_endian(self):              return self.endianness == Endianness.BIG
-
     def __str__(self):                    return self.name
 
+    syscall_base = 0
     @property
     def syscalls(self):
         path = os.path.dirname(os.path.realpath(__file__)) + "/../syscalls"
@@ -47,7 +46,7 @@ class Architecture(object):
             reader = csv.reader(fd, delimiter=',')
             for row in reader:
                 syscall_number, syscall_name = int(row[0]), row[1].lower().strip().encode()
-                syscalls[syscall_name] = syscall_number
+                syscalls[syscall_name] = self.syscall_base + syscall_number
 
         return syscalls
 

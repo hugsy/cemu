@@ -680,7 +680,7 @@ class EmulatorWindow(QMainWindow):
 
         # Add Architecture menu bar
         archMenu = menubar.addMenu("&Architecture")
-        for abi in Architectures.keys():
+        for abi in sorted(Architectures.keys()):
             archSubMenu = archMenu.addMenu(abi)
             for arch in Architectures[abi]:
                 archAction = QAction(QIcon(), str(arch), self)
