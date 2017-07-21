@@ -29,11 +29,20 @@ write assembly code, all of this for the following architectures:
 
 ## Installation ##
 
-### Quick install via PIP ###
+### Quick install with PIP ###
+
+#### From PyPI ####
 
 This is the recommended way to install `cemu` as it will work out of the box.
 You can install `cemu` on your system or using `virtualenv` or `pipenv`, by running:
 ```
+pip3 install --user --upgrade cemu
+```
+
+#### From GitHub ####
+
+```
+git clone https://github.com/hugsy/cemu && cd cemu
 pip3 install --user --upgrade .
 ```
 
