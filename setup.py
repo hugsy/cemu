@@ -1,5 +1,5 @@
 from setuptools import setup, find_packages
-import io, pyandoc
+import io, pypandoc
 
 def readme():
     try:
@@ -22,7 +22,7 @@ LICENSE = 'MIT'
 
 setup(
     name=PROGNAME,
-    description='''Cemu is a Cheap EMUlator, that combines all the advantages of a basic assembly IDE, compilation and execution environment by relying on the great libraries Keystone, Unicorn and Capstone engines in a Qt powered GUI.''',
+    description='''Cemu is a basic assembly Qt-based IDE, to disassemble, assemble and emulate any assembly code (currently supports x86-{32,64}, ARM, AARCH64, MIPS, SPARC).''',
     long_description=readme(),
     url=URL,
     download_url=RELEASE_LINK,
