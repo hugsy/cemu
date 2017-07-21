@@ -1,8 +1,16 @@
 from setuptools import setup, find_packages
+import io, pyandoc
 
 def readme():
-    with open('README.rst') as f:
-        return f.read()
+    try:
+        long_description = pypandoc.convert('README.md', 'rst')
+        long_description = long_description.replace("\r","")
+    except OSError:
+        print("Pandoc not found. Long_description conversion failure.")
+        with io.open('README.md', encoding="utf-8") as f:
+            long_description = f.read()
+    return long_description
+
 
 PROGNAME = 'cemu'
 AUTHOR = 'hugsy'
