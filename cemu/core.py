@@ -17,7 +17,7 @@ from pygments import highlight
 from pygments.lexers import *
 from pygments.formatter import Formatter
 
-
+import cemu
 from cemu.arch import Architectures, DEFAULT_ARCHITECTURE
 from .emulator import Emulator
 from .reil import Reil
@@ -921,9 +921,9 @@ _start:
     def showAboutPopup(self):
         desc = \
 """
-<b>CEMU</b>: Cheap EMUlator
+<b>CEMU</b>: Cheap EMUlator (v {version:s})
 <br>
-Created and maintained by @_hugsy_ (<a href="https://github.com/hugsy/cemu">Link on GitHub</a>)
+Created and maintained by {author:s} (<a href="{project_link:s}">Link on GitHub</a>)
 <br>
 <br>
 CEMU allows you to play easily with assembly on many architectures (x86, ARM, MIPS, etc.),
@@ -945,7 +945,7 @@ This tool relies on the fantastic libraries/framworks:
 </ul>
 <br>
 <br>
-For issues, please send detailed reports <a href="https://github.com/hugsy/cemu/issues">here</a> <br>
+For issues, please send detailed reports <a href="{issues_link:s}">here</a> <br>
 <br>
 Thanks for using <b>CEMU</b>.
 <br>
@@ -955,7 +955,7 @@ Thanks for using <b>CEMU</b>.
 <a href="https://twitter.com/_hugsy_">Twitter</a>
 <br>
 <a href="https://github.com/hugsy">GitHub</a>
-"""
+""".format(author=cemu.AUTHOR, version=cemu.VERSION, project_link=cemu.LINK, issues_link=cemu.ISSUES)
         msgbox = QMessageBox(self)
         msgbox.setIcon(QMessageBox.Information)
         msgbox.setWindowTitle("About CEMU")
