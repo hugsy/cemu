@@ -1,31 +1,28 @@
 # -*- coding: utf-8 -*-
 
-import sys
-import os
-import functools
-import time
-import tempfile
 import binascii
+import functools
+import os
+import sys
+import tempfile
+import time
 
 import unicorn
-
+from pygments import highlight
+from pygments.formatter import Formatter
+from pygments.lexers import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
-from pygments import highlight
-from pygments.lexers import *
-from pygments.formatter import Formatter
-
 import cemu
-from cemu.arch import Architectures, DEFAULT_ARCHITECTURE
-from .emulator import Emulator
-from .reil import Reil
-from .utils import *
-from .shortcuts import Shortcut
-from .console import PythonConsole
-from .parser import CodeParser
-
+from cemu.arch import DEFAULT_ARCHITECTURE, Architectures
+from cemu.console import PythonConsole
+from cemu.emulator import Emulator
+from cemu.parser import CodeParser
+from cemu.reil import Reil
+from cemu.shortcuts import Shortcut
+from cemu.utils import *
 
 WINDOW_SIZE = (1600, 800)
 PKG_PATH = os.path.dirname(os.path.realpath(__file__))
@@ -60,10 +57,10 @@ class QFormatter(Formatter):
 
 
     def hex2QColor(self, c):
-        r=int(c[0:2],16)
-        g=int(c[2:4],16)
-        b=int(c[4:6],16)
-        return QColor(r,g,b)
+        red = int(c[0:2], 16)
+        green = int(c[2:4], 16)
+        blue = int(c[4:6], 16)
+        return QColor(red, green, blue)
 
 
     def format(self, tokensource, outfile):
@@ -123,7 +120,7 @@ class MemoryMappingWidget(QWidget):
         self.title = ["Name", "Base address", "Size", "Permission", "Raw data file"]
         self.memory_mapping = QTableWidget(10, len(self.title))
         self.memory_mapping.setHorizontalHeaderLabels(self.title)
-        self.memory_mapping.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch);
+        self.memory_mapping.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         layout.addWidget(self.memory_mapping)
         self.setLayout(layout)
         self.populateWithInitialValues()
@@ -166,7 +163,10 @@ class MemoryMappingWidget(QWidget):
 
             address = self.memory_mapping.item(i, 1)
             if address:
-                address = int(address.text(), 0x10) if ishex(address.text()) else int(address.text())
+                if ishex(address.text()):
+                    address = int(address.text(), 0x10)
+                else:
+                    address = int(address.text())
 
             size = self.memory_mapping.item(i, 2)
             if size:
@@ -190,7 +190,7 @@ class MemoryMappingWidget(QWidget):
 
 
 class SymRWidget(QWidget):
-     def __init__(self, parent, *args, **kwargs):
+    def __init__(self, parent, *args, **kwargs):
         super(SymRWidget, self).__init__()
         self.parent = parent
         self.symr = self.parent.symr
@@ -207,7 +207,7 @@ class SymRWidget(QWidget):
 
 
 class PythonConsoleWidget(QWidget):
-     def __init__(self, parent, *args, **kwargs):
+    def __init__(self, parent, *args, **kwargs):
         super(PythonConsoleWidget, self).__init__()
         self.parent = parent
         layout = QVBoxLayout()
@@ -222,7 +222,7 @@ class PythonConsoleWidget(QWidget):
 
 
 class EmulatorWidget(QWidget):
-     def __init__(self, parent, *args, **kwargs):
+    def __init__(self, parent, *args, **kwargs):
         super(EmulatorWidget, self).__init__()
         self.parent = parent
         layout = QVBoxLayout()
@@ -236,7 +236,7 @@ class EmulatorWidget(QWidget):
 
 
 class LogWidget(QWidget):
-     def __init__(self, parent, *args, **kwargs):
+    def __init__(self, parent, *args, **kwargs):
         super(LogWidget, self).__init__()
         self.parent = parent
         layout = QVBoxLayout()
@@ -252,7 +252,7 @@ class LogWidget(QWidget):
 
 
 class CommandWidget(QWidget):
-     def __init__(self, parent, *args, **kwargs):
+    def __init__(self, parent, *args, **kwargs):
         super(CommandWidget, self).__init__()
         self.parent = parent
         sc = self.parent.parent.shortcuts
@@ -260,11 +260,11 @@ class CommandWidget(QWidget):
         layout.addStretch(1)
 
         self.runButton = QPushButton("Run all code")
-        self.runButton.clicked.connect( self.parent.runCode )
+        self.runButton.clicked.connect(self.parent.runCode)
         self.runButton.setShortcut(sc.shortcut("emulator_run_all"))
 
         self.stepButton = QPushButton("Next instruction")
-        self.stepButton.clicked.connect( self.parent.stepCode )
+        self.stepButton.clicked.connect(self.parent.stepCode)
         self.stepButton.setShortcut(sc.shortcut("emulator_step"))
 
         self.stopButton = QPushButton("Stop")
@@ -273,7 +273,7 @@ class CommandWidget(QWidget):
 
         self.checkAsmButton = QPushButton("Check assembly code")
         self.checkAsmButton.setShortcut(sc.shortcut("emulator_check"))
-        self.checkAsmButton.clicked.connect( self.parent.checkAsmCode )
+        self.checkAsmButton.clicked.connect(self.parent.checkAsmCode)
 
         layout.addWidget(self.runButton)
         layout.addWidget(self.stepButton)
@@ -345,7 +345,7 @@ class RegistersWidget(QWidget):
 
 
 class ScratchboardWidget(QWidget):
-     def __init__(self, parent, *args, **kwargs):
+    def __init__(self, parent, *args, **kwargs):
         super(ScratchboardWidget, self).__init__()
         self.parent = parent
         layout = QVBoxLayout()
@@ -367,7 +367,7 @@ class MemoryWidget(QWidget):
         title_layout = QHBoxLayout()
         title_layout.addWidget(QLabel("Memory viewer"))
         self.address = QLineEdit()
-        self.address.textChanged.connect( self.updateEditor )
+        self.address.textChanged.connect(self.updateEditor)
         title_layout.addWidget(self.address)
         title_widget = QWidget()
         title_widget.setLayout(title_layout)
@@ -915,7 +915,7 @@ _start:
         wid.setMinimumWidth(800)
         wid.setLayout(grid)
         msgbox.layout().addWidget(wid)
-        msgbox.exec()
+        msgbox.exec_()
         return
 
     def showAboutPopup(self):
@@ -962,7 +962,7 @@ Thanks for using <b>CEMU</b>.
         msgbox.setTextFormat(Qt.RichText)
         msgbox.setText(desc)
         msgbox.setStandardButtons(QMessageBox.Ok)
-        msgbox.exec()
+        msgbox.exec_()
         return
 
     def updateRecentFileActions(self, insert_file=None):
