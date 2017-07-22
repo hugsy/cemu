@@ -2,7 +2,7 @@ import binascii
 import sys
 
 
-class CodeParser():
+class CodeParser:
     """
     This class aims to parse the content of the CodeWidget.
     """

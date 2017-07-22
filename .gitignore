@@ -64,3 +64,4 @@ target/
 cemu.desktop
 .gitignore
 .pypirc
+settings.json

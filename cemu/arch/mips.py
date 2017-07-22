@@ -23,8 +23,7 @@ class MIPS(Architecture):
         return
 
     def __str__(self):
-        return "{} - {} endian".format(self.name,
-                                       "big" if self.endianness==Endianness.BIG else "little")
+        return "{} - {} endian".format(self.name, self.endian_str)
 
 
 class MIPS64(MIPS):

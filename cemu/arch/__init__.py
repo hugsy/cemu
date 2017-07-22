@@ -15,27 +15,49 @@ class Architecture(object):
     endianness = Endianness.LITTLE
 
     @abc.abstractproperty
-    def name(self):                       pass
+    def name(self):
+        pass
+
     @abc.abstractproperty
-    def registers(self):                  pass
+    def registers(self):
+        pass
+
     @abc.abstractproperty
-    def instruction_length(self):         pass
+    def instruction_length(self):
+        pass
+
     @abc.abstractproperty
-    def flag(self):                       pass
+    def flag(self):
+        pass
+
     @abc.abstractproperty
-    def pc(self):                         pass
+    def pc(self):
+        pass
+
     @abc.abstractproperty
-    def sp(self):                         pass
+    def sp(self):
+        pass
+
     @abc.abstractproperty
-    def ptrsize(self):                    pass
+    def ptrsize(self):
+        pass
+
     @abc.abstractproperty
-    def syscall_filename(self):           pass
+    def syscall_filename(self):
+        pass
+
     @property
-    def endian_str(self):                 return "big" if self.is_big_endian() else "little"
-    def is_big_endian(self):              return self.endianness == Endianness.BIG
-    def __str__(self):                    return self.name
+    def endian_str(self):
+        return "big" if self.is_big_endian() else "little"
+
+    def is_big_endian(self):
+        return self.endianness == Endianness.BIG
+
+    def __str__(self):
+        return self.name
 
     syscall_base = 0
+
     @property
     def syscalls(self):
         path = os.path.dirname(os.path.realpath(__file__)) + "/../syscalls"
@@ -58,24 +80,48 @@ from cemu.arch.sparc import SPARC, SPARC64
 from cemu.arch.ppc import PowerPC
 
 Architectures = {
-    "x86": [X86(), X86_32(), X86_64(), X86(syntax=Syntax.ATT), X86_32(syntax=Syntax.ATT), X86_64(syntax=Syntax.ATT), ],
+    "x86": [X86(), X86_32(), X86_64(),
+            X86(syntax=Syntax.ATT), X86_32(syntax=Syntax.ATT), X86_64(syntax=Syntax.ATT)],
     "arm": [ARM(), ARM(thumb=True), AARCH64()],
-    "mips": [MIPS(), MIPS(endian=Endianness.BIG), MIPS64(), MIPS64(endian=Endianness.BIG),],
+    "mips": [MIPS(), MIPS(endian=Endianness.BIG), MIPS64(), MIPS64(endian=Endianness.BIG)],
     "sparc": [SPARC(), SPARC64()],
     # "ppc": [PowerPC()] # not supported by unicorn yet
 }
 
 DEFAULT_ARCHITECTURE = Architectures["x86"][1] # x86-32
 
-def is_x86_16(a): return isinstance(a, X86)
-def is_x86_32(a): return isinstance(a, X86_32)
-def is_x86_64(a): return isinstance(a, X86_64)
-def is_x86(a): return is_x86_16(a) or is_x86_32(a) or is_x86_64(a)
-def is_arm(a): return isinstance(a, ARM)
-def is_arm_thumb(a): return is_arm(a) and a.thumb==True
-def is_aarch64(a): return isinstance(a, AARCH64)
-def is_mips(a): return isinstance(a, MIPS)
-def is_mips64(a): return isinstance(a, MIPS64)
-def is_sparc(a): return isinstance(a, SPARC)
-def is_sparc64(a): return isinstance(a, SPARC64)
-def is_ppc(a): return isinstance(a, PowerPC)
+def is_x86_16(a):
+    return isinstance(a, X86)
+
+def is_x86_32(a):
+    return isinstance(a, X86_32)
+
+def is_x86_64(a):
+    return isinstance(a, X86_64)
+
+def is_x86(a):
+    return is_x86_16(a) or is_x86_32(a) or is_x86_64(a)
+
+def is_arm(a):
+    return isinstance(a, ARM)
+
+def is_arm_thumb(a):
+    return is_arm(a) and a.thumb==True
+
+def is_aarch64(a):
+    return isinstance(a, AARCH64)
+
+def is_mips(a):
+    return isinstance(a, MIPS)
+
+def is_mips64(a):
+    return isinstance(a, MIPS64)
+
+def is_sparc(a):
+    return isinstance(a, SPARC)
+
+def is_sparc64(a):
+    return isinstance(a, SPARC64)
+
+def is_ppc(a):
+    return isinstance(a, PowerPC)
