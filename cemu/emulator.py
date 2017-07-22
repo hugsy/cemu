@@ -77,8 +77,8 @@ class Emulator:
         if is_aarch64(curarch):
             return getattr(unicorn.arm64_const, "UC_ARM64_REG_%s"%reg.upper())
 
-        if is_ppc(curarch):
-            return getattr(unicorn.ppc_const, "UC_PPC_REG_%s" % reg.upper())
+        # if is_ppc(curarch):
+        #     return getattr(unicorn.ppc_const, "UC_PPC_REG_%s" % reg.upper())
 
         if is_mips(curarch) or is_mips64(curarch):
             return getattr(unicorn.mips_const, "UC_MIPS_REG_%s" % reg.upper())
