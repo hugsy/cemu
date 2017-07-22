@@ -27,7 +27,7 @@ from cemu.utils import *
 WINDOW_SIZE = (1600, 800)
 PKG_PATH = os.path.dirname(os.path.realpath(__file__))
 ICON_PATH = "{}/img/icon.png".format(PKG_PATH)
-TEMPLATES_PATH = "{}/templates".format(PKG_PATH)
+EXAMPLES_PATH = "{}/examples".format(PKG_PATH)
 TITLE = "CEMU - Cheap EMUlator"
 HOME = os.getenv("HOME")
 
@@ -723,7 +723,7 @@ class EmulatorWindow(QMainWindow):
         return
 
     def loadCode(self, title, filter, run_disassembler):
-        qFile, qFilter = QFileDialog.getOpenFileName(self, title, TEMPLATES_PATH, filter)
+        qFile, qFilter = QFileDialog.getOpenFileName(self, title, EXAMPLES_PATH, filter)
 
         if not os.access(qFile, os.R_OK):
             return
