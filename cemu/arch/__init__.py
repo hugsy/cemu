@@ -88,7 +88,7 @@ Architectures = {
     # "ppc": [PowerPC()] # not supported by unicorn yet
 }
 
-DEFAULT_ARCHITECTURE = Architectures["x86"][1] # x86-32
+DEFAULT_ARCHITECTURE = Architectures["x86"][1] # x86-32 (intel)
 
 def is_x86_16(a):
     return isinstance(a, X86)

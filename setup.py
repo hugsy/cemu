@@ -3,12 +3,16 @@ import io, pypandoc
 
 def readme():
     try:
+        # re-gen the .rst
         long_description = pypandoc.convert('README.md', 'rst')
         long_description = long_description.replace("\r","")
-    except OSError:
-        print("Pandoc not found. Long_description conversion failure.")
-        with io.open('README.md', encoding="utf-8") as f:
+        with io.open('README.rst', "w", encoding="utf-8") as f:
+            f.write(long_description)
+
+    except ImportError:
+        with io.open('README.rst', "r", encoding="utf-8") as f:
             long_description = f.read()
+
     return long_description
 
 
@@ -41,6 +45,7 @@ setup(
     include_package_data=True,
     packages=find_packages(),
     install_requires=[
+        'pypandoc',
         'capstone>=3.0.4',
         'keystone-engine>=0.9',
         'unicorn>=1.0',
