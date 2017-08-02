@@ -1,8 +1,8 @@
 from setuptools import setup, find_packages
-import io, pypandoc
 
 def readme():
     try:
+        import io, pypandoc
         # re-gen the .rst
         long_description = pypandoc.convert('README.md', 'rst')
         long_description = long_description.replace("\r","")
