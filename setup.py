@@ -4,9 +4,9 @@ def readme():
     try:
         import io, pypandoc
         # re-gen the .rst
-        long_description = pypandoc.convert('README.md', 'rst')
-        long_description = long_description.replace("\r","")
+        long_description = pypandoc.convert_file('README.md', 'rst').replace("\r","")
         with io.open('README.rst', "w", encoding="utf-8") as f:
+            print("writing README.rst")
             f.write(long_description)
 
     except ImportError:
@@ -22,7 +22,6 @@ EMAIL = 'hugsy@blah.cat'
 VERSION = '0.2'
 URL = 'https://github.com/{}/{}'.format(AUTHOR, PROGNAME)
 RELEASE_LINK = '{}/archive/{}.tar.gz'.format(URL, VERSION)
-
 LICENSE = 'MIT'
 
 setup(
