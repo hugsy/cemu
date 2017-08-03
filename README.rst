@@ -43,6 +43,16 @@ Installation
 Quick install with PIP
 ~~~~~~~~~~~~~~~~~~~~~~
 
+**Note**: if you are using Kali Linux, there is a `known
+problem <https://github.com/keystone-engine/keystone/issues/235>`__ with
+the installation of the ``keystone-engine`` package using PIP. A quick'n
+dirty fix for that would be (as ``root``):
+
+.. code:: bash
+
+    # updatedb && locate libkeystone.so
+    # ln -sf /path/to/libkeystone.so/found/above /usr/local/lib/libkeystone.so
+
 From PyPI
 ^^^^^^^^^
 
