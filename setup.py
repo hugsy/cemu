@@ -1,17 +1,9 @@
 from setuptools import setup, find_packages
 
 def readme():
-    try:
-        import io, pypandoc
-        # re-gen the .rst
-        long_description = pypandoc.convert_file('README.md', 'rst').replace("\r","")
-        with io.open('README.rst', "w", encoding="utf-8") as f:
-            print("writing README.rst")
-            f.write(long_description)
-
-    except ImportError:
-        with io.open('README.rst', "r", encoding="utf-8") as f:
-            long_description = f.read()
+    import io
+    with io.open('README.rst', "r", encoding="utf-8") as f:
+        long_description = f.read()
 
     return long_description
 
@@ -44,7 +36,6 @@ setup(
     include_package_data=True,
     packages=find_packages(),
     install_requires=[
-        'pypandoc',
         'capstone>=3.0.4',
         'keystone-engine>=0.9',
         'unicorn>=1.0',
