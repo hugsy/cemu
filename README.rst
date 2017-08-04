@@ -52,8 +52,9 @@ Quick install with PIP
 
 .. code:: bash
 
-    # updatedb && locate libkeystone.so
-    # ln -sf /path/to/libkeystone.so/found/above /usr/local/lib/libkeystone.so
+    $ sudo updatedb
+    $ sudo locate libkeystone.so
+    $ sudo ln -sf /path/to/libkeystone.so/found/above /usr/local/lib/libkeystone.so
 
 -  if you are using OSX, there is also a `known
    issue <https://github.com/aquynh/capstone/issues/74>`__ when
