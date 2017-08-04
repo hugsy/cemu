@@ -43,15 +43,29 @@ Installation
 Quick install with PIP
 ~~~~~~~~~~~~~~~~~~~~~~
 
-**Note**: if you are using Kali Linux, there is a `known
-problem <https://github.com/keystone-engine/keystone/issues/235>`__ with
-the installation of the ``keystone-engine`` package using PIP. A quick'n
-dirty fix for that would be (as ``root``):
+**Notes**:
+
+-  if you are using Kali Linux, there is a `known
+   problem <https://github.com/keystone-engine/keystone/issues/235>`__
+   with the installation of the ``keystone-engine`` package using PIP. A
+   quick'n dirty fix for that would be (as ``root``):
 
 .. code:: bash
 
     # updatedb && locate libkeystone.so
     # ln -sf /path/to/libkeystone.so/found/above /usr/local/lib/libkeystone.so
+
+-  if you are using OSX, there is also a `known
+   issue <https://github.com/aquynh/capstone/issues/74>`__ when
+   installing ``capstone-engine`` from PIP, resulting in the ``.dylib``
+   not being deployed at the right location. A quick fix for it is
+
+.. code:: bash
+
+    # locate the shared lib
+    $ find ~  -type f -name libcapstone.dylib
+    # link it in a valid correct library path
+    $ ln -sf /path/to/libcapstone.dylib/found/above /usr/local/Cellar/python3/3.6.2/Frameworks/Python.framework/Versions/3.6/lib/python3.6/site-packages/capstone/libcapstone.dylib
 
 From PyPI
 ^^^^^^^^^
