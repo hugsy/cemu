@@ -20,6 +20,7 @@ class Emulator:
 
     def __init__(self, parent, *args, **kwargs):
         self.parent = parent
+        self.arch = self.parent.arch
         self.use_step_mode = False
         self.widget = None
         self.reinit()
