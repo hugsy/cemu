@@ -168,7 +168,7 @@ class Emulator:
         if self.num_insns != n:
             self.log("Unexpected number of compiled instructions (got {}, compiled {})".format(self.num_insns,n), "Warning")
 
-        self.log("{} instruction(s) compiled".format(self.num_insns), "Compilation")
+        self.log("{} instruction(s) compiled: {:d} bytes".format(self.num_insns, len(self.code)), "Compilation")
 
         # update end_addr since we know the size of the code to execute
         if update_end_addr:
