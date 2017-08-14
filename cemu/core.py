@@ -685,7 +685,7 @@ class EmulatorWindow(QMainWindow):
             archSubMenu = archMenu.addMenu(abi)
             for arch in Architectures[abi]:
                 archAction = QAction(QIcon(), str(arch), self)
-                if isinstance(arch, self.arch.__class__) and self.arch.endianness==arch.endianness and self.arch.syntax==arch.syntax:
+                if arch.__class__.__name__ == self.arch.__class__.__name__ and self.arch.endianness==arch.endianness and self.arch.syntax==arch.syntax:
                     archAction.setEnabled(False)
                     self.currentAction = archAction
 

@@ -91,13 +91,13 @@ Architectures = {
 DEFAULT_ARCHITECTURE = Architectures["x86"][1] # x86-32 (intel)
 
 def is_x86_16(a):
-    return isinstance(a, X86)
+    return a.__class__.__name__ == "X86"
 
 def is_x86_32(a):
-    return isinstance(a, X86_32)
+    return a.__class__.__name__ == "X86_32"
 
 def is_x86_64(a):
-    return isinstance(a, X86_64)
+    return a.__class__.__name__ == "X86_64"
 
 def is_x86(a):
     return is_x86_16(a) or is_x86_32(a) or is_x86_64(a)

@@ -41,7 +41,7 @@ class X86_32(X86):
     ptrsize = 4
 
 
-class X86_64(X86):
+class X86_64(X86_32):
     name = "Intel i386 64bit"
     pc   = "RIP"
     sp   = "RSP"
@@ -50,7 +50,7 @@ class X86_64(X86):
         "R8", "R9", "R10", "R11", "R12", "R13", "R14", "R14", "R15",
         pc,
         sp,
-        X86.flag,
-    ] + X86.pgr_registers
+        X86_32.flag,
+    ] + X86_32.pgr_registers
     ptrsize = 8
     syscall_filename = "x86-64"
