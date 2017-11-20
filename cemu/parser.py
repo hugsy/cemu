@@ -113,7 +113,9 @@ class CodeParser:
         syscall_names = syscalls.keys()
         for line in code:
             for sysname in syscall_names:
-                pattern = b"__NR_SYS_%s" % sysname
+                # this does not work in Python 3.4, concatenate bytes instead
+                # pattern = b"__NR_SYS_%s" % sysname
+                pattern = b"__NR_SYS_" + sysname
                 if pattern in line:
                     line = line.replace(pattern, b'%d'%syscalls[sysname])
             parsed.append(line)
