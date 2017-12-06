@@ -118,6 +118,8 @@ class Emulator:
         self.vm.hook_add(unicorn.UC_HOOK_INTR, self.hook_interrupt)
         self.vm.hook_add(unicorn.UC_HOOK_MEM_WRITE, self.hook_mem_access)
         self.vm.hook_add(unicorn.UC_HOOK_MEM_READ, self.hook_mem_access)
+        if is_x86(self.parent.arch):
+            self.vm.hook_add(unicorn.UC_HOOK_INSN, self.hook_syscall, None, 1, 0, unicorn.x86_const.UC_X86_INS_SYSCALL)
         return
 
 
@@ -228,6 +230,11 @@ class Emulator:
         return
 
 
+    def hook_syscall(self, emu, user_data):
+        self.pprint("Syscall")
+        return
+
+
     def hook_mem_access(self, emu, access, address, size, value, user_data):
         if access == unicorn.UC_MEM_WRITE:
             self.pprint("Write: *%#x = %#x (size = %u)"% (address, value, size), "Memory")
@@ -238,7 +245,12 @@ class Emulator:
 
     def run(self):
         self.pprint("Starting emulation context")
+
         try:
+            if is_x86(self.parent.arch):
+                self.pprint("Enabling x86 segmentation")
+                self.support_x86_segmentation()
+
             self.vm.emu_start(self.start_addr, self.end_addr)
         except unicorn.unicorn.UcError as e:
             self.log("An error occured: {}".format(str(e)), "Error")
@@ -269,3 +281,59 @@ class Emulator:
             if area == mapname:
                 return self.areas[area][0]
         return None
+
+
+    def support_x86_segmentation(self):
+        arch = self.parent.arch
+
+        #
+        # from https://github.com/unicorn-engine/unicorn/blob/master/tests/regress/x86_64_msr.py
+        # original code by @williballenthin
+        #
+        DUMMY_ADDR = 0xf000
+        SEGMENT_FS_ADDR = 0x5000
+        SEGMENT_GS_ADDR = 0x6000
+        FSMSR = 0xC0000100
+        GSMSR = 0xC0000101
+
+        def set_msr(uc, msr, value, addr):
+            bytecode, cnt = assemble(b"wrmsr", arch)
+            assert (cnt == 1)
+            uc.mem_write(addr, bytecode)
+            uc.reg_write(unicorn.x86_const.UC_X86_REG_EAX, value & 0xFFFFFFFF)
+            uc.reg_write(unicorn.x86_const.UC_X86_REG_EDX, (value >> 32) & 0xFFFFFFFF)
+            uc.reg_write(unicorn.x86_const.UC_X86_REG_ECX, msr & 0xFFFFFFFF)
+            uc.emu_start(addr, addr+len(bytecode), count=1)
+            return
+
+        def get_msr(uc, msr, addr):
+            bytecode, cnt = assemble(b"rdmsr", arch)
+            assert (cnt == 1)
+            uc.mem_write(addr, bytecode)
+            uc.reg_write(unicorn.x86_const.UC_X86_REG_RCX, msr & 0xFFFFFFFF)
+            uc.emu_start(addr, addr+len(bytecode), count=1)
+            return (uc.reg_read(unicorn.x86_const.UC_X86_REG_EDX) << 32) | (uc.reg_read(unicorn.x86_const.UC_X86_REG_EAX) & 0xFFFFFFFF)
+
+        def set_gs(uc, addr):
+            return set_msr(uc, GSMSR, addr, DUMMY_ADDR)
+
+        def get_gs(uc):
+            return get_msr(uc, GSMSR, DUMMY_ADDR)
+
+        def set_fs(uc, addr):
+            return set_msr(uc, FSMSR, addr, DUMMY_ADDR)
+
+        def get_fs(uc):
+            return get_msr(uc, FSMSR, DUMMY_ADDR)
+
+        emu = self.vm
+        pc = emu.reg_read(unicorn.x86_const.UC_X86_REG_EIP)
+        emu.mem_map(DUMMY_ADDR, 0x1000)
+        emu.mem_map(SEGMENT_FS_ADDR-0x1000, 0x3000)
+        set_fs(emu, SEGMENT_FS_ADDR)
+        set_gs(emu, SEGMENT_GS_ADDR)
+        emu.emu_stop()
+        emu.reg_write(unicorn.x86_const.UC_X86_REG_EIP, pc)
+        emu.reg_write(unicorn.x86_const.UC_X86_REG_FS, SEGMENT_FS_ADDR)
+        emu.reg_write(unicorn.x86_const.UC_X86_REG_GS, SEGMENT_GS_ADDR)
+        return
