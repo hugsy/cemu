@@ -1,9 +1,8 @@
-from cemu.arch import Architecture, Endianness, Syntax
+from cemu.arch import Architecture, Endianness
 
 
 class ARM(Architecture):
     # http://www.keil.com/support/man/docs/armasm/armasm_dom1359731128950.htm
-
     pc   = "PC"
     sp   = "SP"
     flag = "CPSR"
@@ -39,6 +38,7 @@ class ARM(Architecture):
 
 class AARCH64(Architecture):
     # http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dui0801a/BABIBIGB.html
+    # https://llvm.org/devmtg/2012-11/Northover-AArch64.pdf
     name = "ARM AARCH64"
     pc   = "PC"
     sp   = "SP"
@@ -49,7 +49,9 @@ class AARCH64(Architecture):
         'X8', 'X9', 'X10', 'X11', 'X12', 'X13', 'X14', 'X15',
         'X16', 'X17', 'X18', 'X19', 'X20', 'X21', 'X22', 'X23',
         'X24', 'X25', 'X26', 'X27', 'X28', 'X29', 'X30',
+        sp,
         flag,
         pc
     ]
     syscall_filename = "aarch64"
+    ptrsize = 4

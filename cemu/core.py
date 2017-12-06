@@ -421,7 +421,7 @@ class MemoryWidget(QWidget):
         else:
             if not value.isdigit():
                 return
-            addr = int(addr, 16)
+            addr = int(value, 16)
 
         try:
             l = 256
