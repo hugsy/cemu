@@ -150,7 +150,6 @@ def assemble(asm_code, mode):
     bytecode = []
     insns = asm_code.split(b';')
     for i, insn in enumerate(insns):
-        print(insn)
         try:
             code, cnt = ks.asm(insn)
             if cnt==0:

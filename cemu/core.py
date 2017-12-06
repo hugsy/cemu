@@ -537,7 +537,7 @@ class CanvasWidget(QWidget):
 
     def SymCode(self):
         if sys.version_info[:2] > (2, 7):
-            self.Symrwidget.editor.append("Must use Python 2.x")
+            self.Symrwidget.editor.append("Must use Python 2.7+")
             return
 
         self.commandWidget.stopButton.setDisabled(False)
