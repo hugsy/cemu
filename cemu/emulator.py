@@ -161,8 +161,8 @@ class Emulator:
         code = b" ; ".join(code_list)
         self.log("Assembling {} instructions for {}:\n{}".format(n, self.parent.arch.name, code), "Compilation")
         self.code, self.num_insns = assemble(code, self.parent.arch)
-        if self.num_insns == -1:
-            self.log("Failed to compile code", "Error")
+        if self.num_insns < 0:
+            self.log("Failed to compile: error at line {:d}".format(-self.num_insns), "Error")
             return False
 
         if self.num_insns != n:

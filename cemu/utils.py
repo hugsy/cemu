@@ -134,20 +134,32 @@ def disassemble_file(fpath, mode):
 
 
 def assemble(asm_code, mode):
+    """
+    Helper function to assemble code receive in parameter `asm_code` using Keystone.
+
+    @param asm_code : bytearray of N instructions, separated by ';'
+    @param mode : defines the mode to use Keystone with
+    @return a tuple of bytecodes as bytearray, along with the number of instruction compiled. If failed, the
+    bytearray will be empty, the count of instruction will be the negative number for the faulty line.
+    """
     arch, mode, endian = get_arch_mode("keystone", mode)
     ks = keystone.Ks(arch, mode | endian)
     if is_x86(mode) and mode.syntax == Syntax.ATT:
         ks.syntax = keystone.KS_OPT_SYNTAX_ATT
 
-    try:
-        code, cnt = ks.asm(asm_code)
-        if cnt==0:
-            code = b""
-        code = bytes(bytearray(code))
-    except keystone.keystone.KsError:
-        code, cnt = (b"", -1)
+    bytecode = []
+    insns = asm_code.split(b';')
+    for i, insn in enumerate(insns):
+        print(insn)
+        try:
+            code, cnt = ks.asm(insn)
+            if cnt==0:
+                return (b'', -(i+1))
+            bytecode.append(bytearray(code))
+        except keystone.keystone.KsError as kse:
+            return (b'', -(i+1))
 
-    return (code, cnt)
+    return (b''.join(bytecode), i+1)
 
 
 def ishex(x):

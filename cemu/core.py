@@ -29,7 +29,7 @@ PKG_PATH = os.path.dirname(os.path.realpath(__file__))
 ICON_PATH = "{}/img/icon.png".format(PKG_PATH)
 EXAMPLES_PATH = "{}/examples".format(PKG_PATH)
 TEMPLATES_PATH = "{}/templates".format(PKG_PATH)
-TITLE = "CEMU - Cheap EMUlator"
+TITLE = "CEmu - Cheap Emulator v.{}".format(cemu.VERSION)
 HOME = os.getenv("HOME")
 
 if sys.version_info.major == 3:
@@ -564,7 +564,7 @@ class CanvasWidget(QWidget):
             msg = "Your code is syntaxically valid."
             popup = QMessageBox.information
         else:
-            msg = "Some errors were found in your code, please check..."
+            msg = "Some errors were found in your code, check the logs..."
             popup = QMessageBox.warning
 
         popup(self,"Checking assembly code syntax...", msg)
@@ -754,7 +754,7 @@ class EmulatorWindow(QMainWindow):
             asm = self.canvas.codeWidget.parser.getCleanCodeAsByte(as_string=True)
             txt, cnt = assemble(asm, self.arch)
             if cnt < 0:
-                self.canvas.logWidget.editor.append("Failed to compile code")
+                self.canvas.logWidget.editor.append("Failed to compile: error at line {:d}".format(-cnt))
                 return
         else:
             txt = self.canvas.codeWidget.parser.getCleanCodeAsByte(as_string=True)
@@ -787,7 +787,7 @@ class EmulatorWindow(QMainWindow):
         for insn in insns:
             txt, cnt = assemble(insn, self.arch)
             if cnt < 0:
-                self.canvas.logWidget.editor.append("Failed to compile code")
+                self.canvas.logWidget.editor.append("Failed to compile: error at line {:d}".format(-cnt))
                 return
 
             c = b'"' + b''.join([ b'\\x%.2x'%txt[i] for i in range(len(txt)) ]) + b'"'
