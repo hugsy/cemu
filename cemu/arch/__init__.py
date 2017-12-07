@@ -72,6 +72,13 @@ class Architecture(object):
 
         return syscalls
 
+    def __eq__(self, x):
+        if not isinstance(x, Architecture):
+            return False
+
+        return self.name == x.name and self.endianness== x.endianness and self.syntax == x.syntax
+
+
 
 from cemu.arch.x86 import X86, X86_32, X86_64
 from cemu.arch.arm import ARM, AARCH64
@@ -87,6 +94,7 @@ Architectures = {
     "sparc": [SPARC(), SPARC64()],
     # "ppc": [PowerPC()] # not supported by unicorn yet
 }
+
 
 DEFAULT_ARCHITECTURE = Architectures["x86"][1] # x86-32 (intel)
 
@@ -125,3 +133,10 @@ def is_sparc64(a):
 
 def is_ppc(a):
     return isinstance(a, PowerPC)
+
+def GetArchitectureByName(name):
+    for abi in Architectures:
+        for arch in Architectures[abi]:
+            if arch.__class__.__name__.lower() == name.lower():
+                return arch
+    raise KeyError("Cannot find architecture '{}'".format(name))

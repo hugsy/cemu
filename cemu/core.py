@@ -16,7 +16,7 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
 import cemu
-from cemu.arch import DEFAULT_ARCHITECTURE, Architectures
+from cemu.arch import DEFAULT_ARCHITECTURE, Architectures, GetArchitectureByName
 from cemu.console import PythonConsole
 from cemu.emulator import Emulator
 from cemu.parser import CodeParser
@@ -30,6 +30,9 @@ EXAMPLES_PATH = "{}/examples".format(PKG_PATH)
 TEMPLATES_PATH = "{}/templates".format(PKG_PATH)
 TITLE = "CEmu - Cheap Emulator v.{}".format(cemu.VERSION)
 HOME = os.getenv("HOME")
+
+COMMENT_MARKER = ";;;"
+PROPERTY_MARKER = "@@@"
 
 if sys.version_info.major == 3:
     long = int
@@ -264,7 +267,6 @@ class CommandWidget(QWidget):
         layout.addWidget(self.stepButton)
         layout.addWidget(self.stopButton)
         layout.addWidget(self.checkAsmButton)
-
 
         self.setLayout(layout)
         return
@@ -549,6 +551,7 @@ class EmulatorWindow(QMainWindow):
         super(EmulatorWindow, self).__init__()
         self.arch = DEFAULT_ARCHITECTURE
         self.recentFileActions = []
+        self.archActions = {}
         self.current_file = None
         self.setAttribute(Qt.WA_DeleteOnClose)
         self.shortcuts = Shortcut()
@@ -654,14 +657,14 @@ class EmulatorWindow(QMainWindow):
         for abi in sorted(Architectures.keys()):
             archSubMenu = archMenu.addMenu(abi)
             for arch in Architectures[abi]:
-                archAction = QAction(QIcon(), str(arch), self)
-                if arch.__class__.__name__ == self.arch.__class__.__name__ and self.arch.endianness==arch.endianness and self.arch.syntax==arch.syntax:
-                    archAction.setEnabled(False)
-                    self.currentAction = archAction
+                self.archActions[arch.name] = QAction(QIcon(), str(arch), self)
+                if arch == self.arch:
+                    self.archActions[arch.name].setEnabled(False)
+                    self.currentAction = self.archActions[arch.name]
 
-                archAction.setStatusTip("Switch context to architecture: '%s'" % arch)
-                archAction.triggered.connect( functools.partial(self.updateMode, arch, archAction) )
-                archSubMenu.addAction(archAction)
+                self.archActions[arch.name].setStatusTip("Switch context to architecture: '%s'" % arch)
+                self.archActions[arch.name].triggered.connect( functools.partial(self.updateMode, arch) )
+                archSubMenu.addAction(self.archActions[arch.name])
 
         # Add Help menu bar
         helpMenu = menubar.addMenu("&Help")
@@ -678,8 +681,44 @@ class EmulatorWindow(QMainWindow):
 
 
     def loadFile(self, fname, data=None):
+
         if data is None:
             data = open(fname, 'r').read()
+
+        for line in data.splitlines():
+            part = line.strip().split()
+            if len(part) < 3:
+                continue
+
+            if not (part[0] == COMMENT_MARKER and part[1] == PROPERTY_MARKER):
+                continue
+
+            if part[2].startswith("arch:"):
+                try:
+                    arch_from_file = part[2][5:]
+                    arch = GetArchitectureByName(arch_from_file)
+                    self.updateMode(arch)
+                except KeyError:
+                    self.canvas.logWidget.editor.append("Unknown architecture '{:s}', discarding...".format(arch_from_file))
+                    continue
+
+            if part[2].startswith("endian:"):
+                endian_from_file = part[2][7:].lower()
+                if endian_from_file not in ("little", "big"):
+                    self.canvas.logWidget.editor.append("Incorrect endianness '{:s}', discarding...".format(endian_from_file))
+                    continue
+                self.arch.endianness = Endianness.LITTLE if endian_from_file == "little" else Endianness.BIG
+                self.canvas.logWidget.editor.append("Changed endianness to '{:s}'".format(endian_from_file))
+
+            if part[2].startswith("syntax:"):
+                syntax_from_file = part[2][7:].lower()
+                if syntax_from_file not in ("att", "intel"):
+                    self.canvas.logWidget.editor.append("Incorrect syntax '{:s}', discarding...".format(syntax_from_file))
+                    continue
+                self.arch.syntax = Syntax.ATT if syntax_from_file=="att" else Syntax.INTEL
+                self.canvas.logWidget.editor.append("Changed syntax to '{:s}'".format(syntax_from_file))
+
+
         self.canvas.codeWidget.editor.setPlainText(data)
         self.canvas.logWidget.editor.append("Loaded '%s'" % fname)
         self.updateRecentFileActions(fname)
@@ -791,14 +830,14 @@ class EmulatorWindow(QMainWindow):
         self.canvas.logWidget.editor.append("Saved as '%s'" % fpath)
 
 
-    def updateMode(self, arch, newAction):
+    def updateMode(self, arch):
         self.currentAction.setEnabled(True)
         self.arch = arch
         print("Switching to '%s'" % self.arch)
         self.canvas.logWidget.editor.append("Switching to '%s'" % self.arch)
         self.canvas.regWidget.updateGrid()
-        newAction.setEnabled(False)
-        self.currentAction = newAction
+        self.archActions[arch.name].setEnabled(False)
+        self.currentAction = self.archActions[arch.name]
         self.updateTitle()
         return
 
@@ -809,7 +848,6 @@ class EmulatorWindow(QMainWindow):
             title+=": {}".format(msg)
         self.setWindowTitle(title)
         return
-
 
 
     def showShortcutPopup(self):

