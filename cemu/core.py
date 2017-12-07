@@ -20,7 +20,6 @@ from cemu.arch import DEFAULT_ARCHITECTURE, Architectures
 from cemu.console import PythonConsole
 from cemu.emulator import Emulator
 from cemu.parser import CodeParser
-from cemu.reil import Reil
 from cemu.shortcuts import Shortcut
 from cemu.utils import *
 
@@ -190,21 +189,6 @@ class MemoryMappingWidget(QWidget):
         return self._maps
 
 
-class SymRWidget(QWidget):
-    def __init__(self, parent, *args, **kwargs):
-        super(SymRWidget, self).__init__()
-        self.parent = parent
-        self.symr = self.parent.symr
-        layout = QVBoxLayout()
-        label = QLabel("OpenREIL context")
-        self.editor = QTextEdit()
-        self.editor.setFont(QFont('Courier', 11))
-        self.editor.setFrameStyle(QFrame.Panel | QFrame.Plain)
-        self.editor.setReadOnly(True)
-        layout.addWidget(label)
-        layout.addWidget(self.editor)
-        self.setLayout(layout)
-        return
 
 
 class PythonConsoleWidget(QWidget):
@@ -281,10 +265,6 @@ class CommandWidget(QWidget):
         layout.addWidget(self.stopButton)
         layout.addWidget(self.checkAsmButton)
 
-        if self.parent.parent.reil.reiluse:
-            self.symButton = QPushButton("Symbolic expressions")
-            self.symButton.clicked.connect( self.parent.SymCode)
-            layout.addWidget(self.symButton)
 
         self.setLayout(layout)
         return
@@ -441,8 +421,6 @@ class CanvasWidget(QWidget):
         self.parent = parent
         self.emu = self.parent.emulator
         self.emu.widget = self
-        self.symr = self.parent.reil
-        self.symr.widget = self
         self.setCanvasWidgetLayout()
         self.commandWidget.stopButton.setDisabled(True)
         self.show()
@@ -476,9 +454,6 @@ class CanvasWidget(QWidget):
         self.tabs2.addTab(self.emuWidget, "Emulator")
         self.tabs2.addTab(self.logWidget, "Log")
         self.tabs2.addTab(self.consoleWidget, "Python")
-        if self.parent.reil.reiluse:
-            self.Symrwidget = SymRWidget(self)
-            self.tabs2.addTab(self.Symrwidget, "IR Context")
 
         hboxBottom = QHBoxLayout()
         hboxBottom.addWidget(self.tabs2)
@@ -536,12 +511,8 @@ class CanvasWidget(QWidget):
         return
 
     def SymCode(self):
-        if sys.version_info[:2] > (2, 7):
-            self.Symrwidget.editor.append("Must use Python 2.7+")
-            return
 
         self.commandWidget.stopButton.setDisabled(False)
-        self.symr.entry()
         return
 
     def run(self):
@@ -582,7 +553,6 @@ class EmulatorWindow(QMainWindow):
         self.setAttribute(Qt.WA_DeleteOnClose)
         self.shortcuts = Shortcut()
         self.emulator = Emulator(self)
-        self.reil = Reil(self.arch)
         self.canvas = CanvasWidget(self)
         self.setMainWindowProperty()
         self.setMainWindowMenuBar()
