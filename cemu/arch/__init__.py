@@ -13,6 +13,7 @@ class Architecture(object):
     __metaclass__ = abc.ABCMeta
 
     endianness = Endianness.LITTLE
+    __syscalls = None
 
     @abc.abstractproperty
     def name(self):
@@ -60,6 +61,9 @@ class Architecture(object):
 
     @property
     def syscalls(self):
+        if self.__syscalls:
+            return self.__syscalls
+
         path = os.path.dirname(os.path.realpath(__file__)) + "/../syscalls"
         fpath = "{}/{}.csv".format(path, self.syscall_filename)
         syscalls = {}
@@ -70,7 +74,8 @@ class Architecture(object):
                 syscall_number, syscall_name = int(row[0]), row[1].lower().strip().encode()
                 syscalls[syscall_name] = self.syscall_base + syscall_number
 
-        return syscalls
+        self.__syscalls = syscalls
+        return self.__syscalls
 
     def __eq__(self, x):
         if not isinstance(x, Architecture):
@@ -134,7 +139,14 @@ def is_sparc64(a):
 def is_ppc(a):
     return isinstance(a, PowerPC)
 
-def GetArchitectureByName(name):
+def get_all_architecture_names():
+    archs = []
+    for abi in Architectures:
+        for arch in Architectures[abi]:
+            archs.append(arch.__class__.__name__.lower())
+    return archs
+
+def get_architecture_by_name(name):
     for abi in Architectures:
         for arch in Architectures[abi]:
             if arch.__class__.__name__.lower() == name.lower():

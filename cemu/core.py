@@ -16,7 +16,7 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
 import cemu
-from cemu.arch import DEFAULT_ARCHITECTURE, Architectures, GetArchitectureByName
+from cemu.arch import DEFAULT_ARCHITECTURE, Architectures, get_architecture_by_name
 from cemu.console import PythonConsole
 from cemu.emulator import Emulator
 from cemu.parser import CodeParser
@@ -696,7 +696,7 @@ class EmulatorWindow(QMainWindow):
             if part[2].startswith("arch:"):
                 try:
                     arch_from_file = part[2][5:]
-                    arch = GetArchitectureByName(arch_from_file)
+                    arch = get_architecture_by_name(arch_from_file)
                     self.updateMode(arch)
                 except KeyError:
                     self.canvas.logWidget.editor.append("Unknown architecture '{:s}', discarding...".format(arch_from_file))
