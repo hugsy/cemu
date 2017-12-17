@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
+
 import string
+import importlib
+import re
+import os
 
 import capstone
 import keystone
@@ -165,3 +169,28 @@ def ishex(x):
     if x.startswith("0x") or x.startswith("0X"):
         x = x[2:]
     return all([c in string.hexdigits for c in x])
+
+
+def list_available_plugins():
+    pysearchre = re.compile('.py$', re.IGNORECASE)
+    pluginfiles = filter(pysearchre.search,
+                         os.listdir(os.path.join(os.path.dirname(__file__), "plugins")))
+    form_module = lambda fp: os.path.splitext(fp)[0]
+    plugins = map(form_module, pluginfiles)
+    for plugin in plugins:
+        if not plugin.startswith('__'):
+            yield plugin
+    return
+
+
+def load_plugin(plugin):
+    mod = None
+
+    try:
+        importlib.import_module("plugins")
+        mod = importlib.import_module("." + plugin, package="plugins")
+    except ImportError as ie:
+        print("Failed to import '{}' - reason: {}".format(plugin, ie))
+        return None
+
+    return mod

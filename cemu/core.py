@@ -17,11 +17,11 @@ from PyQt5.QtWidgets import *
 
 import cemu
 from cemu.arch import DEFAULT_ARCHITECTURE, Architectures, get_architecture_by_name
-from cemu.console import PythonConsole
 from cemu.emulator import Emulator
 from cemu.parser import CodeParser
 from cemu.shortcuts import Shortcut
 from cemu.utils import *
+
 
 WINDOW_SIZE = (1600, 800)
 PKG_PATH = os.path.dirname(os.path.realpath(__file__))
@@ -191,22 +191,6 @@ class MemoryMappingWidget(QWidget):
         self.getMappingsFromTable()
         return self._maps
 
-
-
-
-class PythonConsoleWidget(QWidget):
-    def __init__(self, parent, *args, **kwargs):
-        super(PythonConsoleWidget, self).__init__()
-        self.parent = parent
-        layout = QVBoxLayout()
-        layout.addWidget(QLabel("Python Interpreter"))
-        ver = "{}.{}.{}-{}.{}".format(*sys.version_info)
-        msg = "[+] Welcome to CEMU Python console (v{})".format(ver)
-        console = PythonConsole(startup_message=msg, parent=self)
-        highlighter = Highlighter(console, "py")
-        layout.addWidget(console)
-        self.setLayout(layout)
-        return
 
 
 class EmulatorWidget(QWidget):
@@ -434,7 +418,6 @@ class CanvasWidget(QWidget):
         self.mapWidget = MemoryMappingWidget(self)
         self.emuWidget = EmulatorWidget(self)
         self.logWidget = LogWidget(self)
-        self.consoleWidget = PythonConsoleWidget(self)
         self.commandWidget = CommandWidget(self)
         self.regWidget = RegistersWidget(self)
         self.memWidget = MemoryWidget(self)
@@ -455,7 +438,19 @@ class CanvasWidget(QWidget):
         self.tabs2 = QTabWidget()
         self.tabs2.addTab(self.emuWidget, "Emulator")
         self.tabs2.addTab(self.logWidget, "Log")
-        self.tabs2.addTab(self.consoleWidget, "Python")
+
+        # load additional modules
+        for p in list_available_plugins():
+            module = load_plugin(p)
+            if not getattr(module, "register"):
+                continue
+
+            m = module.register(self)
+            if not m:
+                continue
+
+            self.tabs2.addTab(m, m.title)
+            print("Loaded plugin '{}'".format(p))
 
         hboxBottom = QHBoxLayout()
         hboxBottom.addWidget(self.tabs2)
