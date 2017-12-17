@@ -19,7 +19,7 @@ class PythonConsoleWidget(QWidget):
     def __init__(self, parent, *args, **kwargs):
         super(PythonConsoleWidget, self).__init__()
         self.parent = parent
-        self.title = "Python Interpreter"
+        self.title = "Python"
         self.layout = QVBoxLayout()
         self.layout.addWidget(QLabel(self.title))
         self.console = PythonConsole(startup_message=self.motd, parent=self)

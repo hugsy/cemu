@@ -18,7 +18,7 @@ LICENSE = 'MIT'
 
 setup(
     name=PROGNAME,
-    description='''Cemu is a basic assembly Qt-based IDE, to disassemble, assemble and emulate any assembly code (currently supports x86-{32,64}, ARM, AARCH64, MIPS, SPARC).''',
+    description='''Cemu is a simple assembly/dissembly/emulation IDE that provides an easy Plug-n-Play environment to start playing with many architectures (currently supports x86-{32,64}, ARM, AARCH64, MIPS, SPARC).''',
     long_description=readme(),
     url=URL,
     download_url=RELEASE_LINK,
@@ -40,7 +40,6 @@ setup(
         'keystone-engine>=0.9',
         'unicorn>=1.0',
         'PyQt5',
-        'enum34',
         'Pygments>=2.0'
     ],
     entry_points={

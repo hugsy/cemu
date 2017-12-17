@@ -98,13 +98,32 @@ class Highlighter(QSyntaxHighlighter):
         return
 
 
+
+
+class QCodeEdit(QTextEdit):
+    def __init__(self, *args, **kwargs):
+        super(QCodeEdit, self).__init__()
+        self.cursorPositionChanged.connect(self.UpdateHighlightedLine)
+        return
+
+
+    def UpdateHighlightedLine(self):
+        sel = QTextEdit.ExtraSelection()
+        sel.format.setBackground(self.palette().alternateBase())
+        sel.format.setProperty(QTextFormat.FullWidthSelection, QVariant(True))
+        sel.cursor = self.textCursor()
+        sel.cursor.clearSelection()
+        self.setExtraSelections([sel])
+        return
+
+
 class CodeWidget(QWidget):
     def __init__(self, parent, *args, **kwargs):
         super(CodeWidget, self).__init__()
         layout = QVBoxLayout()
         label = QLabel("Code")
         self.parent = parent
-        self.editor = QTextEdit()
+        self.editor = QCodeEdit()
         self.editor.setFont(QFont('Courier', 11))
         self.editor.setFrameStyle(QFrame.Panel | QFrame.Plain)
         self.highlighter = Highlighter(self.editor, "asm")
@@ -212,12 +231,10 @@ class LogWidget(QWidget):
         super(LogWidget, self).__init__()
         self.parent = parent
         layout = QVBoxLayout()
-        label = QLabel("Log")
         self.editor = QTextEdit()
         self.editor.setFont(QFont('Courier', 11))
         self.editor.setFrameStyle(QFrame.Panel | QFrame.Plain)
         self.editor.setReadOnly(True)
-        layout.addWidget(label)
         layout.addWidget(self.editor)
         self.setLayout(layout)
         return

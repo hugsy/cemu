@@ -1,6 +1,9 @@
+;;; @@@ arch:aarch64 @@@
+;;; @@@ endian:little @@@
+;;; @@@ syntax:intel @@@
 ;;;
 ;;; AARCH64 little endian sys_execve("/bin/sh") shellcode
-;;; @_hugsy_
+;;; by @_hugsy_
 ;;;
 
 ;;; get some space on the stack
