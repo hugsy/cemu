@@ -507,10 +507,6 @@ class CanvasWidget(QWidget):
         self.run()
         return
 
-    def SymCode(self):
-
-        self.commandWidget.stopButton.setDisabled(False)
-        return
 
     def run(self):
         if not self.emu.is_running:
