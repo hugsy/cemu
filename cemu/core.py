@@ -99,36 +99,76 @@ class Highlighter(QSyntaxHighlighter):
 
 
 
+class CodeInfoBarWidget(QWidget):
+    def __init__(self, textedit_widget, *args, **kwargs):
+        super(CodeInfoBarWidget, self).__init__()
+        self.textedit_widget = textedit_widget
+        self.setFixedHeight(30)
+        layout = QHBoxLayout()
+        self.label = QLabel("Line:0 Column:0")
+        self.label.setFont(QFont("Courier", 11))
+        layout.addWidget(self.label)
+        self.setLayout(layout)
+        # self.textedit_widget.verticalScrollBar().valueChanged.connect(self.UpdateLabel)
+        self.textedit_widget.cursorPositionChanged.connect(self.UpdateLabel)
+        return
 
-class QCodeEdit(QTextEdit):
-    def __init__(self, *args, **kwargs):
-        super(QCodeEdit, self).__init__()
+
+    def UpdateLabel(self):
+        pos = self.textedit_widget.textCursor().position()
+        text = self.textedit_widget.toPlainText()
+        pos_x = text[:pos].count('\n') + 1
+        pos_y = len(text[:pos].split('\n')[-1]) + 1
+        self.label.setText("Line:{:d} Column:{:d}".format(pos_x, pos_y))
+        return
+
+
+class CodeEdit(QTextEdit):
+    def __init__(self):
+        super(CodeEdit, self).__init__()
         self.cursorPositionChanged.connect(self.UpdateHighlightedLine)
         return
 
 
     def UpdateHighlightedLine(self):
-        sel = QTextEdit.ExtraSelection()
-        sel.format.setBackground(self.palette().alternateBase())
-        sel.format.setProperty(QTextFormat.FullWidthSelection, QVariant(True))
-        sel.cursor = self.textCursor()
-        sel.cursor.clearSelection()
-        self.setExtraSelections([sel])
+        selection = QTextEdit.ExtraSelection()
+        selection.format.setBackground(self.palette().alternateBase())
+        selection.format.setProperty(QTextFormat.FullWidthSelection, QVariant(True))
+        selection.cursor = self.textCursor()
+        selection.cursor.clearSelection()
+        self.setExtraSelections([selection,])
+        return
+
+
+class CodeEditorFrame(QFrame):
+    def __init__(self, *args, **kwargs):
+        super(CodeEditorFrame, self).__init__()
+        # init code pane
+        self.editor = CodeEdit()
+        self.editor.setFont(QFont('Courier', 11))
+        self.editor.setFrameStyle(QFrame.Panel | QFrame.Plain)
+        self.editor.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+
+        self.highlighter = Highlighter(self.editor, "asm")
+        # info bar
+        self.infobar = CodeInfoBarWidget(self.editor)
+        vbox = QVBoxLayout(self)
+        vbox.setSpacing(0)
+        vbox.addWidget(self.editor)
+        vbox.addWidget(self.infobar)
         return
 
 
 class CodeWidget(QWidget):
     def __init__(self, parent, *args, **kwargs):
         super(CodeWidget, self).__init__()
-        layout = QVBoxLayout()
-        label = QLabel("Code")
         self.parent = parent
-        self.editor = QCodeEdit()
-        self.editor.setFont(QFont('Courier', 11))
-        self.editor.setFrameStyle(QFrame.Panel | QFrame.Plain)
-        self.highlighter = Highlighter(self.editor, "asm")
-        layout.addWidget(label)
-        layout.addWidget(self.editor)
+        self.code_editor_frame = CodeEditorFrame()
+        self.editor = self.code_editor_frame.editor
+        layout = QVBoxLayout()
+        layout.addWidget( QLabel("Code") )
+        layout.setSpacing(0)
+        layout.addWidget(self.code_editor_frame)
         self.setLayout(layout)
         self.parser = CodeParser(self)
         return

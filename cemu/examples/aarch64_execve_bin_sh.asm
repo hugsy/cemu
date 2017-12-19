@@ -7,7 +7,7 @@
 ;;;
 
 ;;; get some space on the stack
-        add    sp, sp, 2048
+add    sp, sp, 2048
 ldr    x7, =0x2f62696e
 str    x7, [sp, -4]!
 ldr    x7, =0x2f2f7368
