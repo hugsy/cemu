@@ -37,7 +37,7 @@ setup(
     packages=find_packages(),
     install_requires=[
         'capstone>=3.0.4',
-        'keystone-engine>=0.9',
+        'keystone>=0.9',
         'unicorn>=1.0',
         'PyQt5',
         'enum34',
