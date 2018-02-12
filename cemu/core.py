@@ -724,7 +724,7 @@ class EmulatorWindow(QMainWindow):
         return
 
     def loadCode(self, title, filter, run_disassembler):
-        qFile, qFilter = QFileDialog.getOpenFileName(self, title, EXAMPLES_PATH, filter)
+        qFile, qFilter = QFileDialog.getOpenFileName(self, title, EXAMPLES_PATH, filter + ";;All files (*)")
 
         if not os.access(qFile, os.R_OK):
             return
@@ -738,7 +738,7 @@ class EmulatorWindow(QMainWindow):
 
 
     def loadCodeText(self):
-        return self.loadCode("Open Assembly file", "Assembly files (*.asm)", False)
+        return self.loadCode("Open Assembly file", "Assembly files (*.asm *.s)", False)
 
 
     def loadCodeBin(self):
@@ -746,7 +746,7 @@ class EmulatorWindow(QMainWindow):
 
 
     def saveCode(self, title, filter, run_assembler):
-        qFile, qFilter = QFileDialog().getSaveFileName(self, title, HOME, filter=filter)
+        qFile, qFilter = QFileDialog().getSaveFileName(self, title, HOME, filter=filter + ";;All files (*)")
         if qFile is None or len(qFile)==0 or qFile=="":
             return
 
