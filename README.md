@@ -25,11 +25,11 @@ It allows to test binary samples, check your shellcodes or even simply
 learn how to write assembly code, all of this for the following
 architectures:
 
-    -   x86-32 / x86-64
-    -   Arm / AArch64
-    -   MIPS / MIPS64
-    -   SPARC / SPARC64
-    -   (more to come)
+  - x86-32 / x86-64
+  - Arm / AArch64
+  - MIPS / MIPS64
+  - SPARC / SPARC64
+  - (more to come)
 
 `CEmu` was tested and works on Linux, Windows and MacOSX.
 
