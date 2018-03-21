@@ -23,11 +23,11 @@ class Emulator:
         self.arch = self.parent.arch
         self.use_step_mode = False
         self.widget = None
-        self.reinit()
+        self.reset()
         return
 
 
-    def reinit(self):
+    def reset(self):
         self.vm = None
         self.code = None
         self.is_running = False

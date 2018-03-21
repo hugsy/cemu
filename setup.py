@@ -1,5 +1,7 @@
 from setuptools import setup, find_packages
 
+import cemu
+
 def readme():
     import io
     with io.open('README.rst', "r", encoding="utf-8") as f:
@@ -8,20 +10,12 @@ def readme():
     return long_description
 
 
-PROGNAME = 'cemu'
-AUTHOR = 'hugsy'
-EMAIL = 'hugsy@blah.cat'
-VERSION = '0.2.2'
-URL = 'https://github.com/{}/{}'.format(AUTHOR, PROGNAME)
-RELEASE_LINK = '{}/archive/{}.tar.gz'.format(URL, VERSION)
-LICENSE = 'MIT'
-
 setup(
-    name=PROGNAME,
+    name = cemu.PROGNAME,
     description='''Cemu is a simple assembly/dissembly/emulation IDE that provides an easy Plug-n-Play environment to start playing with many architectures (currently supports x86-{32,64}, ARM, AARCH64, MIPS, SPARC).''',
     long_description=readme(),
-    url=URL,
-    download_url=RELEASE_LINK,
+    url = cemu.URL,
+    download_url = cemu.RELEASE_LINK,
     classifiers=[
         'Development Status :: 4 - Beta',
         'License :: OSI Approved :: MIT License',
@@ -29,10 +23,10 @@ setup(
         'Topic :: Software Development :: Assemblers',
         'Natural Language :: English',
     ],
-    author=AUTHOR,
-    author_email=EMAIL,
-    version=VERSION,
-    license=LICENSE,
+    author = cemu.AUTHOR,
+    author_email = cemu.EMAIL,
+    version = cemu.VERSION,
+    license = cemu.LICENSE,
     include_package_data=True,
     packages=find_packages(),
     install_requires=[
@@ -45,5 +39,5 @@ setup(
     entry_points={
         'console_scripts': ['cemu=cemu.__main__:main'],
     },
-    keywords = ['assembly', 'disassembly', 'emulation', 'x86', 'arm', 'mips', 'powerpc', 'sparc'],
+    keywords = ['assembly', 'disassembly', 'emulation', 'x86', 'x64', 'arm', 'mips', 'powerpc', 'sparc'],
 )

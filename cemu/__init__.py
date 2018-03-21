@@ -1,4 +1,7 @@
-VERSION = '0.2.2'
+PROGNAME = 'cemu'
 AUTHOR = 'hugsy'
-LINK = 'https://github.com/hugsy/cemu'
-ISSUES = 'https://github.com/hugsy/cemu'
+EMAIL = 'hugsy@blah.cat'
+VERSION = '0.2.2'
+URL = 'https://github.com/{}/{}'.format(AUTHOR, PROGNAME)
+RELEASE_LINK = '{}/archive/{}.tar.gz'.format(URL, VERSION)
+LICENSE = 'MIT'
