@@ -61,7 +61,6 @@ target/
 #Ipython Notebook
 .ipynb_checkpoints
 
-cemu.desktop
 .gitignore
 .pypirc
 settings.json

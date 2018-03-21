@@ -40,4 +40,7 @@ setup(
         'console_scripts': ['cemu=cemu.__main__:main'],
     },
     keywords = ['assembly', 'disassembly', 'emulation', 'x86', 'x64', 'arm', 'mips', 'powerpc', 'sparc'],
+    data_files = [
+        ('share/applications', ['./cemu.desktop']),
+    ],
 )

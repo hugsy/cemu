@@ -1,0 +1,14 @@
+[Desktop Entry]
+Name=CEmu
+Comment=Cheap Emulator to write, compile and execute assembly code.
+GenericName=CEmu
+Exec=cemu
+Icon=computer-fail
+Type=Application
+StartupNotify=true
+StartupWMClass=CEMU
+Terminal=false
+Categories=Utility;TextEditor;Development;IDE;
+MimeType=text/plain;
+Actions=new-window;
+Keywords=cemu;assembly;x86;arm
