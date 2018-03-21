@@ -925,7 +925,7 @@ class EmulatorWindow(QMainWindow):
 
     def showAboutPopup(self):
         templ = open(TEMPLATES_PATH + "/about.html", "r").read()
-        desc = templ.format(author=cemu.AUTHOR, version=cemu.VERSION, project_link=cemu.LINK, issues_link=cemu.ISSUES)
+        desc = templ.format(author=cemu.AUTHOR, version=cemu.VERSION, project_link=cemu.URL, issues_link=cemu.ISSUES)
         msgbox = QMessageBox(self)
         msgbox.setIcon(QMessageBox.Information)
         msgbox.setWindowTitle("About CEMU")
