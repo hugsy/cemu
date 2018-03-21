@@ -499,7 +499,7 @@ class CanvasWidget(QWidget):
         # load additional modules
         for p in list_available_plugins():
             module = load_plugin(p)
-            if not getattr(module, "register"):
+            if not module or not getattr(module, "register"):
                 continue
 
             m = module.register(self)
