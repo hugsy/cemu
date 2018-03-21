@@ -87,38 +87,7 @@ From GitHub
     git clone https://github.com/hugsy/cemu && cd cemu
     pip3 install --user --upgrade .
 
-Manual installation
-~~~~~~~~~~~~~~~~~~~
 
-If for some reason the installation via PIP fails, you can always run
-``cemu`` by installing manually the following dependencies:
-
--  ``unicorn`` and its Python bindings, as the emulation engine
--  ``keystone`` and its Python bindings, as the assembly engine
--  ``capstone`` and its Python bindings, as the disassembly engine
--  ``PyQt5`` for the GUI
--  ``pygments`` for the text colorization
-
-Linux / OSX
-^^^^^^^^^^^
-
-Use the script ``requirements.sh`` to install all the dependencies
-required for ``cemu``.
-
-Since some packages can be installed via your package manager, the
-script may ask for your root password if required.
-
-.. code:: bash
-
-    $ ./requirements.sh
-
-By default, the script will install the dependencies to have ``cemu``
-running with Python3. If you prefer to use Python2, simply add
-``--python2`` to the command line, like this:
-
-.. code:: bash
-
-    $ ./requirements.sh --python2
 
 Windows
 ^^^^^^^
@@ -137,28 +106,6 @@ Then spawn ``cmd.exe`` and install the missing Python packages:
 
 If you are running Python2, you will also need to install the package
 ``enum34``.
-
-OpenReil integration
---------------------
-
-```OpenREIL`` <https://github.com/Cr4sh/openreil>`__ is an Open Source
-library created by [@Cr4sh](https://twitter.com/@d\_olex) that
-implements a translator and tools for generating Intermediate Language
-level code (REIL). OpenREIL library can be used optionally with
-``cemu``. The Current version of OpenREIL only provides support for x86
-(Intel) architecture.
-
-If you use ``cemu`` with Python 2.7, you can also use
-```OpenReil`` <https://github.com/Cr4sh/openreil>`__ to generate IR code
-based on the content of the ``Code`` panel.
-
-.. figure:: http://i.imgur.com/R1wXLpG.png
-   :alt: cemu-openreil
-
-   cemu-openreil
-
-To do so, follow the installation procedure for ``OpenReil`` by
-following the steps `here <https://github.com/Cr4sh/openreil#_2>`__.
 
 Contribution
 ------------
