@@ -247,7 +247,7 @@ class Emulator:
         self.pprint("Starting emulation context")
 
         try:
-            if is_x86(self.parent.arch):
+            if is_x86_32(self.parent.arch):
                 self.pprint("Enabling x86 segmentation")
                 self.support_x86_segmentation()
 

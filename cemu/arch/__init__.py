@@ -101,7 +101,7 @@ Architectures = {
 }
 
 
-DEFAULT_ARCHITECTURE = Architectures["x86"][1] # x86-32 (intel)
+DEFAULT_ARCHITECTURE = Architectures["x86"][2] # x86-32 (intel)
 
 def is_x86_16(a):
     return a.__class__.__name__ == "X86"

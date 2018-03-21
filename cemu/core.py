@@ -522,7 +522,7 @@ class CanvasWidget(QWidget):
 
 
     def loadContext(self):
-        self.emu.reinit()
+        self.emu.reset()
         self.emuWidget.editor.clear()
         maps = self.mapWidget.maps
         if not self.emu.populate_memory(maps):
