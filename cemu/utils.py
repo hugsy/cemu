@@ -187,7 +187,7 @@ def load_plugin(plugin):
     mod = None
 
     try:
-        mod = importlib.import_module("cemu.plugins.{}".format(plugin)
+        mod = importlib.import_module("cemu.plugins.{}".format(plugin))
     except ImportError as ie:
         print("Failed to import '{}' - reason: {}".format(plugin, ie))
         return None
