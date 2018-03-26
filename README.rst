@@ -130,5 +130,5 @@ all the
    :target: https://github.com/hugsy/cemu/blob/master/LICENSE
 .. |Python 2 & 3| image:: https://img.shields.io/badge/Python-2%20%26%203-green.svg
    :target: https://github.com/hugsy/cemu/
-.. |IRC| image:: https://img.shields.io/badge/freenode-%23%23gef-yellowgreen.svg
+.. |IRC| image:: https://img.shields.io/badge/freenode-%23%23cemu-yellowgreen.svg
    :target: https://webchat.freenode.net/?channels=##cemu
