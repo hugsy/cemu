@@ -1,5 +1,7 @@
 # CEMU #
 
+[![MIT](https://img.shields.io/packagist/l/doctrine/orm.svg?maxAge=2592000?style=plastic)](https://github.com/hugsy/cemu/blob/master/LICENSE) [![Python 2 & 3](https://img.shields.io/badge/Python-2%20%26%203-green.svg)](https://github.com/hugsy/cemu/) [![IRC](https://img.shields.io/badge/freenode-%23%23gef-yellowgreen.svg)](https://webchat.freenode.net/?channels=##cemu)
+
 ![cemu-linux](https://i.imgur.com/1vep3WM.png)
 
 ## Description ##
@@ -36,9 +38,11 @@ architectures:
 
 ## Installation ##
 
-Since version 0.2.2, `cemu` is now Python3 only for simplicity (and also due to the fact that [Python2 will soon cease to exist](https://pythonclock.org/)).
+Since version 0.2.2, `cemu` is now Python3 only for simplicity (and also due to
+the fact that [Python2 will soon cease to exist](https://pythonclock.org/)).
 
-If your current installation of `cemu` is <= 0.2.1 and on Python2, please uninstall it and install it using Python3.
+If your current installation of `cemu` is <= 0.2.1 and on Python2, please
+uninstall it and install it using Python3.
 
 
 ### Quick install with PIP ###
