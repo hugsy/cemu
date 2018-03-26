@@ -92,15 +92,24 @@ $ ln -sf /path/to/libcapstone.dylib/found/above /usr/local/Cellar/python3/3.6.2/
 
 The fastest way for Windows is to install the packaged binaries for:
 
-  - Keystone: http://www.keystone-engine.org/download/
-  - Capstone: <http://www.capstone-engine.org/download>
-  - Unicorn: <http://www.unicorn-engine.org/download/>
+  - Keystone (http://www.keystone-engine.org/download/)
+    - Including the [Microsoft VC++ runtime library](https://www.microsoft.com/en-gb/download/details.aspx?id=40784)
+  - Capstone (http://www.capstone-engine.org/download/)
+  - Unicorn (http://www.unicorn-engine.org/download/)
+  
 
 Then spawn `cmd.exe` and install the missing Python packages using `pip`:
 
-```
+```bash
+# From PyPI
+C:\> pip.exe install -U cemu
+# From Github
+## Download ZIP and extract it
+C:\> cd path\to\cemu
 C:\path\to\cemu> pip.exe install . -U
 ```
+
+`CEmu` launcher (`cemu.exe`) will be in the `C:\Python3\Scripts` directory.
 
 
 ## Contribution ##
