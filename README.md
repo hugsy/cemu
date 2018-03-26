@@ -1,6 +1,6 @@
 # CEMU #
 
-[![MIT](https://img.shields.io/packagist/l/doctrine/orm.svg?maxAge=2592000?style=plastic)](https://github.com/hugsy/cemu/blob/master/LICENSE) [![Python 2 & 3](https://img.shields.io/badge/Python-2%20%26%203-green.svg)](https://github.com/hugsy/cemu/) [![IRC](https://img.shields.io/badge/freenode-%23%23gef-yellowgreen.svg)](https://webchat.freenode.net/?channels=##cemu)
+[![MIT](https://img.shields.io/packagist/l/doctrine/orm.svg?maxAge=2592000?style=plastic)](https://github.com/hugsy/cemu/blob/master/LICENSE) [![Python 2 & 3](https://img.shields.io/badge/Python-2%20%26%203-green.svg)](https://github.com/hugsy/cemu/) [![IRC](https://img.shields.io/badge/freenode-%23%23cemu-yellowgreen.svg)](https://webchat.freenode.net/?channels=##cemu)
 
 ![cemu-linux](https://i.imgur.com/1vep3WM.png)
 
