@@ -1,6 +1,8 @@
 CEMU
 ====
 
+|MIT| |Python 2 & 3| |IRC|
+
 .. figure:: https://i.imgur.com/1vep3WM.png
    :alt: cemu-linux
 
@@ -123,3 +125,10 @@ Contribution
 ```@_hugsy_`` <https://twitter.com/_hugsy_>`__, but kept fresh thanks to
 all the
 `contributors <https://github.com/hugsy/cemu/graphs/contributors>`__.
+
+.. |MIT| image:: https://img.shields.io/packagist/l/doctrine/orm.svg?maxAge=2592000?style=plastic
+   :target: https://github.com/hugsy/cemu/blob/master/LICENSE
+.. |Python 2 & 3| image:: https://img.shields.io/badge/Python-2%20%26%203-green.svg
+   :target: https://github.com/hugsy/cemu/
+.. |IRC| image:: https://img.shields.io/badge/freenode-%23%23gef-yellowgreen.svg
+   :target: https://webchat.freenode.net/?channels=##cemu
