@@ -1,8 +1,8 @@
 # CEMU #
 
-[![MIT](https://img.shields.io/packagist/l/doctrine/orm.svg?maxAge=2592000?style=plastic)](https://github.com/hugsy/cemu/blob/master/LICENSE) [![Python 2 & 3](https://img.shields.io/badge/Python-2%20%26%203-green.svg)](https://github.com/hugsy/cemu/) [![IRC](https://img.shields.io/badge/freenode-%23%23cemu-yellowgreen.svg)](https://webchat.freenode.net/?channels=##cemu)
+[![MIT](https://img.shields.io/packagist/l/doctrine/orm.svg?maxAge=2592000?style=plastic)](https://github.com/hugsy/cemu/blob/master/LICENSE) [![IRC](https://img.shields.io/badge/freenode-%23%23cemu-yellowgreen.svg)](https://webchat.freenode.net/?channels=##cemu) [![Python-Version](https://img.shields.io/pypi/pyversions/cemu.svg)](https://pypi.python.org/pypi/cemu) [![PyPi-Version](https://img.shields.io/pypi/v/cemu.svg)](https://pypi.python.org/pypi/cemu)
 
-![cemu-linux](https://i.imgur.com/1vep3WM.png)
+![cemu-linux](https://i.imgur.com/Imuxb1q.png)
 
 ## Description ##
 
@@ -78,29 +78,35 @@ $ sudo ln -sf /path/to/libkeystone.so/found/above /usr/local/lib/libkeystone.so
 
 #### OSX ####
 
-If you are using OSX, there is also a [known issue](https://github.com/aquynh/capstone/issues/74) when installing
-`capstone-engine` from PIP, resulting in the `.dylib` not being deployed at the right location. A quick fix for it is
+If you are using OSX, I would highly recommand installing Capstone engine directly using `brew.sh` command instead of `pip`, as its version seems more up-to-date than the one on PyPI. Doing so, the installation should work out of the box:
 
 ```bash
-# locate the shared lib
-$ find ~  -type f -name libcapstone.dylib
-# link it in a valid correct library path
-$ ln -sf /path/to/libcapstone.dylib/found/above /usr/local/Cellar/python3/3.6.2/Frameworks/Python.framework/Versions/3.6/lib/python3.6/site-packages/capstone/libcapstone.dylib
+$ brew install capstone 
+$ pip3 install -U cemu
 ```
 
 #### Windows ####
 
 The fastest way for Windows is to install the packaged binaries for:
 
-  - Keystone: http://www.keystone-engine.org/download/
-  - Capstone: <http://www.capstone-engine.org/download>
-  - Unicorn: <http://www.unicorn-engine.org/download/>
+  - Keystone (http://www.keystone-engine.org/download/)
+    - Including the [Microsoft VC++ runtime library](https://www.microsoft.com/en-gb/download/details.aspx?id=40784)
+  - Capstone (http://www.capstone-engine.org/download/)
+  - Unicorn (http://www.unicorn-engine.org/download/)
+  
 
 Then spawn `cmd.exe` and install the missing Python packages using `pip`:
 
-```
+```bash
+# From PyPI
+C:\> pip.exe install -U cemu
+# From Github
+## Download ZIP and extract it
+C:\> cd path\to\cemu
 C:\path\to\cemu> pip.exe install . -U
 ```
+
+`CEmu` launcher (`cemu.exe`) will be in the `C:\Python3\Scripts` directory.
 
 
 ## Contribution ##
