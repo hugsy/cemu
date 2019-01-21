@@ -247,9 +247,9 @@ class Emulator:
         self.pprint("Starting emulation context")
 
         try:
-            if is_x86_32(self.parent.arch):
-                self.pprint("Enabling x86 segmentation")
-                self.support_x86_segmentation()
+            # if is_x86_32(self.parent.arch):
+            #     self.pprint("Enabling x86 segmentation")
+            #     self.support_x86_segmentation()
 
             self.vm.emu_start(self.start_addr, self.end_addr)
         except unicorn.unicorn.UcError as e:

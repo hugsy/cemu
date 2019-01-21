@@ -22,10 +22,7 @@ class CodeParser:
             return [] if not as_string else b""
 
         code = code.split("\n")
-        if sys.version_info.major == 2:
-            code = [bytes(x) for x in code]
-        else:
-            code = [bytes(x, encoding="utf-8") for x in code]
+        code = [bytes(x, encoding="utf-8") for x in code]
 
         # remove comments
         code = self.removeComments(code)

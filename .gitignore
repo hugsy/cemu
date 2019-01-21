@@ -64,3 +64,4 @@ target/
 .gitignore
 .pypirc
 settings.json
+.gitattributes
