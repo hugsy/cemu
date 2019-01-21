@@ -36,7 +36,7 @@ from cemu.utils import (
     disassemble_file
 )
 
-import cemu
+import cemu.const
 
 from cemu.emulator import Emulator
 from cemu.shortcuts import Shortcut
@@ -526,7 +526,7 @@ class CEmuWindow(QMainWindow):
 
     def showAboutPopup(self):
         templ = open(TEMPLATE_PATH + "/about.html", "r").read()
-        desc = templ.format(author=cemu.AUTHOR, version=cemu.VERSION, project_link=cemu.URL, issues_link=cemu.ISSUES)
+        desc = templ.format(author=cemu.const.AUTHOR, version=cemu.const.VERSION, project_link=cemu.const.URL, issues_link=cemu.const.ISSUES)
         msgbox = QMessageBox(self)
         msgbox.setIcon(QMessageBox.Information)
         msgbox.setWindowTitle("About CEMU")

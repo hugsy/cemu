@@ -9,7 +9,7 @@ def check_dependencies():
         try:
             __import__(d)
         except ImportError:
-            print("[-] Missing required dependency '%s'" % d)
+            print("[-] Missing required dependency '{}'".format(d))
             sys.exit(1)
     return
 

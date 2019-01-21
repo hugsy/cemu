@@ -28,10 +28,8 @@ class CodeInfoBarWidget(QWidget):
     def __init__(self, textedit_widget, *args, **kwargs):
         super(CodeInfoBarWidget, self).__init__()
         self.textedit_widget = textedit_widget
-        self.setFixedHeight(30)
         layout = QHBoxLayout()
         self.label = QLabel("Line:1 Column:1")
-        self.label.setFont(QFont("Courier", 11))
         layout.addWidget(self.label)
         self.setLayout(layout)
         self.textedit_widget.cursorPositionChanged.connect(self.UpdateLabel)
@@ -67,13 +65,14 @@ class CodeEdit(QTextEdit):
 class CodeEditorFrame(QFrame):
     def __init__(self, *args, **kwargs):
         super(CodeEditorFrame, self).__init__()
+
         # init code pane
         self.editor = CodeEdit()
         self.editor.setFont(QFont('Courier', 11))
         self.editor.setFrameStyle(QFrame.Panel | QFrame.Plain)
         self.editor.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-
         self.highlighter = Highlighter(self.editor, "asm")
+
         # info bar
         self.infobar = CodeInfoBarWidget(self.editor)
         vbox = QVBoxLayout(self)
