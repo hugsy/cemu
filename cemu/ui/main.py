@@ -65,7 +65,6 @@ from .log import LogWidget
 from .command import CommandWidget
 from .registers import RegistersWidget
 from .memory import MemoryWidget
-from .scratchboard import ScratchboardWidget
 
 
 class CanvasWidget(QWidget):
@@ -89,13 +88,12 @@ class CanvasWidget(QWidget):
         self.commandWidget = CommandWidget(self)
         self.registerWidget = RegistersWidget(self)
         self.memoryViewerWidget = MemoryWidget(self)
-        self.scratchWidget = ScratchboardWidget(self)
 
         self.runtimeTabWidget = QTabWidget()
         self.runtimeTabWidget.addTab(self.emuWidget, "Emulator")
         self.runtimeTabWidget.addTab(self.logWidget, "Log")
         self.runtimeTabWidget.addTab(self.mapWidget, "Mappings")
-        self.runtimeTabWidget.addTab(self.scratchWidget, "Scratchboard")
+
         self.AddPluginsToTab(self.runtimeTabWidget) # load additional modules
 
         runtimeVBoxLayout = QVBoxLayout()

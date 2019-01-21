@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import sys
 
 from PyQt5.QtWidgets import (
@@ -22,7 +20,6 @@ class PythonConsoleWidget(QWidget):
         self.parent = parent
         self.title = "Python"
         self.layout = QVBoxLayout()
-        self.layout.addWidget(QLabel(self.title))
         self.console = PythonConsole(startup_message=self.motd, parent=self)
         self.highlighter = Highlighter(self.console, "py")
         self.layout.addWidget(self.console)
