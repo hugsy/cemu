@@ -1,13 +1,12 @@
-# -*- coding: utf-8 -*-
-
 import sys
 
-from pygments import highlight
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
-from PyQt5.QtWidgets import *
+from PyQt5.QtWidgets import (
+    QWidget,
+    QVBoxLayout,
+    QLabel
+)
 
-from cemu.core import Highlighter
+from cemu.ui.highlighter import Highlighter
 from cemu.console import PythonConsole
 
 
@@ -21,9 +20,8 @@ class PythonConsoleWidget(QWidget):
         self.parent = parent
         self.title = "Python"
         self.layout = QVBoxLayout()
-        self.layout.addWidget(QLabel(self.title))
         self.console = PythonConsole(startup_message=self.motd, parent=self)
-        highlighter = Highlighter(self.console, "py")
+        self.highlighter = Highlighter(self.console, "py")
         self.layout.addWidget(self.console)
         self.setLayout(self.layout)
         return

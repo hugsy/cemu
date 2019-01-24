@@ -1,3 +1,11 @@
+;;; @@@ arch:x86_32
+;;; @@@ endian:little
+;;; @@@ syntax:intel
+;;;
+;;;  x86-32 sys_execve("/bin/sh") null free shellcode
+;;;
+;;; @_hugsy_
+
 xor eax, eax
 inc eax
 inc eax

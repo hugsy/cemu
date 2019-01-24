@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 import platform
-import cemu
+import cemu.const as cemu
 
 def readme():
     import io
@@ -16,14 +16,14 @@ def get_required_packages():
         'PyQt5',
         'Pygments>=2.0'
     ]
-    
-    if platform.system() != "Windows": 
-        # Keystone installer on Windows is declared as `keystone` on pip, but on PyPI `keystone` 
+
+    if platform.system() != "Windows":
+        # Keystone installer on Windows is declared as `keystone` on pip, but on PyPI `keystone`
         # is a webapp framework (instead of `keystone-engine`). So we fix this locally.
         r.append('keystone-engine>=0.9')
-     
+
     return r
-    
+
 setup(
     name = cemu.PROGNAME,
     description='''Cemu is a simple assembly/dissembly/emulation IDE that provides an easy Plug-n-Play environment to start playing with many architectures (currently supports x86-{32,64}, ARM, AARCH64, MIPS, SPARC).''',
@@ -49,7 +49,4 @@ setup(
         'console_scripts': ['cemu=cemu.__main__:main'],
     },
     keywords = ['assembly', 'disassembly', 'emulation', 'x86', 'x64', 'arm', 'mips', 'powerpc', 'sparc'],
-    data_files = [
-        ('share/applications', ['./cemu.desktop']),
-    ],
 )

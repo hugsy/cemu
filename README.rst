@@ -3,7 +3,8 @@ CEMU
 
 |MIT| |IRC| |Python-Version| |PyPi-Version|
 
-.. figure:: https://i.imgur.com/Imuxb1q.png
+
+.. figure:: https://i.imgur.com/7DI6BxR.png
    :alt: cemu-linux
 
    cemu-linux
@@ -97,7 +98,7 @@ installation should work out of the box:
 
 .. code:: bash
 
-    $ brew install capstone 
+    $ brew install capstone
     $ pip3 install -U cemu
 
 Windows

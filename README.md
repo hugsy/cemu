@@ -2,7 +2,7 @@
 
 [![MIT](https://img.shields.io/packagist/l/doctrine/orm.svg?maxAge=2592000?style=plastic)](https://github.com/hugsy/cemu/blob/master/LICENSE) [![IRC](https://img.shields.io/badge/freenode-%23%23cemu-yellowgreen.svg)](https://webchat.freenode.net/?channels=##cemu) [![Python-Version](https://img.shields.io/pypi/pyversions/cemu.svg)](https://pypi.python.org/pypi/cemu) [![PyPi-Version](https://img.shields.io/pypi/v/cemu.svg)](https://pypi.python.org/pypi/cemu)
 
-![cemu-linux](https://i.imgur.com/Imuxb1q.png)
+![cemu-linux](https://i.imgur.com/7DI6BxR.png)
 
 ## Description ##
 
@@ -81,7 +81,7 @@ $ sudo ln -sf /path/to/libkeystone.so/found/above /usr/local/lib/libkeystone.so
 If you are using OSX, I would highly recommand installing Capstone engine directly using `brew.sh` command instead of `pip`, as its version seems more up-to-date than the one on PyPI. Doing so, the installation should work out of the box:
 
 ```bash
-$ brew install capstone 
+$ brew install capstone
 $ pip3 install -U cemu
 ```
 
@@ -93,7 +93,7 @@ The fastest way for Windows is to install the packaged binaries for:
     - Including the [Microsoft VC++ runtime library](https://www.microsoft.com/en-gb/download/details.aspx?id=40784)
   - Capstone (http://www.capstone-engine.org/download/)
   - Unicorn (http://www.unicorn-engine.org/download/)
-  
+
 
 Then spawn `cmd.exe` and install the missing Python packages using `pip`:
 
