@@ -3,7 +3,7 @@ CEMU
 
 |MIT| |Python 2 & 3| |IRC|
 
-.. figure:: https://i.imgur.com/1vep3WM.png
+.. figure:: https://i.imgur.com/7DI6BxR.png
    :alt: cemu-linux
 
    cemu-linux
