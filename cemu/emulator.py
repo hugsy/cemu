@@ -4,12 +4,14 @@ import unicorn
 import keystone
 import capstone
 
-from cemu.arch import Syntax, \
-    is_x86_16, is_x86_32, is_x86_64, is_x86, \
-    is_arm, is_arm_thumb, is_aarch64, \
-    is_mips, is_mips64, \
-    is_sparc, is_sparc64, \
+from .arch import (
+    Syntax,
+    is_x86_16, is_x86_32, is_x86_64, is_x86,
+    is_arm, is_arm_thumb, is_aarch64,
+    is_mips, is_mips64,
+    is_sparc, is_sparc64,
     is_ppc
+)
 
 from .utils import get_arch_mode, assemble
 
@@ -143,16 +145,19 @@ class Emulator:
 
 
     def populate_registers(self, registers):
+        arch = self.parent.arch
         for r in registers.keys():
+            if is_x86_32(arch):
+                # temporary hack for x86 segmentation issue
+                if r in ('GS', 'FS', 'SS', 'DS', 'CS', 'ES'):
+                    continue
+
             ur = self.unicorn_register(r)
             self.vm.reg_write(ur, registers[r])
             self.log("Register '{:s}' = {:#x}".format(r, registers[r]), "Setup")
 
-        # fix $PC
         ur = self.unicorn_register(self.parent.arch.pc)
         self.vm.reg_write(ur, self.areas[".text"][0])
-
-        # fix $SP
         ur = self.unicorn_register(self.parent.arch.sp)
         self.vm.reg_write(ur, self.areas[".stack"][0])
         return True
@@ -247,10 +252,6 @@ class Emulator:
         self.pprint("Starting emulation context")
 
         try:
-            # if is_x86_32(self.parent.arch):
-            #     self.pprint("Enabling x86 segmentation")
-            #     self.support_x86_segmentation()
-
             self.vm.emu_start(self.start_addr, self.end_addr)
         except unicorn.unicorn.UcError as e:
             self.log("An error occured: {}".format(str(e)), "Error")
@@ -282,58 +283,3 @@ class Emulator:
                 return self.areas[area][0]
         return None
 
-
-    def support_x86_segmentation(self):
-        arch = self.parent.arch
-
-        #
-        # from https://github.com/unicorn-engine/unicorn/blob/master/tests/regress/x86_64_msr.py
-        # original code by @williballenthin
-        #
-        DUMMY_ADDR = 0xf000
-        SEGMENT_FS_ADDR = 0x5000
-        SEGMENT_GS_ADDR = 0x6000
-        FSMSR = 0xC0000100
-        GSMSR = 0xC0000101
-
-        def set_msr(uc, msr, value, addr):
-            bytecode, cnt = assemble(b"wrmsr", arch)
-            assert (cnt == 1)
-            uc.mem_write(addr, bytecode)
-            uc.reg_write(unicorn.x86_const.UC_X86_REG_EAX, value & 0xFFFFFFFF)
-            uc.reg_write(unicorn.x86_const.UC_X86_REG_EDX, (value >> 32) & 0xFFFFFFFF)
-            uc.reg_write(unicorn.x86_const.UC_X86_REG_ECX, msr & 0xFFFFFFFF)
-            uc.emu_start(addr, addr+len(bytecode), count=1)
-            return
-
-        def get_msr(uc, msr, addr):
-            bytecode, cnt = assemble(b"rdmsr", arch)
-            assert (cnt == 1)
-            uc.mem_write(addr, bytecode)
-            uc.reg_write(unicorn.x86_const.UC_X86_REG_RCX, msr & 0xFFFFFFFF)
-            uc.emu_start(addr, addr+len(bytecode), count=1)
-            return (uc.reg_read(unicorn.x86_const.UC_X86_REG_EDX) << 32) | (uc.reg_read(unicorn.x86_const.UC_X86_REG_EAX) & 0xFFFFFFFF)
-
-        def set_gs(uc, addr):
-            return set_msr(uc, GSMSR, addr, DUMMY_ADDR)
-
-        def get_gs(uc):
-            return get_msr(uc, GSMSR, DUMMY_ADDR)
-
-        def set_fs(uc, addr):
-            return set_msr(uc, FSMSR, addr, DUMMY_ADDR)
-
-        def get_fs(uc):
-            return get_msr(uc, FSMSR, DUMMY_ADDR)
-
-        emu = self.vm
-        pc = emu.reg_read(unicorn.x86_const.UC_X86_REG_EIP)
-        emu.mem_map(DUMMY_ADDR, 0x1000)
-        emu.mem_map(SEGMENT_FS_ADDR-0x1000, 0x3000)
-        set_fs(emu, SEGMENT_FS_ADDR)
-        set_gs(emu, SEGMENT_GS_ADDR)
-        emu.emu_stop()
-        emu.reg_write(unicorn.x86_const.UC_X86_REG_EIP, pc)
-        emu.reg_write(unicorn.x86_const.UC_X86_REG_FS, SEGMENT_FS_ADDR)
-        emu.reg_write(unicorn.x86_const.UC_X86_REG_GS, SEGMENT_GS_ADDR)
-        return

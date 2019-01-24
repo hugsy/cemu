@@ -64,8 +64,9 @@ class Architecture(object):
         if self.__syscalls:
             return self.__syscalls
 
-        path = os.path.dirname(os.path.realpath(__file__)) + "/../syscalls"
-        fpath = "{}/{}.csv".format(path, self.syscall_filename)
+        cemu_directory = os.path.dirname(os.path.realpath(__file__))
+        path = os.sep.join([cemu_directory, os.sep, "..", os.sep, "syscalls"])
+        fpath = "{}{}{}.csv".format(path, os.sep, self.syscall_filename)
         syscalls = {}
 
         with open(fpath, 'r') as fd:
@@ -80,8 +81,7 @@ class Architecture(object):
     def __eq__(self, x):
         if not isinstance(x, Architecture):
             return False
-
-        return self.name == x.name and self.endianness== x.endianness #and self.syntax == x.syntax
+        return self.name == x.name and self.endianness== x.endianness and self.syntax == x.syntax
 
 
 

