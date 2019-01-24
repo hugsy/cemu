@@ -1,23 +1,5 @@
 # -*- coding: utf-8 -*-
 
-#import binascii
-#import functools
-#import os
-
-#import tempfile
-#import time
-
-#import unicorn
-#from pygments import highlight
-#from pygments.formatter import Formatter
-#from pygments.lexers import *
-
-#from cemu.arch import DEFAULT_ARCHITECTURE, Architectures, get_architecture_by_name
-#from cemu.emulator import Emulator
-#from cemu.parser import CodeParser
-#from cemu.shortcuts import Shortcut
-#from cemu.utils import *
-
 import sys
 
 from PyQt5.QtWidgets import(
