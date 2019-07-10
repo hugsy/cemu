@@ -10,6 +10,7 @@ class CodeParser:
     def __init__(self, code_widget, *args, **kwargs):
         self.code_widget = code_widget
         self.emulator = self.code_widget.parent.parent.emulator
+        self.arch = self.emulator.parent.arch
         return
 
 
@@ -21,8 +22,8 @@ class CodeParser:
         if code is None or len(code)==0:
             return [] if not as_string else b""
 
-        code = code.split("\n")
-        code = [bytes(x, encoding="utf-8") for x in code]
+        code = bytes(code, encoding="utf-8")
+        code = code.split(b"\n")
 
         # remove comments
         code = self.removeComments(code)
@@ -40,20 +41,17 @@ class CodeParser:
         return code
 
 
-    def removeComments(self, code, as_string=False):
+    def removeComments(self, lines, as_string=False):
         """
         Returns the code pane content cleaned of all comments.
         """
-        comment_tags = ["#", ";", "--",]
+        comment_tags = [b"#", b";;;", b"--",]
         clean = []
-        for line in code:
+        for line in lines:
             line = line.strip()
             if len(line)==0:
                 continue
-            c = line[0]
-            if sys.version_info.major == 3:
-                c = chr(line[0])
-            if c in comment_tags:
+            if any( map(line.startswith, comment_tags) ):
                 continue
             clean.append(line)
 
@@ -69,7 +67,7 @@ class CodeParser:
         pattern and convert it as a hexadecimal number.
         """
         parsed = []
-        arch = self.emulator.parent.arch
+        arch = self.arch
 
         for line in code:
             i = line.find(b'"')
@@ -106,7 +104,7 @@ class CodeParser:
         """
 
         parsed = []
-        syscalls = self.emulator.parent.arch.syscalls
+        syscalls = self.arch.syscalls
         syscall_names = syscalls.keys()
         for line in code:
             for sysname in syscall_names:

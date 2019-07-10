@@ -165,7 +165,7 @@ class Emulator:
 
     def compile_code(self, code_list, update_end_addr=True):
         n = len(code_list)
-        code = b" ; ".join(code_list)
+        code = b";".join(code_list)
         self.log("Assembling {} instructions for {}:\n{}".format(n, self.parent.arch.name, code), "Compilation")
         self.code, self.num_insns = assemble(code, self.parent.arch)
         if self.num_insns < 0:

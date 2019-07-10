@@ -141,7 +141,7 @@ def assemble(asm_code, mode):
     """
     Helper function to assemble code receive in parameter `asm_code` using Keystone.
 
-    @param asm_code : bytearray of N instructions, separated by ';'
+    @param asm_code : assembly code in bytes (multiple instructions must be separated by ';')
     @param mode : defines the mode to use Keystone with
     @return a tuple of bytecodes as bytearray, along with the number of instruction compiled. If failed, the
     bytearray will be empty, the count of instruction will be the negative number for the faulty line.
@@ -151,18 +151,12 @@ def assemble(asm_code, mode):
     if is_x86(mode) and mode.syntax == Syntax.ATT:
         ks.syntax = keystone.KS_OPT_SYNTAX_ATT
 
-    bytecode = []
-    insns = asm_code.split(b';')
-    for i, insn in enumerate(insns):
-        try:
-            code, cnt = ks.asm(insn)
-            if cnt==0:
-                return (b'', -(i+1))
-            bytecode.append(bytearray(code))
-        except keystone.keystone.KsError as kse:
-            return (b'', -(i+1))
+    try:
+        bytecode, cnt = ks.asm(asm_code, as_bytes=True)
+    except keystone.keystone.KsError as kse:
+        return (b'', kse.get_asm_count())
 
-    return (b''.join(bytecode), i+1)
+    return (bytecode, cnt)
 
 
 def ishex(x):

@@ -54,4 +54,4 @@ class AARCH64(Architecture):
         pc
     ]
     syscall_filename = "aarch64"
-    ptrsize = 4
+    ptrsize = 8
