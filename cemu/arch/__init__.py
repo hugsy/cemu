@@ -44,6 +44,10 @@ class Architecture(object):
         pass
 
     @abc.abstractproperty
+    def regsize(self):
+        pass
+    
+    @abc.abstractproperty
     def syscall_filename(self):
         pass
 
