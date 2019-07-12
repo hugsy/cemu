@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import (
     QLabel,
     QTextEdit,
     QFrame,
-    QWidget
+    QWidget,
 )
 
 from PyQt5.QtGui import(
@@ -14,14 +14,25 @@ from PyQt5.QtGui import(
 
 from PyQt5.QtCore import(
     QVariant,
-    Qt
+    Qt,
 )
 
-#from PyQt5 import Qt
-
-from cemu.parser import CodeParser
+from ..parser import CodeParser
+from ..utils import assemble
 
 from .highlighter import Highlighter
+
+
+def get_cursor_row_number_from_qtextedit(widget):
+    pos = widget.textCursor().position()
+    text = widget.toPlainText()
+    return text[:pos].count('\n')
+
+
+def get_cursor_column_number_from_qtextedit(widget):
+    pos = widget.textCursor().position()
+    text = widget.toPlainText()
+    return len(text[:pos].split('\n')[-1])
 
 
 class CodeInfoBarWidget(QWidget):
@@ -37,10 +48,8 @@ class CodeInfoBarWidget(QWidget):
 
 
     def UpdateLabel(self):
-        pos = self.textedit_widget.textCursor().position()
-        text = self.textedit_widget.toPlainText()
-        pos_x = text[:pos].count('\n') + 1
-        pos_y = len(text[:pos].split('\n')[-1]) + 1
+        pos_x = get_cursor_row_number_from_qtextedit(self.textedit_widget) + 1
+        pos_y = get_cursor_column_number_from_qtextedit(self.textedit_widget) + 1
         self.label.setText("Line:{:d} Column:{:d}".format(pos_x, pos_y))
         return
 
@@ -49,6 +58,9 @@ class CodeEdit(QTextEdit):
     def __init__(self):
         super(CodeEdit, self).__init__()
         self.cursorPositionChanged.connect(self.UpdateHighlightedLine)
+        self.setFont(QFont('Courier', 11))
+        self.setFrameStyle(QFrame.Panel | QFrame.Plain)
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         return
 
 
@@ -62,22 +74,56 @@ class CodeEdit(QTextEdit):
         return
 
 
+class AssemblyView(QTextEdit):
+    def __init__(self, editor, arch):
+        super(AssemblyView, self).__init__()
+        self.setReadOnly(True)
+        self.setFont(QFont('Courier', 11))
+        self.setFixedWidth(140)
+        self.setFrameStyle(QFrame.Panel | QFrame.Plain)
+        self.setStyleSheet("background-color: rgb(211, 211, 211);")
+        self.editor = editor
+        self.arch = arch
+        self.lines = {}
+        self.editor.textChanged.connect(self.update_assembly_code)
+        return
+
+    def update_assembly_code(self):
+        lines = self.editor.toPlainText().split('\n')
+        current_row = get_cursor_row_number_from_qtextedit(self.editor)
+        current_line = lines[current_row]
+        if current_line.strip() == "":
+            new_value = ""
+        else:
+            code, cnt = assemble(current_line, self.arch)
+            new_value = "INVALID" if cnt != 1 else " ".join(["%.2x" % x for x in code])
+        self.lines[current_row] = new_value
+        self.setText("\n".join(self.lines.values()))
+        return
+
+
 class CodeEditorFrame(QFrame):
     def __init__(self, *args, **kwargs):
         super(CodeEditorFrame, self).__init__()
 
         # init code pane
         self.editor = CodeEdit()
-        self.editor.setFont(QFont('Courier', 11))
-        self.editor.setFrameStyle(QFrame.Panel | QFrame.Plain)
-        self.editor.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         self.highlighter = Highlighter(self.editor, "asm")
+
+        # compiled assembly pane
+        self.assembly_view = AssemblyView(self.editor, kwargs.get("arch"))
 
         # info bar
         self.infobar = CodeInfoBarWidget(self.editor)
+
+        # layout
+        hbox = QHBoxLayout(self)
+        hbox.setSpacing(0)
+        hbox.addWidget(self.assembly_view)
+        hbox.addWidget(self.editor)
         vbox = QVBoxLayout(self)
         vbox.setSpacing(0)
-        vbox.addWidget(self.editor)
+        vbox.addLayout(hbox)
         vbox.addWidget(self.infobar)
         return
 
@@ -86,7 +132,7 @@ class CodeWidget(QWidget):
     def __init__(self, parent, *args, **kwargs):
         super(CodeWidget, self).__init__()
         self.parent = parent
-        self.code_editor_frame = CodeEditorFrame()
+        self.code_editor_frame = CodeEditorFrame(arch=self.parent.parent.arch)
         self.editor = self.code_editor_frame.editor
         layout = QVBoxLayout()
         layout.addWidget( QLabel("Code") )
