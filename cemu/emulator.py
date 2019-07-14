@@ -226,7 +226,7 @@ class Emulator:
 
 
     def hook_block(self, emu, addr, size, misc):
-        self.pprint("Entering new block at 0x{:x}".format(addr), "Event")
+        self.pprint("Entering block at 0x{:x}".format(addr), "Event")
         return
 
 
