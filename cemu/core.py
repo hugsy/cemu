@@ -10,11 +10,11 @@ from PyQt5.QtGui import(
     QIcon
 )
 
-from cemu.const import ICON_PATH
+from .const import ICON_PATH
 from .ui.main import CEmuWindow
 
 
-def Cemu():
+def Cemu(args):
     app = QApplication(sys.argv)
     style = """
     QMainWindow, QWidget{
@@ -27,5 +27,5 @@ def Cemu():
     """
     app.setStyleSheet(style)
     app.setWindowIcon(QIcon(ICON_PATH))
-    emu = CEmuWindow()
+    CEmuWindow()
     sys.exit(app.exec_())

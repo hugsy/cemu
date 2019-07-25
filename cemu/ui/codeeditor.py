@@ -55,8 +55,8 @@ class CodeInfoBarWidget(QWidget):
 
 
 class CodeEdit(QTextEdit):
-    def __init__(self):
-        super(CodeEdit, self).__init__()
+    def __init__(self, parent):
+        super(CodeEdit, self).__init__(parent)
         self.cursorPositionChanged.connect(self.UpdateHighlightedLine)
         self.setFont(QFont('Courier', 11))
         self.setFrameStyle(QFrame.Panel | QFrame.Plain)
@@ -103,15 +103,15 @@ class AssemblyView(QTextEdit):
 
 
 class CodeEditorFrame(QFrame):
-    def __init__(self, *args, **kwargs):
-        super(CodeEditorFrame, self).__init__()
+    def __init__(self, parent, arch):
+        super(CodeEditorFrame, self).__init__(parent)
 
         # init code pane
-        self.editor = CodeEdit()
+        self.editor = CodeEdit(self)
         self.highlighter = Highlighter(self.editor, "asm")
 
         # compiled assembly pane
-        self.assembly_view = AssemblyView(self.editor, kwargs.get("arch"))
+        self.assembly_view = AssemblyView(self.editor, arch)
 
         # info bar
         self.infobar = CodeInfoBarWidget(self.editor)
@@ -125,14 +125,18 @@ class CodeEditorFrame(QFrame):
         vbox.setSpacing(0)
         vbox.addLayout(hbox)
         vbox.addWidget(self.infobar)
+        # widget = QWidget(self)
+        # widget.setLayout(vbox)
         return
 
 
 class CodeWidget(QWidget):
     def __init__(self, parent, *args, **kwargs):
-        super(CodeWidget, self).__init__()
-        self.parent = parent
-        self.code_editor_frame = CodeEditorFrame(arch=self.parent.parent.arch)
+        super(CodeWidget, self).__init__(parent)
+        self.parent = self.parentWidget()
+        self.emulator = self.parent.emulator
+        self.log = self.parent.log
+        self.code_editor_frame = CodeEditorFrame(parent=self, arch=self.parent.arch)
         self.editor = self.code_editor_frame.editor
         layout = QVBoxLayout()
         layout.addWidget( QLabel("Code") )

@@ -46,7 +46,7 @@ class Architecture(object):
     @abc.abstractproperty
     def regsize(self):
         pass
-    
+
     @abc.abstractproperty
     def syscall_filename(self):
         pass
@@ -104,8 +104,6 @@ Architectures = {
     # "ppc": [PowerPC()] # not supported by unicorn yet
 }
 
-
-DEFAULT_ARCHITECTURE = Architectures["x86"][2] # x86-32 (intel)
 
 def is_x86_16(a):
     return a.__class__.__name__ == "X86"

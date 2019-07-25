@@ -37,7 +37,7 @@ setup(
         'Topic :: Software Development :: Assemblers',
         'Natural Language :: English',
     ],
-    python_requires=">=3.4.0",
+    python_requires=">=3.5.0",
     author = cemu.AUTHOR,
     author_email = cemu.EMAIL,
     version = cemu.VERSION,

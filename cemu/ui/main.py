@@ -3,6 +3,8 @@ import tempfile
 import os
 import sys
 
+from typing import Callable, Dict, List, Tuple, Any
+
 from PyQt5.QtCore import Qt
 
 from PyQt5.QtWidgets import (
@@ -17,6 +19,7 @@ from PyQt5.QtWidgets import (
     QGridLayout,
     QLabel,
     QWidget,
+    QDockWidget,
     QMainWindow
 )
 
@@ -29,33 +32,33 @@ from PyQt5.QtCore import(
     QFileInfo
 )
 
-from cemu.utils import (
+from ..utils import (
     list_available_plugins,
     load_plugin,
     assemble,
     disassemble_file
 )
 
-import cemu.const
-
-from cemu.emulator import Emulator
-from cemu.shortcuts import Shortcut
-from cemu.arch import (
-    DEFAULT_ARCHITECTURE,
+from ..emulator import Emulator
+from ..shortcuts import Shortcut
+from ..arch import (
     Architectures,
     get_architecture_by_name,
     Endianness,
     Syntax
 )
 
-from cemu.const import (
+from ..const import (
     COMMENT_MARKER,
     PROPERTY_MARKER,
-    WINDOW_SIZE,
     EXAMPLE_PATH,
     TEMPLATE_PATH,
     HOME,
     TITLE,
+    AUTHOR,
+    VERSION,
+    URL,
+    ISSUE_LINK,
 )
 
 from .codeeditor import CodeWidget
@@ -66,51 +69,62 @@ from .command import CommandWidget
 from .registers import RegistersWidget
 from .memory import MemoryWidget
 
+from ..settings import Settings
 
-class CanvasWidget(QWidget):
 
-    def __init__(self, parent, *args, **kwargs):
-        super(CanvasWidget, self).__init__()
-        self.parent = parent
-        self.emu = self.parent.emulator
-        self.emu.widget = self
-        self.setCanvasWidgetLayout()
-        self.commandWidget.stopButton.setDisabled(True)
+class CEmuWindow(QMainWindow):
+
+    def __init__(self, *args, **kwargs):
+        super(CEmuWindow, self).__init__()
+        self.settings = Settings()
+        self.arch = get_architecture_by_name(self.settings.get("Global", "DefaultArchitecture", "x86_64"))
+        self.recentFileActions = []
+        self.__plugins = []
+        self.archActions = {}
+        self.current_file = None
+        self.setAttribute(Qt.WA_DeleteOnClose)
+        self.shortcuts = Shortcut()
+
+        # prepare the emulator
+        self.emulator = Emulator(self)
+
+        # set up the menubar, status and main window
+        self.setMainWindowProperty()
+        self.setMainWindowMenuBar()
+
+        # set up the dockable items
+        self.__regsWidget           = RegistersWidget(self)
+        self.__mapWidget            = MemoryMappingWidget(self)
+        self.__memWidget            = MemoryWidget(self)
+        self.__cmdWidget            = CommandWidget(self)
+        self.__emuWidget            = EmulatorWidget(self)
+        self.__logWidget            = LogWidget(self)
+
+        # the code editor is the central canvas, the rest are dockable items
+        self.__codeWidget           = CodeWidget(self)
+        self.setCentralWidget(self.__codeWidget)
+
+        self.addDockWidget(Qt.LeftDockWidgetArea, self.__regsWidget)
+        self.addDockWidget(Qt.LeftDockWidgetArea, self.__mapWidget)
+        self.addDockWidget(Qt.RightDockWidgetArea, self.__memWidget)
+        self.addDockWidget(Qt.RightDockWidgetArea, self.__cmdWidget)
+        self.addDockWidget(Qt.RightDockWidgetArea, self.__emuWidget)
+        self.addDockWidget(Qt.RightDockWidgetArea, self.__logWidget)
+
+        # todo:
+        # handle show/hide for dockable items
+
+        # todo:
+        self.LoadExtraPlugins()
+
+        # show everything
         self.show()
         return
 
 
-    def setCanvasWidgetLayout(self):
-        self.codeWidget = CodeWidget(self)
-        self.mapWidget = MemoryMappingWidget(self)
-        self.emuWidget = EmulatorWidget(self)
-        self.logWidget = LogWidget(self)
-        self.commandWidget = CommandWidget(self)
-        self.registerWidget = RegistersWidget(self)
-        self.memoryViewerWidget = MemoryWidget(self)
+    def LoadExtraPlugins(self) -> int:
+        nb_added = 0
 
-        self.runtimeTabWidget = QTabWidget()
-        self.runtimeTabWidget.addTab(self.emuWidget, "Emulator")
-        self.runtimeTabWidget.addTab(self.logWidget, "Log")
-        self.runtimeTabWidget.addTab(self.mapWidget, "Mappings")
-
-        self.AddPluginsToTab(self.runtimeTabWidget) # load additional modules
-
-        runtimeVBoxLayout = QVBoxLayout()
-        runtimeVBoxLayout.addWidget(self.memoryViewerWidget)
-        runtimeVBoxLayout.addWidget(self.commandWidget)
-        runtimeVBoxLayout.addWidget(self.runtimeTabWidget)
-
-        rootLayout = QHBoxLayout()
-        rootLayout.addWidget(self.registerWidget, 20)
-        rootLayout.addWidget(self.codeWidget, 33)
-        rootLayout.addLayout(runtimeVBoxLayout, 47)
-
-        self.setLayout(rootLayout)
-        return
-
-
-    def AddPluginsToTab(self, TabWidget):
         for p in list_available_plugins():
             module = load_plugin(p)
             if not module or not getattr(module, "register"):
@@ -120,120 +134,33 @@ class CanvasWidget(QWidget):
             if not m:
                 continue
 
-            TabWidget.addTab(m, m.title)
-            print("Loaded plugin '{}'".format(p))
-        return
+            self.__plugins.append(m)
+            nb_added += 1
+            self.addDockWidget(Qt.RightDockWidgetArea, m)
+            self.log("Loaded plugin '{}'".format(p))
+        return nb_added
 
 
-    def loadContext(self):
-        self.emu.reset()
-        self.emuWidget.editor.clear()
-        maps = self.mapWidget.maps
-        if not self.emu.populate_memory(maps):
-            return False
-        code = self.codeWidget.parser.getCleanCodeAsByte(as_string=False, parse_string=True)
-        if not self.emu.compile_code(code):
-            return False
-        regs = self.registerWidget.getRegisters()
-        if not self.emu.populate_registers(regs):
-            return False
-        if not self.emu.map_code():
-            return False
-        return True
-
-
-    def stopCode(self):
-        if not self.emu.is_running:
-            self.emu.log("No emulation context loaded.")
-            return
-        self.emu.stop()
-        self.registerWidget.updateGrid()
-        self.emu.log("Emulation context reset")
-        self.commandWidget.stopButton.setDisabled(True)
-        self.commandWidget.runButton.setDisabled(False)
-        self.commandWidget.stepButton.setDisabled(False)
-        return
-
-
-    def stepCode(self):
-        self.emu.use_step_mode = True
-        self.emu.stop_now = False
-        self.run()
-        return
-
-
-    def runCode(self):
-        self.emu.use_step_mode = False
-        self.emu.stop_now = False
-        self.run()
-        return
-
-
-    def run(self):
-        if not self.emu.is_running:
-            if not self.loadContext():
-                self.logWidget.editor.append("An error occured when loading context")
-                return
-            self.emu.is_running = True
-            self.commandWidget.stopButton.setDisabled(False)
-
-        self.emu.run()
-        self.registerWidget.updateGrid()
-        self.memoryViewerWidget.updateEditor()
-        return
-
-
-    def checkAsmCode(self):
-        code = self.codeWidget.parser.getCleanCodeAsByte()
-        if self.emu.compile_code(code, False):
-            msg = "Your code is syntaxically valid."
-            popup = QMessageBox.information
-        else:
-            msg = "Some errors were found in your code, check the logs..."
-            popup = QMessageBox.warning
-
-        popup(self,"Checking assembly code syntax...", msg)
-        return
-
-
-class CEmuWindow(QMainWindow):
-    MaxRecentFiles = 5
-
-    def __init__(self, *args, **kwargs):
-        super(CEmuWindow, self).__init__()
-        self.arch = DEFAULT_ARCHITECTURE
-        self.recentFileActions = []
-        self.archActions = {}
-        self.current_file = None
-        self.setAttribute(Qt.WA_DeleteOnClose)
-        self.shortcuts = Shortcut()
-        self.emulator = Emulator(self)
-        self.canvas = CanvasWidget(self)
-        self.setMainWindowProperty()
-        self.setMainWindowMenuBar()
-        self.setCentralWidget(self.canvas)
-        self.show()
-        return
-
-
-    def setMainWindowProperty(self):
-        self.resize(*WINDOW_SIZE)
+    def setMainWindowProperty(self) -> None:
+        width = self.settings.getint("Global", "WindowWidth", 1600)
+        heigth = self.settings.getint("Global", "WindowHeigth", 800)
+        self.resize(width, heigth)
         self.updateTitle()
-        self.centerMainWindow()
-        qApp.setStyle("Cleanlooks")
-        return
 
-
-    def centerMainWindow(self):
+        # center the window
         frameGm = self.frameGeometry()
         screen = QApplication.desktop().screenNumber(QApplication.desktop().cursor().pos())
         centerPoint = QApplication.desktop().screenGeometry(screen).center()
         frameGm.moveCenter(centerPoint)
         self.move(frameGm.topLeft())
+
+        # apply the style
+        style = self.settings.get("Theme", "QtStyle", "Cleanlooks")
+        qApp.setStyle(style)
         return
 
 
-    def add_menu_item(self, title, callback, description=None, shortcut=None):
+    def add_menu_item(self, title: str, callback: Callable, description:str=None, shortcut:str=None):
         action = QAction(QIcon(), title, self)
         action.triggered.connect( callback )
         if description:
@@ -244,8 +171,9 @@ class CEmuWindow(QMainWindow):
 
 
     def setMainWindowMenuBar(self):
-        self.statusBar()
+        statusBar = self.statusBar()
         menubar = self.menuBar()
+        maxRecentFiles = self.settings.getint("Global", "MaxRecentFiles")
 
         # Add File menu bar
         fileMenu = menubar.addMenu("&File")
@@ -258,7 +186,7 @@ class CEmuWindow(QMainWindow):
                                            self.shortcuts.description("load_binary"),
                                            self.shortcuts.shortcut("load_binary"))
 
-        for i in range(CEmuWindow.MaxRecentFiles):
+        for i in range(maxRecentFiles):
             self.recentFileActions.append(QAction(self, visible=False, triggered=self.openRecentFile))
 
         clearRecentFilesAction = self.add_menu_item("Clear Recent Files", self.clearRecentFiles,
@@ -288,7 +216,7 @@ class CEmuWindow(QMainWindow):
         fileMenu.addAction(loadBinAction)
         fileMenu.addSeparator()
 
-        for i in range(CEmuWindow.MaxRecentFiles):
+        for i in range(maxRecentFiles):
             fileMenu.addAction(self.recentFileActions[i])
         self.updateRecentFileActions()
         fileMenu.addSeparator()
@@ -324,7 +252,7 @@ class CEmuWindow(QMainWindow):
                                             self.shortcuts.description("shortcut_popup"),
                                             self.shortcuts.shortcut("shortcut_popup"))
 
-        aboutAction = self.add_menu_item("About", self.showAboutPopup,
+        aboutAction = self.add_menu_item("About", self.about_popup,
                                          self.shortcuts.description("about_popup"))
 
         helpMenu.addAction(shortcutAction)
@@ -351,28 +279,28 @@ class CEmuWindow(QMainWindow):
                     arch = get_architecture_by_name(arch_from_file)
                     self.updateMode(arch)
                 except KeyError:
-                    self.canvas.logWidget.editor.append("Unknown architecture '{:s}', discarding...".format(arch_from_file))
+                    self.__logWidget.editor.append("Unknown architecture '{:s}', discarding...".format(arch_from_file))
                     continue
 
             if part[2].startswith("endian:"):
                 endian_from_file = part[2][7:].lower()
                 if endian_from_file not in ("little", "big"):
-                    self.canvas.logWidget.editor.append("Incorrect endianness '{:s}', discarding...".format(endian_from_file))
+                    self.__logWidget.editor.append("Incorrect endianness '{:s}', discarding...".format(endian_from_file))
                     continue
                 self.arch.endianness = Endianness.LITTLE if endian_from_file == "little" else Endianness.BIG
-                self.canvas.logWidget.editor.append("Changed endianness to '{:s}'".format(endian_from_file))
+                self.__logWidget.editor.append("Changed endianness to '{:s}'".format(endian_from_file))
 
             if part[2].startswith("syntax:"):
                 syntax_from_file = part[2][7:].lower()
                 if syntax_from_file not in ("att", "intel"):
-                    self.canvas.logWidget.editor.append("Incorrect syntax '{:s}', discarding...".format(syntax_from_file))
+                    self.__logWidget.editor.append("Incorrect syntax '{:s}', discarding...".format(syntax_from_file))
                     continue
                 self.arch.syntax = Syntax.ATT if syntax_from_file=="att" else Syntax.INTEL
-                self.canvas.logWidget.editor.append("Changed syntax to '{:s}'".format(syntax_from_file))
+                self.__logWidget.editor.append("Changed syntax to '{:s}'".format(syntax_from_file))
 
 
-        self.canvas.codeWidget.editor.setPlainText(data)
-        self.canvas.logWidget.editor.append("Loaded '%s'" % fname)
+        self.__codeWidget.editor.setPlainText(data)
+        self.__logWidget.editor.append("Loaded '%s'" % fname)
         self.updateRecentFileActions(fname)
         self.current_file = fname
         self.updateTitle(self.current_file)
@@ -412,18 +340,18 @@ class CEmuWindow(QMainWindow):
             return
 
         if run_assembler:
-            asm = self.canvas.codeWidget.parser.getCleanCodeAsByte(as_string=True)
+            asm = self.get_code(as_string=True)
             txt, cnt = assemble(asm, self.arch)
             if cnt < 0:
-                self.canvas.logWidget.editor.append("Failed to compile: error at line {:d}".format(-cnt))
+                self.__logWidget.editor.append("Failed to compile: error at line {:d}".format(-cnt))
                 return
         else:
-            txt = self.canvas.codeWidget.parser.getCleanCodeAsByte(as_string=True)
+            txt = self.get_code(as_string=True)
 
         with open(qFile, "wb") as f:
             f.write(txt)
 
-        self.canvas.logWidget.editor.append("Saved as '%s'" % qFile)
+        self.__logWidget.editor.append("Saved as '%s'" % qFile)
         return
 
 
@@ -436,19 +364,15 @@ class CEmuWindow(QMainWindow):
 
 
     def saveAsCFile(self):
-        template = open(TEMPLATE_PATH+"/template.c", "rb").read()
-        insns = self.canvas.codeWidget.parser.getCleanCodeAsByte(as_string=False)
-        if sys.version_info.major == 2:
-            title = bytes(self.arch.name)
-        else:
-            title = bytes(self.arch.name, encoding="utf-8")
-
+        template = open(os.sep.join([TEMPLATE_PATH, "template.c"]), "rb").read()
+        insns = self.__codeWidget.parser.getCleanCodeAsByte(as_string=False)
+        title = bytes(self.arch.name, encoding="utf-8")
         sc = b'""\n'
         i = 0
         for insn in insns:
             txt, cnt = assemble(insn, self.arch)
             if cnt < 0:
-                self.canvas.logWidget.editor.append("Failed to compile: error at line {:d}".format(-cnt))
+                self.__logWidget.editor.append("Failed to compile: error at line {:d}".format(-cnt))
                 return
 
             c = b'"' + b''.join([ b'\\x%.2x'%txt[i] for i in range(len(txt)) ]) + b'"'
@@ -462,27 +386,27 @@ class CEmuWindow(QMainWindow):
         fd, fpath = tempfile.mkstemp(suffix=".c")
         os.write(fd, body)
         os.close(fd)
-        self.canvas.logWidget.editor.append("Saved as '%s'" % fpath)
+        self.__logWidget.editor.append("Saved as '%s'" % fpath)
         return
 
 
     def saveAsAsmFile(self):
         asm_fmt = open( os.sep.join([TEMPLATE_PATH, "template.asm"]), "rb").read()
-        txt = self.canvas.codeWidget.parser.getCleanCodeAsByte(as_string=True)
+        txt = self.__codeWidget.parser.getCleanCodeAsByte(as_string=True)
         title = bytes(self.arch.name, encoding="utf-8")
         asm = asm_fmt % (title, b'\n'.join([b"\t%s"%x for x in txt.split(b'\n')]))
         fd, fpath = tempfile.mkstemp(suffix=".asm")
         os.write(fd, asm)
         os.close(fd)
-        self.canvas.logWidget.editor.append("Saved as '%s'" % fpath)
+        self.__logWidget.editor.append("Saved as '%s'" % fpath)
 
 
     def updateMode(self, arch):
         self.currentAction.setEnabled(True)
         self.arch = arch
         print("Switching to '%s'" % self.arch)
-        self.canvas.logWidget.editor.append("Switching to '%s'" % self.arch)
-        self.canvas.registerWidget.updateGrid()
+        self.__logWidget.editor.append("Switching to '%s'" % self.arch)
+        self.__registerWidget.updateGrid()
         self.archActions[arch.name].setEnabled(False)
         self.currentAction = self.archActions[arch.name]
         self.updateTitle()
@@ -522,9 +446,9 @@ class CEmuWindow(QMainWindow):
         msgbox.exec_()
         return
 
-    def showAboutPopup(self):
+    def about_popup(self):
         templ = open(TEMPLATE_PATH + "/about.html", "r").read()
-        desc = templ.format(author=cemu.const.AUTHOR, version=cemu.const.VERSION, project_link=cemu.const.URL, issues_link=cemu.const.ISSUES)
+        desc = templ.format(author=AUTHOR, version=VERSION, project_link=URL, issues_link=ISSUE_LINK)
         msgbox = QMessageBox(self)
         msgbox.setIcon(QMessageBox.Information)
         msgbox.setWindowTitle("About CEMU")
@@ -542,16 +466,14 @@ class CEmuWindow(QMainWindow):
             settings.setValue('recentFileList', [])
             files = settings.value('recentFileList')
 
-        maxRecentFiles = CEmuWindow.MaxRecentFiles
+        maxRecentFiles = self.settings.getint("Default", "MaxRecentFiles")
 
         if insert_file:
-            # insert new file to list
             if insert_file not in files:
                 files.insert(0, insert_file)
-            # ensure list size
             if len(files) > maxRecentFiles:
                 files = files[0:maxRecentFiles]
-            # save the setting
+
             settings.setValue('recentFileList', files)
 
         numRecentFiles = min(len(files), maxRecentFiles)
@@ -566,12 +488,46 @@ class CEmuWindow(QMainWindow):
             self.recentFileActions[j].setVisible(False)
         return
 
-    def strippedName(self, fullFileName):
+    def strippedName(self, fullFileName) -> str:
         return QFileInfo(fullFileName).fileName()
 
-    def clearRecentFiles(self):
+
+    def clearRecentFiles(self) -> None:
         settings = QSettings('Cemu', 'Recent Files')
         settings.setValue('recentFileList', [])
         self.updateRecentFileActions()
         return
+
+
+    def log(self, msg, to_cli=False) -> None:
+        """
+        Log `msg` into the logging window
+        """
+        self.__logWidget.log(msg)
+        if to_cli:
+            print(msg)
+        return
+
+
+    def get_code(self, as_string: bool=False) -> bytearray:
+        """
+        Return as a bytearray the code from the code editor.
+        """
+        return self.__codeWidget.parser.getCleanCodeAsByte(as_string)
+
+
+    def get_registers(self) -> Dict[str, int]:
+        """
+        Returns the register widget values as a Dict
+        """
+        return self.__regsWidget.getRegisters()
+
+
+    def get_memory_layout(self) -> List[ Tuple[str, int, int, str, Any] ]:
+        """
+        Returns the memory layout as defined by the __mapWidget values as a structured list.
+        """
+        return self.__mapWidget.maps
+
+
 

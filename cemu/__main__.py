@@ -3,26 +3,13 @@
 
 import sys
 
-def check_dependencies():
-    deps = ["PyQt5", "unicorn", "capstone", "keystone", "pygments"]
-    for d in deps:
-        try:
-            __import__(d)
-        except ImportError:
-            print("[-] Missing required dependency '{}'".format(d))
-            sys.exit(1)
-    return
-
-def run():
-    from cemu.core import Cemu
-    Cemu()
-    return
 
 def main():
-    check_dependencies()
-    run()
+    from cemu.core import Cemu
+    Cemu(sys.argv)
     return
 
+
 if __name__ == '__main__':
-    main()
+    main(sys.argv)
     sys.exit(0)

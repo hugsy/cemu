@@ -9,7 +9,7 @@ class CodeParser:
 
     def __init__(self, code_widget, *args, **kwargs):
         self.code_widget = code_widget
-        self.emulator = self.code_widget.parent.parent.emulator
+        self.emulator = self.code_widget.emulator
         self.arch = self.emulator.parent.arch
         return
 
