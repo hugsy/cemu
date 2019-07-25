@@ -1,10 +1,13 @@
+from typing import Dict
+
 from PyQt5.QtWidgets import (
     QVBoxLayout,
     QHBoxLayout,
     QTableWidget,
     QLabel,
     QTableWidgetItem,
-    QWidget
+    QWidget,
+    QDockWidget,
 )
 
 from PyQt5.QtGui import(
@@ -14,31 +17,32 @@ from PyQt5.QtGui import(
 
 from PyQt5.QtCore import Qt
 
-from cemu.utils import format_address
+from ..utils import format_address
 
 
-class RegistersWidget(QWidget):
+class RegistersWidget(QDockWidget):
     def __init__(self, parent, *args, **kwargs):
-        super(RegistersWidget, self).__init__()
+        super(RegistersWidget, self).__init__("Registers", parent)
         self.parent = parent
+        self.log = self.parent.log
+        self.emulator = self.parent.emulator
         self.row_size = 15
         self.old_register_values = {}
         layout = QVBoxLayout()
-        label = QLabel("Registers")
         self.values = QTableWidget(10, 2)
         self.values.horizontalHeader().setStretchLastSection(True)
         self.values.setHorizontalHeaderLabels(["Register", "Value"])
-        layout.addWidget(label)
         layout.addWidget(self.values)
-        self.setLayout(layout)
+        widget = QWidget()
+        widget.setLayout(layout)
+        self.setWidget(widget)
         self.updateGrid()
         return
 
 
     def updateGrid(self):
-        emuwin = self.parent.parent
-        emu = emuwin.emulator
-        current_mode = emuwin.arch
+        emu = self.emulator
+        current_mode = emu.arch
         registers = current_mode.registers
         self.values.setRowCount(len(registers))
         for i, reg in enumerate(registers):
@@ -61,7 +65,10 @@ class RegistersWidget(QWidget):
         return
 
 
-    def getRegisters(self):
+    def getRegisters(self) -> Dict[str,int]:
+        """
+        Returns the register grid values as a dict.
+        """
         regs = {}
         current_mode = self.parent.parent.arch
         registers = current_mode.registers

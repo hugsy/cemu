@@ -19,14 +19,17 @@ class StdoutRedirector:
 
 
 class PythonConsole(QTextEdit):
-    def __init__(self, prompt='>>> ', startup_message='', parent=None):
-        QTextEdit.__init__(self, parent)
-        self.prompt = prompt
+    def __init__(self, parent, motd=""):
+        super(PythonConsole, self).__init__(parent)
+        self.prompt = ">>> "
         self.history = []
         self.construct = []
-        self.parent = parent
-        self.startup_message = startup_message
+        self.parent = self.parentWidget()
+        self.rootWindow = self.parent.parent
+        self.startup_message = motd
         self.__locales = locals()
+        self.__locales["emu"] = self.emu
+        self.__locales["vm"] = self.vm
         self.__globals = globals()
 
         self.setWordWrapMode(QTextOption.WrapAnywhere)
@@ -200,7 +203,7 @@ class PythonConsole(QTextEdit):
 
     @property
     def emu(self):
-        return self.parent.parent.emu
+        return self.rootWindow.emulator
 
 
     @property

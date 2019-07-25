@@ -2,6 +2,7 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
     QHBoxLayout,
     QWidget,
+    QDockWidget,
     QLineEdit,
     QTextEdit,
     QFrame,
@@ -21,12 +22,12 @@ import unicorn
 from cemu.utils import hexdump
 
 
-class MemoryWidget(QWidget):
+class MemoryWidget(QDockWidget):
     def __init__(self, parent, *args, **kwargs):
-        super(MemoryWidget, self).__init__()
-        self.parent = parent
+        super(MemoryWidget, self).__init__("Memory Viewer", parent)
+        self.parent = self.parentWidget()
         title_layout = QHBoxLayout()
-        title_layout.addWidget(QLabel("Memory viewer"))
+        title_layout.addWidget(QLabel("Location"))
         self.address = QLineEdit()
         self.address.textChanged.connect(self.updateEditor)
         title_layout.addWidget(self.address)
@@ -41,7 +42,10 @@ class MemoryWidget(QWidget):
         self.editor.setReadOnly(True)
         memview_layout.addWidget(title_widget)
         memview_layout.addWidget(self.editor)
-        self.setLayout(memview_layout)
+
+        widget = QWidget(self)
+        widget.setLayout(memview_layout)
+        self.setWidget(widget)
         return
 
     def enterEvent(self, evt):
@@ -54,7 +58,7 @@ class MemoryWidget(QWidget):
         return
 
     def updateEditor(self):
-        emu = self.parent.parent.emulator
+        emu = self.parent.emulator
         if emu.vm is None:
             self.editor.setText("VM not running")
             return
