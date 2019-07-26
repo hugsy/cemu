@@ -1,5 +1,8 @@
 import os
 
+from typing import Dict, List, Tuple, Any
+from enum import Enum, unique
+
 import unicorn
 import keystone
 import capstone
@@ -14,6 +17,12 @@ from .arch import (
 )
 
 from .utils import get_arch_mode, assemble
+
+@unique
+class EmulatorState(Enum):
+    NOT_RUNNING = 0
+    RUNNING = 1
+    IDLE = 2
 
 
 class Emulator:
@@ -33,7 +42,7 @@ class Emulator:
     def reset(self):
         self.vm = None
         self.code = None
-        self.__vm_state = 0
+        self.__vm_state = EmulatorState.NOT_RUNNING
         self.stop_now = False
         self.num_insns = -1
         self.areas = {}
@@ -47,20 +56,14 @@ class Emulator:
 
 
     def __xlog(self, wid, text, category):
-        if self.widget is None:
-            print("{} - {}".format(category, text))
-            return
-
         if wid==Emulator.EMU:
-            widget = self.widget.emuWidget
             msg = "{:1s} - {}".format(category, text)
         elif wid==Emulator.LOG:
-            widget = self.widget.logWidget
             msg = "[{}] {} - {}".format("logger", category, text)
         else:
             raise Exception("Invalid widget")
 
-        widget.editor.append(msg)
+        self.root.log(msg)
         return
 
 
@@ -95,40 +98,60 @@ class Emulator:
         raise Exception("Cannot find register '%s' for arch '%s'" % (reg, curarch))
 
 
-    def get_register_value(self, r):
-        ur = self.unicorn_register(r)
+    def get_register_value(self, regname: str) -> int:
+        """
+        Returns an integer value of the register passed as a string.
+        """
+        ur = self.unicorn_register(regname)
         return self.vm.reg_read(ur)
 
-
-    def pc(self):
-        return self.get_register_value(self.parent.arch.pc)
+    regs = get_register_value
 
 
-    def sp(self):
-        return self.get_register_value(self.parent.arch.sp)
+    def pc(self) -> int:
+        """
+        Returns the current value of $pc
+        """
+        return self.get_register_value(self.root.arch.pc)
 
 
-    def unicorn_permissions(self, perms):
+    def sp(self)-> int:
+        """
+        Returns the current value of $sp
+        """
+        return self.get_register_value(self.root.arch.sp)
+
+
+    def unicorn_permissions(self, perms: str) -> int:
+        """
+        Returns the value as an integer of the permission mask given as input.
+        """
         p = 0
         for perm in perms.split("|"):
-            p |= getattr(unicorn, "UC_PROT_%s" % perm.upper())
+            p |= getattr(unicorn, "UC_PROT_{}".format(perm.upper(),))
         return p
 
 
     def create_new_vm(self) -> None:
-        arch, mode, endian = get_arch_mode("unicorn", self.parent.arch)
+        """
+        Create a new VM, and sets up the hooks
+        """
+        arch, mode, endian = get_arch_mode("unicorn", self.root.arch)
         self.vm = unicorn.Uc(arch, mode | endian)
         self.vm.hook_add(unicorn.UC_HOOK_BLOCK, self.hook_block)
         self.vm.hook_add(unicorn.UC_HOOK_CODE, self.hook_code)
         self.vm.hook_add(unicorn.UC_HOOK_INTR, self.hook_interrupt)
         self.vm.hook_add(unicorn.UC_HOOK_MEM_WRITE, self.hook_mem_access)
         self.vm.hook_add(unicorn.UC_HOOK_MEM_READ, self.hook_mem_access)
-        if is_x86(self.parent.arch):
+        if is_x86(self.root.arch):
             self.vm.hook_add(unicorn.UC_HOOK_INSN, self.hook_syscall, None, 1, 0, unicorn.x86_const.UC_X86_INS_SYSCALL)
         return
 
 
-    def populate_memory(self, areas):
+    def populate_memory(self, areas: List[Tuple[str,int,int,int,Any]]) -> bool:
+        """
+        Populates the VM memory layout according to the values given as parameter.
+        """
         for name, address, size, permission, input_file in areas:
             perm = self.unicorn_permissions(permission)
             self.vm.mem_map(address, size, perm)
@@ -147,8 +170,11 @@ class Emulator:
         return True
 
 
-    def populate_registers(self, registers):
-        arch = self.parent.arch
+    def populate_registers(self, registers: Dict[str, int]) -> bool:
+        """
+        Populates the VM memory layout according to the values given as parameter.
+        """
+        arch = self.root.arch
         for r in registers.keys():
             if is_x86_32(arch):
                 # temporary hack for x86 segmentation issue
@@ -166,7 +192,11 @@ class Emulator:
         return True
 
 
-    def compile_code(self, code_list, update_end_addr=True):
+    def compile_code(self, code_list:List, update_end_addr:bool=True) -> bool:
+        """
+        Compile the assembly code using Keystone. Returns True if all went well,
+        False otherwise.
+        """
         n = len(code_list)
         code = b";".join(code_list)
         self.log("Assembling {} instructions for {}:\n{}".format(n, self.parent.arch.name, code), "Compilation")
@@ -186,7 +216,7 @@ class Emulator:
         return True
 
 
-    def map_code(self):
+    def map_code(self) -> None:
         if ".text" not in self.areas.keys():
             self.log("Missing text area (add a .text section in the Mapping tab)")
             return False
@@ -201,7 +231,10 @@ class Emulator:
         return True
 
 
-    def disassemble_one_instruction(self, code, addr):
+    def disassemble_one_instruction(self, code: bytearray, addr: int) -> str:
+        """
+        Returns a string disassembly of the first instruction from `code`.
+        """
         curarch = self.parent.arch
         arch, mode, endian = get_arch_mode("capstone", curarch)
         cs = capstone.Cs(arch, mode | endian)
@@ -212,6 +245,9 @@ class Emulator:
 
 
     def hook_code(self, emu, address, size, user_data):
+        """
+        Unicorn instruction hook
+        """
         code = self.vm.mem_read(address, size)
         insn = self.disassemble_one_instruction(code, address)
 
@@ -229,16 +265,25 @@ class Emulator:
 
 
     def hook_block(self, emu, addr, size, misc):
+        """
+        Unicorn block change hook
+        """
         self.pprint("Entering block at 0x{:x}".format(addr), "Event")
         return
 
 
     def hook_interrupt(self, emu, intno, data):
+        """
+        Unicorn interrupt hook
+        """
         self.pprint("Triggering interrupt #{:d}".format(intno), "Event")
         return
 
 
     def hook_syscall(self, emu, user_data):
+        """
+        Unicorn syscall hook
+        """
         self.pprint("Syscall")
         return
 
@@ -258,13 +303,12 @@ class Emulator:
         self.pprint("Starting emulation context")
 
         try:
-            self.set_vm_state(1)
+            self.set_vm_state(EmulatorState.RUNNING)
 
             self.vm.emu_start(self.start_addr, self.end_addr)
             if self.pc()==self.end_addr:
                 self.pprint("Ending emulation context")
-                # self.widget.commandWidget.runButton.setDisabled(True)
-                # self.widget.commandWidget.stepButton.setDisabled(True)
+                self.stop()
 
         except unicorn.unicorn.UcError as e:
             self.log("An error occured: {}".format(str(e)), "Error")
@@ -272,13 +316,16 @@ class Emulator:
             self.stop()
 
         finally:
-            self.set_vm_state(0)
+            self.set_vm_state(EmulatorState.NOT_RUNNING)
 
         return
 
 
-    def stop(self):
-        self.set_vm_state(0)
+    def stop(self) -> None:
+        """
+        Stops the VM, frees the allocations
+        """
+        self.set_vm_state(EmulatorState.NOT_RUNNING)
 
         for area in self.areas.keys():
             addr, size = self.areas[area][0:2]
@@ -290,25 +337,34 @@ class Emulator:
 
 
     def lookup_map(self, mapname):
+        """
+        """
         for area in self.areas.keys():
             if area == mapname:
                 return self.areas[area][0]
         raise KeyError("Section '{}' not found".format(mapname))
 
 
-    def set_vm_state(self, state: int) -> None:
-        if state == 0: # off
+    def set_vm_state(self, state: EmulatorState) -> None:
+        """
+        Updates the internal state of the VM, and propagates the notification
+        signals.
+        """
+        self.__vm_state = state
+
+        if state == EmulatorState.NOT_RUNNING:
             self.root.signals["refreshRegisterGrid"].emit()
             self.root.signals["refreshMemoryEditor"].emit()
             self.root.signals["setCommandButtonsForStop"].emit()
             return
 
-        if state == 1: # running
+        if state == EmulatorState.RUNNING:
             self.root.signals["setCommandButtonsForRunning"].emit()
+            return
 
         return
 
 
     @property
-    def is_running(self):
-        return self.__vm_state == 1
+    def is_running(self) -> bool:
+        return self.__vm_state == EmulatorState.RUNNING

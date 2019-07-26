@@ -66,7 +66,7 @@ class MemoryWidget(QDockWidget):
             return
 
         value = self.address.text()
-        if value.startswith("0x") or value.startswith("0X"):
+        if value.lower().startswith("0x"):
             value = value[2:]
 
         if value.startswith("@"):
