@@ -15,65 +15,83 @@ from PyQt5.QtGui import(
     QColor
 )
 
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import (
+    Qt,
+    pyqtSignal,
+    QEvent,
+)
 
 from ..utils import format_address
 
 
 class RegistersWidget(QDockWidget):
+
+    refreshRegisterGridSignal = pyqtSignal()
+
     def __init__(self, parent, *args, **kwargs):
         super(RegistersWidget, self).__init__("Registers", parent)
-        self.parent = parent
-        self.log = self.parent.log
-        self.emulator = self.parent.emulator
-        self.row_size = 15
-        self.old_register_values = {}
+        self.root = self.parentWidget()
+        self.log = self.root.log
+        self.emulator = self.root.emulator
+        self.__row_size = 15
+        self.__old_register_values = {}
         layout = QVBoxLayout()
-        self.values = QTableWidget(10, 2)
-        self.values.horizontalHeader().setStretchLastSection(True)
-        self.values.setHorizontalHeaderLabels(["Register", "Value"])
-        layout.addWidget(self.values)
+        self.__values = QTableWidget(10, 2)
+        self.__values.horizontalHeader().setStretchLastSection(True)
+        self.__values.setHorizontalHeaderLabels(["Register", "Value"])
+        layout.addWidget(self.__values)
         widget = QWidget()
         widget.setLayout(layout)
         self.setWidget(widget)
         self.updateGrid()
+
+        # define signals
+        self.refreshRegisterGridSignal.connect(self.onRefreshRegisterGrid)
+        self.root.signals["refreshRegisterGrid"] = self.refreshRegisterGridSignal
         return
 
 
-    def updateGrid(self):
+    def updateGrid(self) -> None:
+        """
+        Refresh the grid values from the current values of the
+        VM CPU registers
+        """
         emu = self.emulator
         current_mode = emu.arch
         registers = current_mode.registers
-        self.values.setRowCount(len(registers))
+        self.__values.setRowCount(len(registers))
         for i, reg in enumerate(registers):
-            self.values.setRowHeight(i, self.row_size)
+            self.__values.setRowHeight(i, self.__row_size)
             name = QTableWidgetItem(reg)
             name.setFlags(Qt.NoItemFlags)
             val = emu.get_register_value(reg) if emu.vm else 0
-            old_val = self.old_register_values.get(reg, 0)
+            old_val = self.__old_register_values.get(reg, 0)
             if type(val) in (int, int):
                 value = format_address(val, current_mode)
             else:
                 value = str(val)
             value = QTableWidgetItem( value )
             if old_val != val:
-                self.old_register_values[reg] = val
+                self.__old_register_values[reg] = val
                 value.setForeground(QColor(Qt.red))
             value.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable)
-            self.values.setItem(i, 0, name)
-            self.values.setItem(i, 1, value)
+            self.__values.setItem(i, 0, name)
+            self.__values.setItem(i, 1, value)
         return
 
 
     def getRegisters(self) -> Dict[str,int]:
         """
-        Returns the register grid values as a dict.
+        Returns the register grid __values as a dict.
         """
         regs = {}
-        current_mode = self.parent.parent.arch
-        registers = current_mode.registers
-        for i, _ in enumerate(registers):
-            name = self.values.item(i, 0).text()
-            value = self.values.item(i, 1).text()
+        for i in range(len(self.emulator.arch.registers)):
+            name = self.__values.item(i, 0).text()
+            value = self.__values.item(i, 1).text()
             regs[name] = int(value, 16)
         return regs
+
+
+    def onRefreshRegisterGrid(self) -> None:
+        self.updateGrid()
+        return

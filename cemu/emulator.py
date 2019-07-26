@@ -22,7 +22,8 @@ class Emulator:
 
     def __init__(self, parent, *args, **kwargs):
         self.parent = parent
-        self.arch = self.parent.arch
+        self.root = self.parent
+        self.arch = self.root.arch
         self.use_step_mode = False
         self.widget = None
         self.reset()
@@ -32,7 +33,7 @@ class Emulator:
     def reset(self):
         self.vm = None
         self.code = None
-        self.is_running = False
+        self.__vm_state = 0
         self.stop_now = False
         self.num_insns = -1
         self.areas = {}
@@ -40,15 +41,17 @@ class Emulator:
         self.create_new_vm()
         return
 
+
     def __str__(self):
         return "Emulator instance {}running".format("" if self.is_running else "not ")
+
 
     def __xlog(self, wid, text, category):
         if self.widget is None:
             print("{} - {}".format(category, text))
             return
 
-        if   wid==Emulator.EMU:
+        if wid==Emulator.EMU:
             widget = self.widget.emuWidget
             msg = "{:1s} - {}".format(category, text)
         elif wid==Emulator.LOG:
@@ -112,7 +115,7 @@ class Emulator:
         return p
 
 
-    def create_new_vm(self):
+    def create_new_vm(self) -> None:
         arch, mode, endian = get_arch_mode("unicorn", self.parent.arch)
         self.vm = unicorn.Uc(arch, mode | endian)
         self.vm.hook_add(unicorn.UC_HOOK_BLOCK, self.hook_block)
@@ -248,32 +251,41 @@ class Emulator:
         return
 
 
-    def run(self):
+    def run(self) -> None:
+        """
+        Runs the emulation
+        """
         self.pprint("Starting emulation context")
 
         try:
+            self.set_vm_state(1)
+
             self.vm.emu_start(self.start_addr, self.end_addr)
+            if self.pc()==self.end_addr:
+                self.pprint("Ending emulation context")
+                # self.widget.commandWidget.runButton.setDisabled(True)
+                # self.widget.commandWidget.stepButton.setDisabled(True)
+
         except unicorn.unicorn.UcError as e:
             self.log("An error occured: {}".format(str(e)), "Error")
             self.pprint("pc={:#x} , sp={:#x}: {:s}".format(self.pc(), self.sp(), str(e)), "Exception")
-            self.vm.emu_stop()
-            return
+            self.stop()
 
-        if self.pc()==self.end_addr:
-            self.pprint("Ending emulation context")
-            self.widget.commandWidget.runButton.setDisabled(True)
-            self.widget.commandWidget.stepButton.setDisabled(True)
+        finally:
+            self.set_vm_state(0)
+
         return
 
 
     def stop(self):
+        self.set_vm_state(0)
+
         for area in self.areas.keys():
             addr, size = self.areas[area][0:2]
             self.vm.mem_unmap(addr, size)
 
         del self.vm
         self.vm = None
-        self.is_running = False
         return
 
 
@@ -281,5 +293,22 @@ class Emulator:
         for area in self.areas.keys():
             if area == mapname:
                 return self.areas[area][0]
-        return None
+        raise KeyError("Section '{}' not found".format(mapname))
 
+
+    def set_vm_state(self, state: int) -> None:
+        if state == 0: # off
+            self.root.signals["refreshRegisterGrid"].emit()
+            self.root.signals["refreshMemoryEditor"].emit()
+            self.root.signals["setCommandButtonsForStop"].emit()
+            return
+
+        if state == 1: # running
+            self.root.signals["setCommandButtonsForRunning"].emit()
+
+        return
+
+
+    @property
+    def is_running(self):
+        return self.__vm_state == 1

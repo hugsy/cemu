@@ -1,3 +1,9 @@
+from PyQt5.QtCore import (
+    QEvent,
+    pyqtSignal,
+)
+
+
 from PyQt5.QtWidgets import (
     QPushButton,
     QHBoxLayout,
@@ -7,12 +13,17 @@ from PyQt5.QtWidgets import (
 )
 
 class CommandWidget(QDockWidget):
+
+    setCommandButtonsForRunningSignal = pyqtSignal()
+    setCommandButtonsForStopSignal = pyqtSignal()
+
     def __init__(self, parent, *args, **kwargs):
         super(CommandWidget, self).__init__("Control Panel", parent)
         self.parent = self.parentWidget()
-        self.log = self.parent.log
-        self.emulator = self.parent.emulator
-        sc = self.parent.shortcuts
+        self.root = self.parent
+        self.log = self.root.log
+        self.emulator = self.root.emulator
+        sc = self.root.shortcuts
         layout = QHBoxLayout()
         layout.addStretch(1)
 
@@ -41,6 +52,12 @@ class CommandWidget(QDockWidget):
         widget = QWidget(self)
         widget.setLayout(layout)
         self.setWidget(widget)
+
+        self.root.signals["setCommandButtonsForRunning"] = self.setCommandButtonsForRunningSignal
+        self.setCommandButtonsForRunningSignal.connect(self.onEmulationStart)
+
+        self.root.signals["setCommandButtonsForStop"] = self.setCommandButtonsForStopSignal
+        self.setCommandButtonsForStopSignal.connect(self.onEmulationStop)
         return
 
 
@@ -49,12 +66,14 @@ class CommandWidget(QDockWidget):
             self.log("No emulation context loaded.")
             return
 
+        self.log("Stopping emulation...")
         self.emulator.stop()
-        self.registerWidget.updateGrid()
-        self.log("Emulation context reset")
-        self.__stopButton.setDisabled(True)
-        self.__runButton.setDisabled(False)
-        self.__stepButton.setDisabled(False)
+        self.log("Emulation context has stopped")
+        #self.registerWidget.updateGrid()
+
+        # self.__stopButton.setDisabled(True)
+        # self.__runButton.setDisabled(False)
+        # self.__stepButton.setDisabled(False)
         return
 
 
@@ -88,12 +107,8 @@ class CommandWidget(QDockWidget):
             if not self.load_emulation_context():
                 self.log("An error occured when loading context")
                 return
-            self.emulator.is_running = True
-            self.commandWidget.stopButton.setDisabled(False)
 
         self.emulator.run()
-        self.registerWidget.updateGrid()
-        self.memoryViewerWidget.updateEditor()
         return
 
 
@@ -101,7 +116,7 @@ class CommandWidget(QDockWidget):
         """
         Command to trigger a syntaxic check of the code in the code pane.
         """
-        code = self.parent.get_code()
+        code = self.root.get_code()
         if self.emulator.compile_code(code, False):
             msg = "Your code is syntaxically valid."
             popup = QMessageBox.information
@@ -137,3 +152,14 @@ class CommandWidget(QDockWidget):
             return False
 
         return True
+
+
+    def onEmulationStart(self) -> None:
+        self.__stopButton.setDisabled(False)
+        return
+
+
+    def onEmulationStop(self) -> None:
+        self.__runButton.setDisabled(True)
+        self.__stepButton.setDisabled(True)
+        return
