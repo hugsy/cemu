@@ -14,7 +14,9 @@ from PyQt5.QtGui import(
 )
 
 from PyQt5.QtCore import(
-    QFileInfo
+    QFileInfo,
+    pyqtSignal,
+    QEvent
 )
 
 import unicorn
@@ -23,9 +25,13 @@ from cemu.utils import hexdump
 
 
 class MemoryWidget(QDockWidget):
+
+    refreshMemoryEditorSignal = pyqtSignal()
+
     def __init__(self, parent, *args, **kwargs):
         super(MemoryWidget, self).__init__("Memory Viewer", parent)
         self.parent = self.parentWidget()
+        self.root = self.parent
         title_layout = QHBoxLayout()
         title_layout.addWidget(QLabel("Location"))
         self.address = QLineEdit()
@@ -36,31 +42,27 @@ class MemoryWidget(QDockWidget):
         title_widget.setMouseTracking(True)
 
         memview_layout = QVBoxLayout()
-        self.editor = QTextEdit()
-        self.editor.setFrameStyle(QFrame.Panel | QFrame.Plain)
-        self.editor.setFont(QFont('Courier', 10))
-        self.editor.setReadOnly(True)
+        self.__editor = QTextEdit()
+        self.__editor.setFrameStyle(QFrame.Panel | QFrame.Plain)
+        self.__editor.setFont(QFont('Courier', 10))
+        self.__editor.setReadOnly(True)
         memview_layout.addWidget(title_widget)
-        memview_layout.addWidget(self.editor)
+        memview_layout.addWidget(self.__editor)
 
         widget = QWidget(self)
         widget.setLayout(memview_layout)
         self.setWidget(widget)
+
+        # define signals
+        self.refreshMemoryEditorSignal.connect(self.onRefreshMemoryEditor)
+        self.root.signals["refreshMemoryEditor"] = self.refreshMemoryEditorSignal
         return
 
-    def enterEvent(self, evt):
-        return
 
-    def leaveEvent(self, evt):
-        return
-
-    def mouseMoveEvent(self, evt):
-        return
-
-    def updateEditor(self):
-        emu = self.parent.emulator
-        if emu.vm is None:
-            self.editor.setText("VM not running")
+    def updateEditor(self) -> None:
+        emu = self.root.emulator
+        if not emu.is_running:
+            self.__editor.setText("VM not running")
             return
 
         value = self.address.text()
@@ -69,8 +71,9 @@ class MemoryWidget(QDockWidget):
 
         if value.startswith("@"):
             # if the value of the "memory viewer" field starts with @.<section_name>
-            addr = emu.lookup_map(value[1:])
-            if addr is None:
+            try:
+                addr = emu.lookup_map(value[1:])
+            except KeyError:
                 return
 
         elif value.startswith("$"):
@@ -91,8 +94,13 @@ class MemoryWidget(QDockWidget):
             l = 256
             data = emu.vm.mem_read(addr, l)
             text = hexdump(data, base=addr)
-            self.editor.setText(text)
+            self.__editor.setText(text)
         except unicorn.unicorn.UcError:
-            self.editor.setText("Cannot read at address %x" % addr)
+            self.__editor.setText("Cannot read at address %x" % addr)
 
+        return
+
+
+    def onRefreshMemoryEditor(self) -> None:
+        self.updateEditor()
         return

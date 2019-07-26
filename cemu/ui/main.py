@@ -5,7 +5,10 @@ import sys
 
 from typing import Callable, Dict, List, Tuple, Any
 
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import (
+    Qt,
+    pyqtSignal,
+)
 
 from PyQt5.QtWidgets import (
     QApplication,
@@ -81,6 +84,7 @@ class CEmuWindow(QMainWindow):
         self.recentFileActions = []
         self.__plugins = []
         self.archActions = {}
+        self.signals = {}
         self.current_file = None
         self.setAttribute(Qt.WA_DeleteOnClose)
         self.shortcuts = Shortcut()
@@ -111,11 +115,9 @@ class CEmuWindow(QMainWindow):
         self.addDockWidget(Qt.RightDockWidgetArea, self.__emuWidget)
         self.addDockWidget(Qt.RightDockWidgetArea, self.__logWidget)
 
-        # todo:
-        # handle show/hide for dockable items
-
-        # todo:
+        # ... and the extra plugins too
         self.LoadExtraPlugins()
+
 
         # show everything
         self.show()
@@ -528,6 +530,9 @@ class CEmuWindow(QMainWindow):
         Returns the memory layout as defined by the __mapWidget values as a structured list.
         """
         return self.__mapWidget.maps
+
+
+
 
 
 
