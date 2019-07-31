@@ -5,19 +5,27 @@ import importlib
 import re
 import os
 
+from typing import Tuple
+
 import capstone
 import keystone
 import unicorn
 
-from cemu.arch import Syntax, Endianness, \
-    is_x86_16, is_x86_32, is_x86_64, is_x86, \
-    is_arm, is_arm_thumb, is_aarch64, \
-    is_mips, is_mips64, \
-    is_sparc, is_sparc64, \
+from cemu.arch import (
+    Syntax,
+    Endianness,
+    is_x86_16, is_x86_32, is_x86_64, is_x86,
+    is_arm, is_arm_thumb, is_aarch64,
+    is_mips, is_mips64,
+    is_sparc, is_sparc64,
     is_ppc
+)
 
 
-def hexdump(source, length=0x10, separator='.', show_raw=False, base=0x00):
+def hexdump(source: bytearray, length: int=0x10, separator: string='.', show_raw: bool=False, base: int=0x00) -> string:
+    """
+    Produces a `hexdump` command like output version of the bytearray given.
+    """
     result = []
     for i in range(0, len(source), length):
         s = source[i:i+length]
@@ -120,24 +128,30 @@ def get_arch_mode(lib, a):
     return arch, mode, endian
 
 
-def disassemble(raw_data, mode):
+def disassemble(raw_data: bytearray, mode: int, count: int=-1) -> string:
     arch, mode, endian = get_arch_mode("capstone", mode)
     cs = capstone.Cs(arch, mode | endian)
     if is_x86(mode) and mode.syntax == Syntax.ATT:
         cs.syntax = capstone.CS_OPT_SYNTAX_ATT
 
-    insns = ["{:s} {:s}".format(i.mnemonic, i.op_str) for i in cs.disasm(bytes(raw_data), 0x4000)]
+    if count == -1:
+        insns = ["{:s} {:s}".format(i.mnemonic, i.op_str) for i in cs.disasm(bytes(raw_data), 0x4000)]
+    else:
+        insns = []
+        for idx, ins in enumerate(cs.disasm(bytes(raw_data), 0x4000)):
+            insns.append("{:s} {:s}".format(ins.mnemonic, ins.op_str))
+            if idx==count:break
     return "\n".join(insns)
 
 
-def disassemble_file(fpath, mode):
+def disassemble_file(fpath: string, mode: int) -> string:
     with open(fpath, 'rb') as f:
         raw_data = f.read()
 
     return disassemble(raw_data, mode)
 
 
-def assemble(asm_code, mode):
+def assemble(asm_code: string, mode: int) -> Tuple[bytearray, int]:
     """
     Helper function to assemble code receive in parameter `asm_code` using Keystone.
 
@@ -159,7 +173,7 @@ def assemble(asm_code, mode):
     return (bytecode, cnt)
 
 
-def ishex(x):
+def ishex(x:string) -> bool:
     if x.startswith("0x") or x.startswith("0X"):
         x = x[2:]
     return all([c in string.hexdigits for c in x])
