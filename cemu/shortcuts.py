@@ -16,6 +16,8 @@ class Shortcut:
             "load_assembly":       ["Ctrl+O", "Load an assembly file."],
             "shortcut_popup":      ["Ctrl+P", "Show the Shortcut bindings"],
             "about_popup":         [None, "Generic information about CEMU"],
+            "generate_pe_exe":     [None, "Build a valid Windows PE executable"],
+            "generate_elf_exe":     [None, "Build a valid Linux ELF executable"],
 
             # emulator
             "emulator_check":      ["Alt+C", "Check the assembly code from the assembly pane"],
