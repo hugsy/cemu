@@ -23,7 +23,8 @@ from PyQt5.QtWidgets import (
     QLabel,
     QWidget,
     QDockWidget,
-    QMainWindow
+    QMainWindow,
+    QMenu,
 )
 
 from PyQt5.QtGui import(
@@ -45,6 +46,7 @@ from ..utils import (
 from ..emulator import Emulator
 from ..shortcuts import Shortcut
 from ..arch import (
+    Architecture,
     Architectures,
     get_architecture_by_name,
     Endianness,
@@ -73,6 +75,11 @@ from .registers import RegistersWidget
 from .memory import MemoryWidget
 
 from ..settings import Settings
+
+from ..exports import (
+    build_pe_executable,
+    build_elf_executable,
+)
 
 
 class CEmuWindow(QMainWindow):
@@ -177,7 +184,7 @@ class CEmuWindow(QMainWindow):
         menubar = self.menuBar()
         maxRecentFiles = self.settings.getint("Global", "MaxRecentFiles")
 
-        # Add File menu bar
+        # Create "File" menu option
         fileMenu = menubar.addMenu("&File")
 
         loadAsmAction = self.add_menu_item("Load Assembly", self.loadCodeText,
@@ -194,6 +201,9 @@ class CEmuWindow(QMainWindow):
         clearRecentFilesAction = self.add_menu_item("Clear Recent Files", self.clearRecentFiles,
                                                     "Clear Recent Files", "")
 
+        # "Save As" sub-menu
+        saveAsSubMenu = QMenu("Save As", self)
+
         saveAsmAction = self.add_menu_item("Save Assembly", self.saveCodeText,
                                            self.shortcuts.description("save_as_asm"),
                                            self.shortcuts.shortcut("save_as_asm"))
@@ -202,6 +212,13 @@ class CEmuWindow(QMainWindow):
                                             self.shortcuts.description("save_as_binary"),
                                             self.shortcuts.shortcut("save_as_binary"))
 
+        saveAsSubMenu.addAction(saveAsmAction)
+        saveAsSubMenu.addAction(saveBinAction)
+
+        fileMenu.addMenu(saveAsSubMenu)
+
+        # "Export As" sub-menu
+        exportAsSubMenu = QMenu("Export As", self)
         saveCAction = self.add_menu_item("Generate C code", self.saveAsCFile,
                                          self.shortcuts.description("generate_c_file"),
                                          self.shortcuts.shortcut("generate_c_file"))
@@ -210,12 +227,28 @@ class CEmuWindow(QMainWindow):
                                              self.shortcuts.description("generate_asm_file"),
                                              self.shortcuts.shortcut("generate_asm_file"))
 
-        quitAction = self.add_menu_item("Quit", QApplication.quit,
-                                        self.shortcuts.shortcut("exit_application"),
-                                        self.shortcuts.description("exit_application"))
+        generatePeAction = self.add_menu_item("Generate PE executable", self.generate_pe,
+                                             self.shortcuts.description("generate_pe_exe"),
+                                             self.shortcuts.shortcut("generate_pe_exe"))
 
-        fileMenu.addAction(loadAsmAction)
-        fileMenu.addAction(loadBinAction)
+        generateElfAction = self.add_menu_item("Generate ELF executable", self.generate_elf,
+                                             self.shortcuts.description("generate_elf_exe"),
+                                             self.shortcuts.shortcut("generate_elf_exe"))
+
+        exportAsSubMenu.addAction(saveCAction)
+        exportAsSubMenu.addAction(saveAsAsmAction)
+        exportAsSubMenu.addAction(generatePeAction)
+        exportAsSubMenu.addAction(generateElfAction)
+
+        fileMenu.addMenu(exportAsSubMenu)
+        fileMenu.addSeparator()
+
+        # "Load" sub-menu
+        loadSubMenu = QMenu("Load", self)
+        loadSubMenu.addAction(loadAsmAction)
+        loadSubMenu.addAction(loadBinAction)
+
+        fileMenu.addMenu(loadSubMenu)
         fileMenu.addSeparator()
 
         for i in range(maxRecentFiles):
@@ -226,11 +259,9 @@ class CEmuWindow(QMainWindow):
         fileMenu.addAction(clearRecentFilesAction)
         fileMenu.addSeparator()
 
-        fileMenu.addAction(saveAsmAction)
-        fileMenu.addAction(saveBinAction)
-        fileMenu.addAction(saveCAction)
-        fileMenu.addAction(saveAsAsmAction)
-        fileMenu.addSeparator()
+        quitAction = self.add_menu_item("Quit", QApplication.quit,
+                                        self.shortcuts.shortcut("exit_application"),
+                                        self.shortcuts.description("exit_application"))
 
         fileMenu.addAction(quitAction)
 
@@ -392,7 +423,37 @@ class CEmuWindow(QMainWindow):
         return
 
 
-    def saveAsAsmFile(self):
+    def generate_pe(self) -> None:
+        """
+        Uses LIEF to create a valid PE from the current session
+        """
+        memory_layout = self.get_memory_layout()
+        asm_code, nb_insns = assemble(self.get_code(as_string=True), self.arch)
+        if nb_insns:
+            try:
+                outfile = build_pe_executable(asm_code, memory_layout, self.arch)
+                self.log("PE file written as '{}'".format(outfile))
+            except Exception as e:
+                self.log("PE creation triggered an exception: {}".format(str(e)))
+        return
+
+
+    def generate_elf(self) -> None:
+        """
+        Uses LIEF to create a valid ELF from the current session
+        """
+        memory_layout = self.get_memory_layout()
+        asm_code, nb_insns = assemble(self.get_code(as_string=True), self.arch)
+        if nb_insns:
+            try:
+                outfile = build_elf_executable(asm_code, memory_layout, self.arch)
+                self.log("ELF file written as '{}'".format(outfile))
+            except Exception as e:
+                self.log("ELF creation triggered an exception: {}".format(str(e)))
+        return
+
+
+    def saveAsAsmFile(self) -> None:
         asm_fmt = open( os.sep.join([TEMPLATE_PATH, "template.asm"]), "rb").read()
         txt = self.__codeWidget.parser.getCleanCodeAsByte(as_string=True)
         title = bytes(self.arch.name, encoding="utf-8")
@@ -401,9 +462,10 @@ class CEmuWindow(QMainWindow):
         os.write(fd, asm)
         os.close(fd)
         self.__logWidget.editor.append("Saved as '%s'" % fpath)
+        return
 
 
-    def updateMode(self, arch):
+    def updateMode(self, arch: Architecture) -> None:
         self.currentAction.setEnabled(True)
         self.arch = arch
         print("Switching to '%s'" % self.arch)
@@ -415,7 +477,7 @@ class CEmuWindow(QMainWindow):
         return
 
 
-    def updateTitle(self, msg=None):
+    def updateTitle(self, msg: str="") -> None:
         title = "{} ({})".format(TITLE, self.arch)
         if msg:
             title+=": {}".format(msg)

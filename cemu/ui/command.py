@@ -136,15 +136,15 @@ class CommandWidget(QDockWidget):
         """
         self.emulator.reset()
 
-        memory_layout = self.parent.get_memory_layout()
+        memory_layout = self.root.get_memory_layout()
         if not self.emulator.populate_memory(memory_layout):
             return False
 
-        code = self.parent.get_code(as_string=False)
+        code = self.root.get_code(as_string=False)
         if not self.emulator.compile_code(code):
             return False
 
-        regs = self.parent.get_registers()
+        regs = self.root.get_registers()
         if not self.emulator.populate_registers(regs):
             return False
 

@@ -42,7 +42,7 @@ class MemoryMappingWidget(QDockWidget):
             (".text", 0x40000, 0x1000, "READ|EXEC", None),
             (".data", 0x60000, 0x1000, "READ|WRITE", None),
             (".stack", 0x800000, 0x4000, "READ|WRITE", None),
-            (".misc", 0x900000, 0x1000, "ALL", None),
+            (".misc", 0x70000, 0x1000, "ALL", None),
         ]
 
 

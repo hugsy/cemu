@@ -148,7 +148,7 @@ class Emulator:
         return
 
 
-    def populate_memory(self, areas: List[Tuple[str,int,int,int,Any]]) -> bool:
+    def populate_memory(self, areas: List[Tuple[str,int,int,str,Any]]) -> bool:
         """
         Populates the VM memory layout according to the values given as parameter.
         """

@@ -14,7 +14,8 @@ def get_required_packages():
         'capstone>=3.0.4',
         'unicorn>=1.0',
         'PyQt5',
-        'Pygments>=2.0'
+        'Pygments>=2.0',
+        'lief'
     ]
 
     if platform.system() != "Windows":
