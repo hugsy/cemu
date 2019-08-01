@@ -312,28 +312,28 @@ class CEmuWindow(QMainWindow):
                     arch = get_architecture_by_name(arch_from_file)
                     self.updateMode(arch)
                 except KeyError:
-                    self.__logWidget.editor.append("Unknown architecture '{:s}', discarding...".format(arch_from_file))
+                    self.log("Unknown architecture '{:s}', discarding...".format(arch_from_file))
                     continue
 
             if part[2].startswith("endian:"):
                 endian_from_file = part[2][7:].lower()
                 if endian_from_file not in ("little", "big"):
-                    self.__logWidget.editor.append("Incorrect endianness '{:s}', discarding...".format(endian_from_file))
+                    self.log("Incorrect endianness '{:s}', discarding...".format(endian_from_file))
                     continue
                 self.arch.endianness = Endianness.LITTLE if endian_from_file == "little" else Endianness.BIG
-                self.__logWidget.editor.append("Changed endianness to '{:s}'".format(endian_from_file))
+                self.log("Changed endianness to '{:s}'".format(endian_from_file))
 
             if part[2].startswith("syntax:"):
                 syntax_from_file = part[2][7:].lower()
                 if syntax_from_file not in ("att", "intel"):
-                    self.__logWidget.editor.append("Incorrect syntax '{:s}', discarding...".format(syntax_from_file))
+                    self.log("Incorrect syntax '{:s}', discarding...".format(syntax_from_file))
                     continue
                 self.arch.syntax = Syntax.ATT if syntax_from_file=="att" else Syntax.INTEL
-                self.__logWidget.editor.append("Changed syntax to '{:s}'".format(syntax_from_file))
+                self.log("Changed syntax to '{:s}'".format(syntax_from_file))
 
 
         self.__codeWidget.editor.setPlainText(data)
-        self.__logWidget.editor.append("Loaded '%s'" % fname)
+        self.log("Loaded '%s'" % fname)
         self.updateRecentFileActions(fname)
         self.current_file = fname
         self.updateTitle(self.current_file)
@@ -376,7 +376,7 @@ class CEmuWindow(QMainWindow):
             asm = self.get_code(as_string=True)
             txt, cnt = assemble(asm, self.arch)
             if cnt < 0:
-                self.__logWidget.editor.append("Failed to compile: error at line {:d}".format(-cnt))
+                self.log("Failed to compile: error at line {:d}".format(-cnt))
                 return
         else:
             txt = self.get_code(as_string=True)
@@ -384,7 +384,7 @@ class CEmuWindow(QMainWindow):
         with open(qFile, "wb") as f:
             f.write(txt)
 
-        self.__logWidget.editor.append("Saved as '%s'" % qFile)
+        self.log("Saved as '%s'" % qFile)
         return
 
 
@@ -405,7 +405,7 @@ class CEmuWindow(QMainWindow):
         for insn in insns:
             txt, cnt = assemble(insn, self.arch)
             if cnt < 0:
-                self.__logWidget.editor.append("Failed to compile: error at line {:d}".format(-cnt))
+                self.log("Failed to compile: error at line {:d}".format(-cnt))
                 return
 
             c = b'"' + b''.join([ b'\\x%.2x'%txt[i] for i in range(len(txt)) ]) + b'"'
@@ -419,7 +419,7 @@ class CEmuWindow(QMainWindow):
         fd, fpath = tempfile.mkstemp(suffix=".c")
         os.write(fd, body)
         os.close(fd)
-        self.__logWidget.editor.append("Saved as '%s'" % fpath)
+        self.log("Saved as '%s'" % fpath)
         return
 
 
@@ -461,7 +461,7 @@ class CEmuWindow(QMainWindow):
         fd, fpath = tempfile.mkstemp(suffix=".asm")
         os.write(fd, asm)
         os.close(fd)
-        self.__logWidget.editor.append("Saved as '%s'" % fpath)
+        self.log("Saved as '%s'" % fpath)
         return
 
 
@@ -469,7 +469,7 @@ class CEmuWindow(QMainWindow):
         self.currentAction.setEnabled(True)
         self.arch = arch
         print("Switching to '%s'" % self.arch)
-        self.__logWidget.editor.append("Switching to '%s'" % self.arch)
+        self.log("Switching to '%s'" % self.arch)
         self.__registerWidget.updateGrid()
         self.archActions[arch.name].setEnabled(False)
         self.currentAction = self.archActions[arch.name]
