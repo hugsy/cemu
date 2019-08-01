@@ -91,23 +91,27 @@ class AssemblyView(QTextEdit):
         self.setFixedWidth(140)
         self.setFrameStyle(QFrame.Panel | QFrame.Plain)
         self.setStyleSheet("background-color: rgb(211, 211, 211);")
-        self.editor = editor
-        self.arch = arch
-        self.lines = {}
-        self.editor.textChanged.connect(self.update_assembly_code)
+        self.__editor = editor
+        self.__arch = arch
+        self.__editor.textChanged.connect(self.__update_assembly_code)
         return
 
 
-    def update_assembly_code(self):
-        lines = self.editor.toPlainText().split('\n')
-        current_row = get_cursor_row_number(self.editor)
-        current_line = lines[current_row]
-        new_line = ""
-        code, cnt = assemble(current_line, self.arch)
-        if cnt == 1:
-            new_line = " ".join(["%.02x" % x for x in code])
-        self.lines[current_row] = new_line
-        self.setText("\n".join(self.lines.values()))
+    def __update_assembly_code(self):
+        lines = self.__editor.toPlainText().split('\n')
+        nb_lines = len(lines)
+        bytecode_lines = ["",]*nb_lines
+        old_code = ""
+        for idx in range(nb_lines):
+            code, cnt = assemble("\n".join(lines[:idx+1]), self.__arch)
+            if cnt == idx+1:
+                new_code = code[len(old_code):]
+                new_line = " ".join(["%.02x" % x for x in new_code])
+                old_code = new_code
+            else:
+                break
+            bytecode_lines[idx] = new_line
+        self.setText("\n".join(bytecode_lines))
         return
 
 
