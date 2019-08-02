@@ -81,6 +81,10 @@ from ..exports import (
     build_elf_executable,
 )
 
+from .mapping import (
+    MemoryLayoutEntryType
+)
+
 
 class CEmuWindow(QMainWindow):
 
@@ -543,17 +547,16 @@ class CEmuWindow(QMainWindow):
         numRecentFiles = min(len(files), maxRecentFiles)
 
         for i in range(numRecentFiles):
-            text = "&%d %s" % (i + 1, self.strippedName(files[i]))
+            _file = files[i]
+            _filename = QFileInfo(_file).fileName()
+            text = "&%d %s" % (i + 1, _filename)
             self.recentFileActions[i].setText(text)
-            self.recentFileActions[i].setData(files[i])
+            self.recentFileActions[i].setData(_file)
             self.recentFileActions[i].setVisible(True)
 
         for j in range(numRecentFiles, maxRecentFiles):
             self.recentFileActions[j].setVisible(False)
         return
-
-    def strippedName(self, fullFileName) -> str:
-        return QFileInfo(fullFileName).fileName()
 
 
     def clearRecentFiles(self) -> None:
@@ -587,7 +590,7 @@ class CEmuWindow(QMainWindow):
         return self.__regsWidget.getRegisters()
 
 
-    def get_memory_layout(self) -> List[ Tuple[str, int, int, str, Any] ]:
+    def get_memory_layout(self) -> List[ MemoryLayoutEntryType ]:
         """
         Returns the memory layout as defined by the __mapWidget values as a structured list.
         """
