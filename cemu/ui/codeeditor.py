@@ -102,15 +102,21 @@ class AssemblyView(QTextEdit):
         nb_lines = len(lines)
         bytecode_lines = ["",]*nb_lines
         old_code = ""
+
         for idx in range(nb_lines):
-            code, cnt = assemble("\n".join(lines[:idx+1]), self.__arch)
-            if cnt == idx+1:
+            curline = lines[idx].strip()
+            if curline == "" or curline.startswith(";;;"):
+                bytecode_lines[idx] = ""
+                continue
+
+            asm = "\n".join(lines[:idx+1])
+            code, cnt = assemble(asm, self.__arch)
+            if len(code) > len(old_code):
                 new_code = code[len(old_code):]
                 new_line = " ".join(["%.02x" % x for x in new_code])
-                old_code = new_code
-            else:
-                break
-            bytecode_lines[idx] = new_line
+                old_code = code
+                bytecode_lines[idx] = new_line
+
         self.setText("\n".join(bytecode_lines))
         return
 

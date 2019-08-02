@@ -1,3 +1,5 @@
+import tempfile, os
+
 from typing import Callable, Dict, List, Tuple, Any
 
 from lief import (
@@ -7,6 +9,16 @@ from lief import (
 
 from .arch import (
     Architecture,
+    is_x86_32,
+    is_x86_64,
+    is_arm,
+    is_aarch64,
+    is_mips,
+)
+
+
+from .ui.mapping import (
+    MemoryLayoutEntryType,
 )
 
 
@@ -32,22 +44,26 @@ def parse_as_lief_pe_permission(perm: str, extra: Any=None) -> int:
     return res
 
 
-def build_pe_executable(asm_code: bytearray, memory_layout: List[Tuple[str, int, int, str, Any]] , arch: Architecture) -> str:
+def build_pe_executable(asm_code: bytearray, memory_layout: List[MemoryLayoutEntryType] , arch: Architecture) -> str:
     """
     Uses LIEF to build a standalone binary.
 
     Upon success, return the path to the file generated
     """
-    bits = arch.ptrsize * 8
-    if bits not in (32, 64):
-        raise ValueError("Invalid architecture")
 
-    if bits == 64:
-        outfile = "/tmp/cemu-pe-x64.exe"
+    if not is_x86_32(arch) and not is_x86_64(arch):
+        raise ValueError("Unsupported architecture for PE generation")
+
+    is_x64 = is_x86_64(arch)
+
+    if is_x64:
+        fd, outfile = tempfile.mkstemp(suffix=".exe", prefix="cemu-pe-x64-")
         pe = PE.Binary(outfile, PE.PE_TYPE.PE32_PLUS)
     else:
-        outfile = "/tmp/cemu-pe-x86.exe"
+        fd, outfile = tempfile.mkstemp(suffix=".exe", prefix="cemu-pe-x86-")
         pe = PE.Binary(outfile, PE.PE_TYPE.PE32)
+
+    os.close(fd)
 
     entrypoint = 0
 
@@ -63,24 +79,25 @@ def build_pe_executable(asm_code: bytearray, memory_layout: List[Tuple[str, int,
             entrypoint = base_address
         elif name == ".data":
             extra = "idata"
-            sect.content = b"\x00"*size
+            sect.content = bytearray(b"\x00"*size)
         else:
-            sect.content = b"\x00"*size
             extra = "udata"
+            sect.content = bytearray(b"\x00"*size)
+
         sect.size = size
         sect.characteristics = parse_as_lief_pe_permission(permission, extra)
         pe.add_section(sect)
 
     #fixing extra headers
     pe.header.characteristics_list.add(PE.HEADER_CHARACTERISTICS.EXECUTABLE_IMAGE)
-    if bits == 32:
+    if not is_x64:
         pe.header.characteristics_list.add(PE.HEADER_CHARACTERISTICS.CHARA_32BIT_MACHINE)
-        pe.optional_header.imagebase = 0x00400000
-    else:
-        pe.optional_header.imagebase = 0x140000000
+
+    pe.optional_header.imagebase = 0x00400000
     pe.optional_header.addressof_entrypoint = entrypoint
     pe.optional_header.dll_characteristics &= ~PE.DLL_CHARACTERISTICS.DYNAMIC_BASE
     pe.optional_header.dll_characteristics &= ~PE.DLL_CHARACTERISTICS.NX_COMPAT
+    pe.optional_header.dll_characteristics |= PE.DLL_CHARACTERISTICS.NO_SEH
 
     #building exe to disk
     builder = PE.Builder(pe)
@@ -99,16 +116,60 @@ def build_elf_executable(asm_code: bytearray, memory_layout: List[Tuple[str, int
     if bits not in (32, 64):
         raise ValueError("Invalid architecture")
 
-    outfile = "/tmp/cemu-elf.out"
+    is_32b = (bits == 32)
+
+    outfile = "/tmp/cemu-elf-{}-{}b-{}.out".format(arch.name, bits, arch.endian_str())
     raise NotImplementedError("soon")
-    if bits == 64:
-        elf = ELF.Binary(outfile, ELF.ELF_CLASS.CLASS64)
-    else:
+    if is_32b:
         elf = ELF.Binary(outfile, ELF.ELF_CLASS.CLASS32)
-    # set arch
-    # set bitness
-    builder = PE.Builder(elf)
-    builder.build_imports(True)
+    else:
+        elf = ELF.Binary(outfile, ELF.ELF_CLASS.CLASS64)
+
+
+    # set arch // dir(lief.ELF.ARCH)
+    if is_x86_32(arch):
+        elf.header.machine_type = ELF.ARCH.i386
+    elif is_x86_64(arch):
+        elf.header.machine_type = ELF.ARCH.x86_64
+    elif is_arm(arch):
+        elf.header.machine_type = ELF.ARCH.ARM
+    elif is_aarch64(arch):
+        elf.header.machine_type = ELF.ARCH.AARCH64
+    elif is_mips(arch):
+        elf.header.machine_type = ELF.ARCH.MIPS
+    else:
+        raise ValueError("Invalid architecture")
+
+
+    # set extra headers
+    if is_32b:
+        elf.header.imagebase = 0x00400000
+    else:
+        elf.header.imagebase = 0x140000000
+
+
+    # adding sections
+    # "program header" segment
+    s = ELF.Segment()
+    s.flags = ELF.SEGMENT_FLAGS.R | ELF.SEGMENT_FLAGS.X
+    s.type = ELF.SEGMENT_TYPES.PHDR
+    elf.add(s)
+
+    # "code" segment
+    s = ELF.Segment()
+    s.flags = ELF.SEGMENT_FLAGS.R | ELF.SEGMENT_FLAGS.X
+    s.type = ELF.SEGMENT_TYPES.LOAD
+    elf.add(s)
+
+    # "data" segment
+    s = ELF.Segment()
+    s.flags = ELF.SEGMENT_FLAGS.R | ELF.SEGMENT_FLAGS.W
+    s.type = ELF.SEGMENT_TYPES.LOAD
+    elf.add(s)
+
+    elf.header.entrypoint = elf.header.imagebase
+
+    builder = ELF.Builder(elf)
     builder.build()
     builder.write(outfile)
     return outfile
