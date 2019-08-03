@@ -66,6 +66,10 @@ def build_pe_executable(asm_code: bytearray, memory_layout: List[MemoryLayoutEnt
     os.close(fd)
 
     entrypoint = 0
+    size_of_code = 0
+    size_of_stack = 0
+    size_of_idata = 0
+    size_of_udata = 0
 
     # adding sections
     for name, base_address, size, permission, _ in memory_layout:
@@ -77,31 +81,54 @@ def build_pe_executable(asm_code: bytearray, memory_layout: List[MemoryLayoutEnt
             extra = "code"
             sect.content = asm_code
             entrypoint = base_address
+            size_of_code = size
         elif name == ".data":
             extra = "idata"
             sect.content = bytearray(b"\x00"*size)
+            size_of_idata += size
+        elif name == ".stack":
+            extra = "udata"
+            sect.content = bytearray(b"\x00"*size)
+            size_of_stack = size
         else:
             extra = "udata"
             sect.content = bytearray(b"\x00"*size)
+            size_of_udata += size
 
-        sect.size = size
+        sect.virtual_size = size
         sect.characteristics = parse_as_lief_pe_permission(permission, extra)
         pe.add_section(sect)
 
-    #fixing extra headers
-    pe.header.characteristics_list.add(PE.HEADER_CHARACTERISTICS.EXECUTABLE_IMAGE)
-    if not is_x64:
-        pe.header.characteristics_list.add(PE.HEADER_CHARACTERISTICS.CHARA_32BIT_MACHINE)
+    # fixing pe header
+    pe.header.add_characteristic(PE.HEADER_CHARACTERISTICS.EXECUTABLE_IMAGE)
+    pe.header.add_characteristic(PE.HEADER_CHARACTERISTICS.DEBUG_STRIPPED)
+    if is_x64:
+        pe.header.add_characteristic(PE.HEADER_CHARACTERISTICS.LARGE_ADDRESS_AWARE)
+    else:
+        pe.header.add_characteristic(PE.HEADER_CHARACTERISTICS.CHARA_32BIT_MACHINE)
 
+    # fixing pe optional header
     pe.optional_header.imagebase = 0x00400000
+    pe.optional_header.baseof_code = entrypoint
     pe.optional_header.addressof_entrypoint = entrypoint
-    pe.optional_header.dll_characteristics &= ~PE.DLL_CHARACTERISTICS.DYNAMIC_BASE
-    pe.optional_header.dll_characteristics &= ~PE.DLL_CHARACTERISTICS.NX_COMPAT
-    pe.optional_header.dll_characteristics |= PE.DLL_CHARACTERISTICS.NO_SEH
+    pe.optional_header.major_operating_system_version = 0x04
+    pe.optional_header.minor_operating_system_version = 0x00
+    pe.optional_header.major_subsystem_version = 0x05
+    pe.optional_header.minor_subsystem_version = 0x02
+    pe.optional_header.major_linker_version = 0x02
+    pe.optional_header.minor_linker_version = 0x1e
+    pe.optional_header.sizeof_code = size_of_code
+    pe.optional_header.sizeof_stack_commit = size_of_stack
+    pe.optional_header.sizeof_uninitialized_data = size_of_udata
+    pe.optional_header.sizeof_initialized_data = size_of_idata
+    # pe.optional_header.subsystem = PE.SUBSYSTEM.WINDOWS_GUI
+    pe.optional_header.remove(PE.DLL_CHARACTERISTICS.DYNAMIC_BASE)
+    pe.optional_header.remove(PE.DLL_CHARACTERISTICS.NX_COMPAT)
+    pe.optional_header.add(PE.DLL_CHARACTERISTICS.NO_SEH)
 
     #building exe to disk
     builder = PE.Builder(pe)
-    builder.build_imports(True)
+    # builder.build_imports(True)
     builder.build()
     builder.write(outfile)
     return outfile

@@ -39,10 +39,10 @@ class MemoryMappingWidget(QDockWidget):
     def initialMemoryLayout(self) -> List[MemoryLayoutEntryType]:
         # todo: move this in settings
         return [
-            (".text",  0x00400000, 0x1000, "READ|EXEC",  None),
-            (".data",  0x00600000, 0x1000, "READ|WRITE", None),
-            (".stack", 0x00800000, 0x4000, "READ|WRITE", None),
-            (".misc",  0x00700000, 0x1000, "ALL",        None),
+            (".text",  0x00040000, 0x1000, "READ|EXEC",  None),
+            (".data",  0x00060000, 0x1000, "READ|WRITE", None),
+            (".stack", 0x00080000, 0x4000, "READ|WRITE", None),
+            (".misc",  0x00070000, 0x1000, "ALL",        None),
         ]
 
 
