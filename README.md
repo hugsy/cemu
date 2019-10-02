@@ -91,7 +91,7 @@ The fastest way for Windows is to install the packaged binaries for:
 
   - Keystone (http://www.keystone-engine.org/download/)
     - Including the [Microsoft VC++ runtime library](https://www.microsoft.com/en-gb/download/details.aspx?id=40784)
-  - Capstone (http://www.capstone-engine.org/download/)
+  - Capstone (http://www.capstone-engine.org/download.html)
   - Unicorn (http://www.unicorn-engine.org/download/)
 
 
