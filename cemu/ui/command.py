@@ -38,7 +38,7 @@ class CommandWidget(QDockWidget):
         self.__runButton.clicked.connect(self.onClickRunAll)
         self.__runButton.setShortcut(sc.shortcut("emulator_run_all"))
 
-        self.__stepButton = QPushButton("Next instruction")
+        self.__stepButton = QPushButton("Step to Next")
         self.__stepButton.clicked.connect(self.onClickStepNext)
         self.__stepButton.setShortcut(sc.shortcut("emulator_step"))
 
@@ -47,7 +47,7 @@ class CommandWidget(QDockWidget):
         self.__stopButton.clicked.connect( self.onClickStop )
         self.__stopButton.setDisabled(True)
 
-        self.__checkAsmButton = QPushButton("Check assembly code")
+        self.__checkAsmButton = QPushButton("Check assembly")
         self.__checkAsmButton.setShortcut(sc.shortcut("emulator_check"))
         self.__checkAsmButton.clicked.connect(self.onClickCheckCode)
 

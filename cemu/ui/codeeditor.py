@@ -5,6 +5,7 @@ from PyQt5.QtWidgets import (
     QTextEdit,
     QFrame,
     QWidget,
+    QDockWidget,
 )
 
 from PyQt5.QtGui import(
@@ -41,29 +42,6 @@ def get_cursor_column_number(widget):
     pos = widget.textCursor().position()
     text = widget.toPlainText()
     return len(text[:pos].split('\n')[-1])
-
-
-class InfoBarWidget(QWidget):
-    def __init__(self, parent, textedit_widget, *args, **kwargs):
-        super(InfoBarWidget, self).__init__(parent)
-        self.__textedit_widget = textedit_widget
-        self.__label = QLabel("Line:1 Column:1")
-        layout = QHBoxLayout()
-        layout.setSpacing(0)
-        layout.addWidget(self.__label)
-        self.setLayout(layout)
-        self.__textedit_widget.cursorPositionChanged.connect(self.UpdateLabel)
-        return
-
-
-    def UpdateLabel(self):
-        row_num = get_cursor_row_number(self.__textedit_widget) + 1
-        col_num = get_cursor_column_number(self.__textedit_widget) + 1
-        self.__label.setText("Line:{:d} Column:{:d}".format(
-            row_num,
-            col_num
-        ))
-        return
 
 
 class CodeEdit(QTextEdit):
@@ -147,16 +125,14 @@ class CodeEditorFrame(QFrame):
         inner_frame = CodeWithAssemblyFrame(self, arch)
         self.editor = inner_frame.code_editor
         self.__highlighter = Highlighter(self.editor, "asm")
-        self.__infobar = InfoBarWidget(self, self.editor)
 
         layout = QVBoxLayout(self)
         layout.setSpacing(0)
         layout.addWidget(inner_frame)
-        layout.addWidget(self.__infobar)
         return
 
 
-class CodeWidget(QWidget):
+class CodeWidget(QDockWidget): #QWidget):
     def __init__(self, parent, *args, **kwargs):
         super(CodeWidget, self).__init__(parent)
         self.parent = self.parentWidget()
@@ -165,10 +141,30 @@ class CodeWidget(QWidget):
         self.log = self.root.log
         self.code_editor_frame = CodeEditorFrame(parent=self, arch=self.root.arch)
         self.editor = self.code_editor_frame.editor
+        self.editor.cursorPositionChanged.connect(self.onCursorPositionChanged)
         layout = QVBoxLayout()
         layout.setSpacing(0)
-        layout.addWidget(QLabel("Code"))
+        self.widget_title_label = QLabel("Code (Line:1 Column:1)")
+        layout.addWidget(self.widget_title_label)
         layout.addWidget(self.code_editor_frame)
         self.setLayout(layout)
+        widget = QWidget(self)
+        widget.setLayout(layout)
+        self.setWidget(widget)
         self.parser = CodeParser(self)
+        return
+
+
+    def onCursorPositionChanged(self):
+        self.UpdateTitleLabel()
+        return
+
+
+    def UpdateTitleLabel(self):
+        row_num = get_cursor_row_number(self.editor) + 1
+        col_num = get_cursor_column_number(self.editor) + 1
+        self.widget_title_label.setText("Code (Line:{:d} Column:{:d})".format(
+            row_num,
+            col_num
+        ))
         return
