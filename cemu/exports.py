@@ -55,10 +55,10 @@ def build_pe_executable(asm_code: bytearray, memory_layout: List[MemoryLayoutEnt
     is_x64 = is_x86_64(arch)
 
     if is_x64:
-        fd, outfile = tempfile.mkstemp(suffix=".exe", prefix="cemu-pe-x64-")
+        fd, outfile = tempfile.mkstemp(suffix=".exe", prefix="cemu-pe-amd64-")
         pe = PE.Binary(outfile, PE.PE_TYPE.PE32_PLUS)
     else:
-        fd, outfile = tempfile.mkstemp(suffix=".exe", prefix="cemu-pe-x86-")
+        fd, outfile = tempfile.mkstemp(suffix=".exe", prefix="cemu-pe-i386-")
         pe = PE.Binary(outfile, PE.PE_TYPE.PE32)
 
     os.close(fd)
@@ -133,22 +133,23 @@ def build_pe_executable(asm_code: bytearray, memory_layout: List[MemoryLayoutEnt
 
 
 
-def build_elf_executable(asm_code: bytearray, memory_layout: List[Tuple[str, int, int, str, Any]] , arch: Architecture) -> str:
+def build_elf_executable(asm_code: bytearray, memory_layout: List[MemoryLayoutEntryType] , arch: Architecture) -> str:
     """
     """
+    raise NotImplementedError("ELF generation will be implemented soon")
+
     bits = arch.ptrsize * 8
 
     if bits not in (32, 64):
         raise ValueError("Invalid architecture")
 
-    is_32b = (bits == 32)
-
-    outfile = "/tmp/cemu-elf-{}-{}b-{}.out".format(arch.name, bits, arch.endian_str())
-    raise NotImplementedError("soon")
-    if is_32b:
+    outfile = "/tmp/cemu-elf-{}-{}b-{}".format(arch.name, bits, arch.endian_str)
+    if bits == 32:
         elf = ELF.Binary(outfile, ELF.ELF_CLASS.CLASS32)
+        elf.header.entrypoint = 0x00400000
     else:
         elf = ELF.Binary(outfile, ELF.ELF_CLASS.CLASS64)
+        elf.header.entrypoint = 0x140000000
 
 
     # set arch // dir(lief.ELF.ARCH)
@@ -164,13 +165,6 @@ def build_elf_executable(asm_code: bytearray, memory_layout: List[Tuple[str, int
         elf.header.machine_type = ELF.ARCH.MIPS
     else:
         raise ValueError("Invalid architecture")
-
-
-    # set extra headers
-    if is_32b:
-        elf.header.imagebase = 0x00400000
-    else:
-        elf.header.imagebase = 0x140000000
 
 
     # adding sections
