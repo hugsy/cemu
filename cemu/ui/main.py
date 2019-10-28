@@ -68,7 +68,6 @@ from ..const import (
 
 from .codeeditor import CodeWidget
 from .mapping import MemoryMappingWidget
-from .emulator import EmulatorWidget
 from .log import LogWidget
 from .command import CommandWidget
 from .registers import RegistersWidget
@@ -112,7 +111,6 @@ class CEmuWindow(QMainWindow):
         self.__mapWidget            = MemoryMappingWidget(self)
         self.__memWidget            = MemoryWidget(self)
         self.__cmdWidget            = CommandWidget(self)
-        self.__emuWidget            = EmulatorWidget(self)
         self.__logWidget            = LogWidget(self)
 
         # the code editor is the central canvas, the rest are dockable items
@@ -123,7 +121,6 @@ class CEmuWindow(QMainWindow):
         self.addDockWidget(Qt.LeftDockWidgetArea, self.__mapWidget)
         self.addDockWidget(Qt.RightDockWidgetArea, self.__memWidget)
         self.addDockWidget(Qt.RightDockWidgetArea, self.__cmdWidget)
-        self.addDockWidget(Qt.RightDockWidgetArea, self.__emuWidget)
         self.addDockWidget(Qt.RightDockWidgetArea, self.__logWidget)
 
         # ... and the extra plugins too
