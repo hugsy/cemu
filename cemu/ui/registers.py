@@ -57,8 +57,8 @@ class RegistersWidget(QDockWidget):
         VM CPU registers
         """
         emu = self.emulator
-        current_mode = emu.arch
-        registers = current_mode.registers
+        arch = self.root.arch
+        registers = arch.registers
         self.__values.setRowCount(len(registers))
         for i, reg in enumerate(registers):
             self.__values.setRowHeight(i, self.__row_size)
@@ -67,7 +67,7 @@ class RegistersWidget(QDockWidget):
             val = emu.get_register_value(reg) if emu.vm else 0
             old_val = self.__old_register_values.get(reg, 0)
             if type(val) in (int, int):
-                value = format_address(val, current_mode)
+                value = format_address(val, arch)
             else:
                 value = str(val)
             value = QTableWidgetItem( value )
@@ -80,12 +80,13 @@ class RegistersWidget(QDockWidget):
         return
 
 
-    def getRegisters(self) -> Dict[str,int]:
+    def getRegisterValues(self) -> Dict[str,int]:
         """
-        Returns the register grid __values as a dict.
+        Returns the current values of the registers, as shown by the widget grid
         """
         regs = {}
-        for i in range(len(self.emulator.arch.registers)):
+        arch = self.root.arch
+        for i in range(len(arch.registers)):
             name = self.__values.item(i, 0).text()
             value = self.__values.item(i, 1).text()
             regs[name] = int(value, 16)

@@ -129,7 +129,6 @@ class CEmuWindow(QMainWindow):
         # ... and the extra plugins too
         self.LoadExtraPlugins()
 
-
         # show everything
         self.show()
         return
@@ -280,7 +279,7 @@ class CEmuWindow(QMainWindow):
                     self.currentAction = self.archActions[arch.name]
 
                 self.archActions[arch.name].setStatusTip("Switch context to architecture: '%s'" % arch)
-                self.archActions[arch.name].triggered.connect( functools.partial(self.updateMode, arch) )
+                self.archActions[arch.name].triggered.connect( functools.partial(self.onUpdateArchitecture, arch) )
                 archSubMenu.addAction(self.archActions[arch.name])
 
         # Add Help menu bar
@@ -314,7 +313,7 @@ class CEmuWindow(QMainWindow):
                 try:
                     arch_from_file = part[2][5:]
                     arch = get_architecture_by_name(arch_from_file)
-                    self.updateMode(arch)
+                    self.onUpdateArchitecture(arch)
                 except KeyError:
                     self.log("Unknown architecture '{:s}', discarding...".format(arch_from_file))
                     continue
@@ -469,12 +468,12 @@ class CEmuWindow(QMainWindow):
         return
 
 
-    def updateMode(self, arch: Architecture) -> None:
+    def onUpdateArchitecture(self, arch: Architecture) -> None:
         self.currentAction.setEnabled(True)
         self.arch = arch
         print("Switching to '%s'" % self.arch)
         self.log("Switching to '%s'" % self.arch)
-        self.__registerWidget.updateGrid()
+        self.__regsWidget.updateGrid()
         self.archActions[arch.name].setEnabled(False)
         self.currentAction = self.archActions[arch.name]
         self.updateTitle()
@@ -587,7 +586,8 @@ class CEmuWindow(QMainWindow):
         """
         Returns the register widget values as a Dict
         """
-        return self.__regsWidget.getRegisters()
+        self.__regsWidget.updateGrid()
+        return self.__regsWidget.getRegisterValues()
 
 
     def get_memory_layout(self) -> List[ MemoryLayoutEntryType ]:

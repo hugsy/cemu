@@ -49,6 +49,7 @@ class InfoBarWidget(QWidget):
         self.__textedit_widget = textedit_widget
         self.__label = QLabel("Line:1 Column:1")
         layout = QHBoxLayout()
+        layout.setSpacing(0)
         layout.addWidget(self.__label)
         self.setLayout(layout)
         self.__textedit_widget.cursorPositionChanged.connect(self.UpdateLabel)
@@ -56,9 +57,11 @@ class InfoBarWidget(QWidget):
 
 
     def UpdateLabel(self):
+        row_num = get_cursor_row_number(self.__textedit_widget) + 1
+        col_num = get_cursor_column_number(self.__textedit_widget) + 1
         self.__label.setText("Line:{:d} Column:{:d}".format(
-            get_cursor_row_number(self.__textedit_widget) + 1,
-            get_cursor_column_number(self.__textedit_widget) + 1
+            row_num,
+            col_num
         ))
         return
 
@@ -105,7 +108,7 @@ class AssemblyView(QTextEdit):
 
         for idx in range(nb_lines):
             curline = lines[idx].strip()
-            if curline == "" or curline.startswith(";;;"):
+            if curline == "" or curline.startswith(";;;") or curline.startswith("#"):
                 bytecode_lines[idx] = ""
                 continue
 
@@ -127,9 +130,9 @@ class CodeWithAssemblyFrame(QFrame):
         self.__code_widget = CodeEdit(self)
         self.__asm_widget = AssemblyView(self, self.__code_widget, arch)
         layout = QHBoxLayout(self)
+        layout.setSpacing(0)
         layout.addWidget(self.__asm_widget)
         layout.addWidget(self.__code_widget)
-        layout.setSpacing(0)
         self.setLayout(layout)
         return
 
@@ -164,7 +167,7 @@ class CodeWidget(QWidget):
         self.editor = self.code_editor_frame.editor
         layout = QVBoxLayout()
         layout.setSpacing(0)
-        layout.addWidget( QLabel("Code") )
+        layout.addWidget(QLabel("Code"))
         layout.addWidget(self.code_editor_frame)
         self.setLayout(layout)
         self.parser = CodeParser(self)
