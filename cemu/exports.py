@@ -17,21 +17,19 @@ from .arch import (
 )
 
 
-from .ui.mapping import (
+from .memory import (
+    MemoryPermission,
     MemoryLayoutEntryType,
 )
 
 
+
 def parse_as_lief_pe_permission(perm: str, extra: Any=None) -> int:
     res = 0
-    for p in perm.split("|"):
-        p = p.strip()
-        if p == "READ" or p == "ALL":
-            res|=PE.SECTION_CHARACTERISTICS.MEM_READ
-        if p == "WRITE" or p == "ALL":
-            res|=PE.SECTION_CHARACTERISTICS.MEM_WRITE
-        if p == "EXEC" or p == "ALL":
-            res|=PE.SECTION_CHARACTERISTICS.MEM_EXECUTE
+    p = MemoryPermission(perm)
+    if p.r: res|=PE.SECTION_CHARACTERISTICS.MEM_READ
+    if p.w: res|=PE.SECTION_CHARACTERISTICS.MEM_WRITE
+    if p.x: res|=PE.SECTION_CHARACTERISTICS.MEM_EXECUTE
 
     if extra:
         if extra.lower()=="code":

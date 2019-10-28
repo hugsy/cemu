@@ -1,5 +1,9 @@
 import os
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import (
+    Qt,
+    QVariant,
+    QStringListModel
+)
 
 from PyQt5.QtWidgets import (
     QVBoxLayout,
@@ -8,15 +12,21 @@ from PyQt5.QtWidgets import (
     QTableWidgetItem,
     QDockWidget,
     QWidget,
+    QTableView,
+    QListView,
 )
 
+from cemu.memory import (
+    MemorySection,
+    MemoryLayoutEntryType,
+)
 
 from cemu.utils import (
     ishex,
 )
 
+
 from typing import List, Tuple, Any
-MemoryLayoutEntryType = Tuple[str, int, int, str, Any]
 
 
 class MemoryMappingWidget(QDockWidget):
@@ -24,80 +34,23 @@ class MemoryMappingWidget(QDockWidget):
         super(MemoryMappingWidget, self).__init__("Memory map", parent)
         self.log = self.parentWidget().log
         layout = QVBoxLayout()
-        self.title = ["Name", "Base address", "Size", "Permission", "Raw data file"]
-        self.memory_mapping = QTableWidget(10, len(self.title))
-        self.memory_mapping.setHorizontalHeaderLabels(self.title)
-        self.memory_mapping.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        layout.addWidget(self.memory_mapping)
+        self.memory_mapping = [
+            MemorySection(".text",  0x00040000, 0x1000, "READ|EXEC",  None),
+            MemorySection(".data",  0x00060000, 0x1000, "READ|WRITE", None),
+            MemorySection(".stack", 0x00080000, 0x4000, "READ|WRITE", None),
+            MemorySection(".misc",  0x00070000, 0x1000, "ALL",        None),
+        ]
+        model = QStringListModel([ str(x) for x in self.memory_mapping ])
+        view = QListView()
+        view.setModel(model)
+        layout.addWidget(view)
         widget = QWidget(self)
         widget.setLayout(layout)
         self.setWidget(widget)
-        self.populateWithInitialValues()
-        return
-
-
-    def initialMemoryLayout(self) -> List[MemoryLayoutEntryType]:
-        # todo: move this in settings
-        return [
-            (".text",  0x00040000, 0x1000, "READ|EXEC",  None),
-            (".data",  0x00060000, 0x1000, "READ|WRITE", None),
-            (".stack", 0x00080000, 0x4000, "READ|WRITE", None),
-            (".misc",  0x00070000, 0x1000, "ALL",        None),
-        ]
-
-
-    def populateWithInitialValues(self) -> None:
-        self.__maps = self.initialMemoryLayout()
-        for i in range(self.memory_mapping.rowCount()):
-            self.memory_mapping.setRowHeight(i, 20)
-
-        for i, mem_map in enumerate(self.__maps):
-            for j, entry in enumerate(mem_map):
-                if isinstance(entry, int): entry = hex(entry)
-                elif entry is None: entry = ""
-                item = QTableWidgetItem(entry)
-                if i in (0, 2):
-                    # make sure .text and .stack exist
-                    item.setFlags(Qt.ItemIsEnabled)
-                else:
-                    item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable)
-                self.memory_mapping.setItem(i, j, item)
-        return
-
-
-    def getMappingsFromTable(self):
-        self.__maps = []
-        sz = self.memory_mapping.rowCount()
-        for i in range(sz):
-            name = self.memory_mapping.item(i, 0)
-            if not name:
-                continue
-            name = name.text()
-
-            address = self.memory_mapping.item(i, 1)
-            if address:
-                if ishex(address.text()):
-                    address = int(address.text(), 0x10)
-                else:
-                    address = int(address.text())
-
-            size = self.memory_mapping.item(i, 2)
-            if size:
-                size = int(size.text(), 0x10) if ishex(size.text()) else int(size.text())
-
-            permission = self.memory_mapping.item(i, 3)
-            if permission:
-                permission = permission.text()
-
-            read_from_file = self.memory_mapping.item(i, 4)
-            if read_from_file and not os.access(read_from_file.text(), os.R_OK):
-                read_from_file = None
-
-            self.__maps.append([name, address, size, permission, read_from_file])
         return
 
 
     @property
     def maps(self) -> List[MemoryLayoutEntryType]:
-        self.getMappingsFromTable()
+        self.__maps = [ entry.export() for entry in self.memory_mapping ]
         return self.__maps

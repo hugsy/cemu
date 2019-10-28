@@ -21,8 +21,10 @@ from .utils import get_arch_mode, assemble
 @unique
 class EmulatorState(Enum):
     NOT_RUNNING = 0
-    RUNNING = 1
-    IDLE = 2
+    IDLE = 1
+    RUNNING = 2
+    STEP_RUNNING = 3
+    FINISHED = 4
 
 
 class Emulator:
@@ -303,25 +305,25 @@ class Emulator:
         self.pprint("Starting emulation context")
 
         try:
-            self.set_vm_state(EmulatorState.RUNNING)
+            if self.use_step_mode:
+                self.set_vm_state(EmulatorState.STEP_RUNNING)
+            else:
+                self.set_vm_state(EmulatorState.RUNNING)
 
             self.vm.emu_start(self.start_addr, self.end_addr)
+
             if self.pc()==self.end_addr:
-                self.pprint("Ending emulation context")
-                self.stop()
+                self.set_vm_state(EmulatorState.FINISHED)
 
         except unicorn.unicorn.UcError as e:
             self.log("An error occured: {}".format(str(e)), "Error")
             self.pprint("pc={:#x} , sp={:#x}: {:s}".format(self.pc(), self.sp(), str(e)), "Exception")
-            self.stop()
-
-        finally:
-            self.set_vm_state(EmulatorState.NOT_RUNNING)
+            self.set_vm_state(EmulatorState.FINISHED)
 
         return
 
 
-    def stop(self) -> None:
+    def __stop(self) -> None:
         """
         Stops the VM, frees the allocations
         """
@@ -336,6 +338,19 @@ class Emulator:
         return
 
 
+    def __finish(self) -> None:
+        """
+        Clean up the emulator execution context.
+
+        This internal function is called when the VM execution has finished, i.e.:
+        1. an exception has occured in unicorn
+        2. the emulator has reached the .text end address
+        """
+        self.pprint("Ending emulation context")
+        self.__stop()
+        return
+
+
     def lookup_map(self, mapname):
         """
         """
@@ -345,21 +360,31 @@ class Emulator:
         raise KeyError("Section '{}' not found".format(mapname))
 
 
-    def set_vm_state(self, state: EmulatorState) -> None:
+    def set_vm_state(self, new_state: EmulatorState) -> None:
         """
         Updates the internal state of the VM, and propagates the notification
         signals.
         """
-        self.__vm_state = state
+        self.__vm_state = new_state
 
-        if state == EmulatorState.NOT_RUNNING:
+        if new_state == EmulatorState.NOT_RUNNING:
             self.root.signals["refreshRegisterGrid"].emit()
             self.root.signals["refreshMemoryEditor"].emit()
-            self.root.signals["setCommandButtonsForStop"].emit()
+            self.root.signals["setCommandButtonStopState"].emit()
             return
 
-        if state == EmulatorState.RUNNING:
-            self.root.signals["setCommandButtonsForRunning"].emit()
+        if new_state == EmulatorState.RUNNING:
+            self.root.signals["setCommandButtonsRunState"].emit()
+            return
+
+        if new_state == EmulatorState.STEP_RUNNING:
+            self.root.signals["refreshRegisterGrid"].emit()
+            self.root.signals["refreshMemoryEditor"].emit()
+            self.root.signals["setCommandButtonsStepRunState"].emit()
+            return
+
+        if new_state == EmulatorState.FINISHED:
+            self.__finish()
             return
 
         return
@@ -367,4 +392,4 @@ class Emulator:
 
     @property
     def is_running(self) -> bool:
-        return self.__vm_state == EmulatorState.RUNNING
+        return self.__vm_state in (EmulatorState.RUNNING, EmulatorState.STEP_RUNNING)
