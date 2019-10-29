@@ -58,7 +58,8 @@ class Settings:
         """
         Save the settings to disk
         """
-        self.__config.write(self.__config_filename)
+        with open(self.__config_filename, "w") as fd:
+            self.__config.write(fd)
         return
 
 
@@ -69,4 +70,11 @@ class Settings:
         with open(self.__config_filename, 'w') as configfile:
             configfile.write(open(cemu.const.TEMPLATE_CONFIG, "r").read())
         return
+
+
+    def __contains__(self, key: str) -> bool:
+        """
+        Check if a config key exists
+        """
+        return key in self.__config
 
