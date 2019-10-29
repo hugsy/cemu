@@ -5,11 +5,15 @@ import importlib
 import re
 import os
 
-from typing import Tuple
+from typing import Tuple, List
 
 import capstone
 import keystone
 import unicorn
+
+from PyQt5.QtWidgets import (
+    QTextEdit,
+)
 
 from cemu.arch import (
     Syntax,
@@ -201,3 +205,30 @@ def load_plugin(plugin):
         return None
 
     return mod
+
+
+def get_cursor_row_number(widget: QTextEdit) -> int:
+    """
+    Get the cursor row number from the QTextEdit widget
+    """
+    assert isinstance(widget, QTextEdit)
+    pos = widget.textCursor().position()
+    text = widget.toPlainText()
+    return text[:pos].count('\n')
+
+
+def get_cursor_column_number(widget: QTextEdit) -> int:
+    """
+    Get the cursor column number from the QTextEdit widget
+    """
+    assert isinstance(widget, QTextEdit)
+    pos = widget.textCursor().position()
+    text = widget.toPlainText()
+    return len(text[:pos].split('\n')[-1])
+
+
+def get_cursor_position(widget: QTextEdit) -> Tuple[int, int]:
+    """
+    Returns the position of a cursor like (nb_row, nb_col) from a textedit widget
+    """
+    return (get_cursor_row_number(widget), get_cursor_column_number(widget))
