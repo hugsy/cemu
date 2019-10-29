@@ -11,20 +11,20 @@ from PyQt5.QtCore import (
 )
 
 from PyQt5.QtWidgets import (
-    QApplication,
-    qApp,
-    QVBoxLayout,
-    QHBoxLayout,
-    QTabWidget,
-    QMessageBox,
     QAction,
+    qApp,
+    QApplication,
+    QDockWidget,
     QFileDialog,
     QGridLayout,
+    QHBoxLayout,
     QLabel,
-    QWidget,
-    QDockWidget,
     QMainWindow,
     QMenu,
+    QMessageBox,
+    QTabWidget,
+    QVBoxLayout,
+    QWidget,
 )
 
 from PyQt5.QtGui import(
@@ -64,6 +64,7 @@ from ..const import (
     VERSION,
     URL,
     ISSUE_LINK,
+    CONFIG_FILEPATH,
 )
 
 from .codeeditor import CodeWidget
@@ -97,7 +98,9 @@ class CEmuWindow(QMainWindow):
         self.signals = {}
         self.current_file = None
         self.setAttribute(Qt.WA_DeleteOnClose)
+
         self.shortcuts = Shortcut()
+        self.shortcuts.load_from_settings(self.settings)
 
         # prepare the emulator
         self.emulator = Emulator(self)
@@ -112,8 +115,6 @@ class CEmuWindow(QMainWindow):
         self.__memWidget            = MemoryWidget(self)
         self.__cmdWidget            = CommandWidget(self)
         self.__logWidget            = LogWidget(self)
-
-        # the code editor is the central canvas, the rest are dockable items
         self.__codeWidget           = CodeWidget(self)
         self.setCentralWidget(self.__codeWidget)
 
@@ -126,9 +127,29 @@ class CEmuWindow(QMainWindow):
         # ... and the extra plugins too
         self.LoadExtraPlugins()
 
+        qApp.aboutToQuit.connect(self.onAboutToQuit)
+
         # show everything
         self.show()
         return
+
+
+    def __del__(self):
+        """
+        Overriding CEmuWindow deletion procedure
+        """
+        return
+
+
+    def onAboutToQuit(self):
+        """
+        Overriding the aboutToSignal handler
+        """
+        if self.settings.getboolean("Global", "SaveConfigOnExit"):
+            print("Saving settings...")
+            self.settings.save()
+        return
+
 
 
     def LoadExtraPlugins(self) -> int:
@@ -487,7 +508,7 @@ class CEmuWindow(QMainWindow):
 
     def showShortcutPopup(self):
         msgbox = QMessageBox(self)
-        msgbox.setWindowTitle("CEMU Shortcuts")
+        msgbox.setWindowTitle("CEMU Shortcuts from: {:s}".format(CONFIG_FILEPATH))
 
         wid = QWidget()
         grid = QGridLayout()
@@ -506,7 +527,8 @@ class CEmuWindow(QMainWindow):
 
         wid.setMinimumWidth(800)
         wid.setLayout(grid)
-        msgbox.layout().addWidget(wid)
+        layout = msgbox.layout()
+        layout.addWidget(wid)
         msgbox.exec_()
         return
 
