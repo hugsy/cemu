@@ -136,7 +136,6 @@ class CodeWidget(QDockWidget):
         self.widget_title_label = QLabel("Code (Line:1 Column:1)")
         layout.addWidget(self.widget_title_label)
         layout.addWidget(self.code_editor_frame)
-        self.setLayout(layout)
         widget = QWidget(self)
         widget.setLayout(layout)
         self.setWidget(widget)
