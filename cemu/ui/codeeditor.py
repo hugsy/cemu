@@ -138,7 +138,7 @@ class CodeEditorFrame(QFrame):
         return
 
 
-class CodeWidget(QDockWidget): #QWidget):
+class CodeWidget(QDockWidget):
     def __init__(self, parent, *args, **kwargs):
         super(CodeWidget, self).__init__(parent)
         self.parent = self.parentWidget()
