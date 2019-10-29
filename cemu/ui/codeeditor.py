@@ -65,15 +65,16 @@ class CodeEdit(QTextEdit):
 
 
 class AssemblyView(QTextEdit):
-    def __init__(self, parent, editor, arch):
+    def __init__(self, parent, editor):
         super(AssemblyView, self).__init__(parent)
+        self.parent = self.parentWidget()
+        self.root = self.parent.root
         self.setReadOnly(True)
         self.setFont(QFont('Courier', 11))
         self.setFixedWidth(140)
         self.setFrameStyle(QFrame.Panel | QFrame.Plain)
         self.setStyleSheet("background-color: rgb(211, 211, 211);")
         self.__editor = editor
-        self.__arch = arch
         self.__editor.textChanged.connect(self.__update_assembly_code)
         return
 
@@ -91,7 +92,9 @@ class AssemblyView(QTextEdit):
                 continue
 
             asm = "\n".join(lines[:idx+1])
-            code, cnt = assemble(asm, self.__arch)
+            arch = self.root.arch
+            print(arch)
+            code, cnt = assemble(asm, arch)
             if len(code) > len(old_code):
                 new_code = code[len(old_code):]
                 new_line = " ".join(["%.02x" % x for x in new_code])
@@ -103,10 +106,12 @@ class AssemblyView(QTextEdit):
 
 
 class CodeWithAssemblyFrame(QFrame):
-    def __init__(self, parent, arch):
+    def __init__(self, parent):
         super(CodeWithAssemblyFrame, self).__init__(parent)
+        self.parent = self.parentWidget()
+        self.root = self.parent.root
         self.__code_widget = CodeEdit(self)
-        self.__asm_widget = AssemblyView(self, self.__code_widget, arch)
+        self.__asm_widget = AssemblyView(self, self.__code_widget)
         layout = QHBoxLayout(self)
         layout.setSpacing(0)
         layout.addWidget(self.__asm_widget)
@@ -120,12 +125,13 @@ class CodeWithAssemblyFrame(QFrame):
 
 
 class CodeEditorFrame(QFrame):
-    def __init__(self, parent, arch):
+    def __init__(self, parent):
         super(CodeEditorFrame, self).__init__(parent)
-        inner_frame = CodeWithAssemblyFrame(self, arch)
+        self.parent = self.parentWidget()
+        self.root = self.parent.root
+        inner_frame = CodeWithAssemblyFrame(self)
         self.editor = inner_frame.code_editor
         self.__highlighter = Highlighter(self.editor, "asm")
-
         layout = QVBoxLayout(self)
         layout.setSpacing(0)
         layout.addWidget(inner_frame)
@@ -139,7 +145,7 @@ class CodeWidget(QDockWidget): #QWidget):
         self.root = self.parent
         self.emulator = self.root.emulator
         self.log = self.root.log
-        self.code_editor_frame = CodeEditorFrame(parent=self, arch=self.root.arch)
+        self.code_editor_frame = CodeEditorFrame(self)
         self.editor = self.code_editor_frame.editor
         self.editor.cursorPositionChanged.connect(self.onCursorPositionChanged)
         layout = QVBoxLayout()
