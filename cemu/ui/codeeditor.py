@@ -19,29 +19,14 @@ from PyQt5.QtCore import(
 )
 
 from ..parser import CodeParser
-from ..utils import assemble
+from ..utils import (
+    assemble,
+    get_cursor_position,
+    get_cursor_row_number,
+    get_cursor_column_number,
+)
 
 from .highlighter import Highlighter
-
-
-def get_cursor_row_number(widget):
-    """
-    Get the cursor row number from the QTextEdit widget
-    """
-    assert isinstance(widget, QTextEdit)
-    pos = widget.textCursor().position()
-    text = widget.toPlainText()
-    return text[:pos].count('\n')
-
-
-def get_cursor_column_number(widget):
-    """
-    Get the cursor column number from the QTextEdit widget
-    """
-    assert isinstance(widget, QTextEdit)
-    pos = widget.textCursor().position()
-    text = widget.toPlainText()
-    return len(text[:pos].split('\n')[-1])
 
 
 class CodeEdit(QTextEdit):
@@ -165,10 +150,9 @@ class CodeWidget(QDockWidget):
 
 
     def UpdateTitleLabel(self):
-        row_num = get_cursor_row_number(self.editor) + 1
-        col_num = get_cursor_column_number(self.editor) + 1
+        row_num, col_num = get_cursor_position(self.editor)
         self.widget_title_label.setText("Code (Line:{:d} Column:{:d})".format(
-            row_num,
-            col_num
+            row_num+1,
+            col_num+1
         ))
         return
