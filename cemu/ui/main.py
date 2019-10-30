@@ -336,20 +336,23 @@ class CEmuWindow(QMainWindow):
 
 
     def get_widget_by_name(self, name: str) -> QDockWidget:
+        """
+        Helper function to find a QDockWidget from its title
+        """
         for w in self.__dockable_widgets:
             if w.windowTitle() == name:
                 return w
         return None
 
 
-    def onCheckWindowMenuBarItem(self, state):
+    def onCheckWindowMenuBarItem(self, state: bool) -> None:
+        """
+        Callback for toggling the visibility of dockable widgets
+        """
         name = self.sender().text()
         widget = self.get_widget_by_name(name)
         if widget:
-            if not state:
-                widget.hide()
-            else:
-                widget.show()
+            widget.hide() if state == False else widget.show()
         return
 
 
