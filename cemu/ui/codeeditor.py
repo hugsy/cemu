@@ -123,7 +123,7 @@ class CodeEditorFrame(QFrame):
 
 class CodeWidget(QDockWidget):
     def __init__(self, parent, *args, **kwargs):
-        super(CodeWidget, self).__init__(parent)
+        super(CodeWidget, self).__init__("Code View", parent)
         self.parent = self.parentWidget()
         self.root = self.parent
         self.emulator = self.root.emulator

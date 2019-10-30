@@ -11,6 +11,7 @@ from PyQt5.QtGui import(
     QFont,
 )
 
+
 class LogWidget(QDockWidget):
     def __init__(self, parent, *args, **kwargs):
         super(LogWidget, self).__init__("Cemu Logs", parent)

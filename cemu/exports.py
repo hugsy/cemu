@@ -124,9 +124,14 @@ def build_pe_executable(asm_code: bytearray, memory_layout: List[MemoryLayoutEnt
     pe.optional_header.remove(PE.DLL_CHARACTERISTICS.NX_COMPAT)
     pe.optional_header.add(PE.DLL_CHARACTERISTICS.NO_SEH)
 
+    pe.add_library("kernel32.dll")
+    pe.add_library("ntdll.dll")
+
+
+
     #building exe to disk
     builder = PE.Builder(pe)
-    # builder.build_imports(True)
+    builder.build_imports(True)
     builder.build()
     builder.write(outfile)
     return outfile

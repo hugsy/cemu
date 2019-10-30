@@ -94,6 +94,7 @@ class CEmuWindow(QMainWindow):
         self.arch = get_architecture_by_name(self.settings.get("Global", "DefaultArchitecture", "x86_64"))
         self.recentFileActions = []
         self.__plugins = []
+        self.__dockable_widgets = []
         self.archActions = {}
         self.signals = {}
         self.current_file = None
@@ -105,17 +106,13 @@ class CEmuWindow(QMainWindow):
         # prepare the emulator
         self.emulator = Emulator(self)
 
-        # set up the menubar, status and main window
-        self.setMainWindowProperty()
-        self.setMainWindowMenuBar()
-
         # set up the dockable items
-        self.__regsWidget           = RegistersWidget(self)
-        self.__mapWidget            = MemoryMappingWidget(self)
-        self.__memWidget            = MemoryWidget(self)
-        self.__cmdWidget            = CommandWidget(self)
-        self.__logWidget            = LogWidget(self)
-        self.__codeWidget           = CodeWidget(self)
+        self.__regsWidget           = RegistersWidget(self); self.__dockable_widgets.append(self.__regsWidget)
+        self.__mapWidget            = MemoryMappingWidget(self); self.__dockable_widgets.append(self.__mapWidget)
+        self.__memWidget            = MemoryWidget(self); self.__dockable_widgets.append(self.__memWidget)
+        self.__cmdWidget            = CommandWidget(self); self.__dockable_widgets.append(self.__cmdWidget)
+        self.__logWidget            = LogWidget(self); self.__dockable_widgets.append(self.__logWidget)
+        self.__codeWidget           = CodeWidget(self); self.__dockable_widgets.append(self.__codeWidget)
         self.setCentralWidget(self.__codeWidget)
 
         self.addDockWidget(Qt.LeftDockWidgetArea, self.__regsWidget)
@@ -124,9 +121,15 @@ class CEmuWindow(QMainWindow):
         self.addDockWidget(Qt.RightDockWidgetArea, self.__cmdWidget)
         self.addDockWidget(Qt.RightDockWidgetArea, self.__logWidget)
 
+
         # ... and the extra plugins too
         self.LoadExtraPlugins()
 
+        # set up the menubar, status and main window
+        self.setMainWindowProperty()
+        self.setMainWindowMenuBar()
+
+        # set up on-quit hooks
         qApp.aboutToQuit.connect(self.onAboutToQuit)
 
         # show everything
@@ -190,8 +193,17 @@ class CEmuWindow(QMainWindow):
         return
 
 
-    def add_menu_item(self, title: str, callback: Callable, description:str=None, shortcut:str=None):
+    def add_menu_item(self, title: str, callback: Callable, description:str=None, shortcut:str=None, **kwargs) -> QAction:
+        """
+        Helper function to create a QAction for the menu bar.
+        """
+
         action = QAction(QIcon(), title, self)
+        if "checkable" in kwargs:
+            action.setCheckable(kwargs["checkable"])
+            if "checked" in kwargs:
+                action.setChecked(kwargs["checkable"])
+
         action.triggered.connect( callback )
         if description:
             action.setStatusTip(description)
@@ -300,6 +312,15 @@ class CEmuWindow(QMainWindow):
                 self.archActions[arch.name].triggered.connect( functools.partial(self.onUpdateArchitecture, arch) )
                 archSubMenu.addAction(self.archActions[arch.name])
 
+
+        # Add the View Window menu bar
+        viewWindowsMenu = menubar.addMenu("&View")
+        for w in self.__dockable_widgets:
+            name = w.windowTitle()
+            action = self.add_menu_item(name, self.onCheckWindowMenuBarItem, "Window '{}'".format(name), checkable=True, checked=True)
+            viewWindowsMenu.addAction(action)
+
+
         # Add Help menu bar
         helpMenu = menubar.addMenu("&Help")
         shortcutAction = self.add_menu_item("Shortcuts", self.showShortcutPopup,
@@ -312,6 +333,25 @@ class CEmuWindow(QMainWindow):
         helpMenu.addAction(shortcutAction)
         helpMenu.addAction(aboutAction)
         return
+
+
+    def get_widget_by_name(self, name: str) -> QDockWidget:
+        for w in self.__dockable_widgets:
+            if w.windowTitle() == name:
+                return w
+        return None
+
+
+    def onCheckWindowMenuBarItem(self, state):
+        name = self.sender().text()
+        widget = self.get_widget_by_name(name)
+        if widget:
+            if not state:
+                widget.hide()
+            else:
+                widget.show()
+        return
+
 
 
     def loadFile(self, fname, data=None):
