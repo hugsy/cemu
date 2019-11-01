@@ -42,10 +42,10 @@ class MemoryMappingWidget(QDockWidget):
         self.log = self.parentWidget().log
         layout = QVBoxLayout()
         self.__memory_mapping = [
-            MemorySection(".text",  0x00040000, 0x1000, "READ|EXEC"),
-            MemorySection(".data",  0x00060000, 0x1000, "READ|WRITE"),
-            MemorySection(".stack", 0x00080000, 0x4000, "READ|WRITE"),
-            MemorySection(".misc",  0x00070000, 0x1000, "ALL"),
+            MemorySection(".text",  0x00004000, 0x1000, "READ|EXEC"),
+            MemorySection(".data",  0x00005000, 0x1000, "READ|WRITE"),
+            MemorySection(".stack", 0x00006000, 0x4000, "READ|WRITE"),
+            MemorySection(".misc",  0x0000a000, 0x1000, "ALL"),
         ]
         self.model = QStringListModel()
         self.model.setStringList(self.memory_mapping_str)
@@ -85,11 +85,11 @@ class MemoryMappingWidget(QDockWidget):
 
 
     @property
-    def maps(self) -> List[MemoryLayoutEntryType]:
+    def maps(self) -> List[MemorySection]:
         """
         Exports the memory mapping to a format usable for Unicorn
         """
-        self.__maps = [ entry.export() for entry in self.__memory_mapping ]
+        self.__maps = self.__memory_mapping[::]
         return self.__maps
 
 
@@ -109,6 +109,9 @@ class MemoryMappingWidget(QDockWidget):
         line_content = idx.data()
         for i, sect in enumerate(self.__memory_mapping):
             if line_content == str(sect):
+                if self.__memory_mapping[i].name in (".text", ".data", ".stack"):
+                    print("cannot delete required section '{}'".format(self.__memory_mapping[i].name))
+                    break
                 del self.__memory_mapping[i]
                 self.updateView()
                 break

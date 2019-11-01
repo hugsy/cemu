@@ -81,8 +81,9 @@ from ..exports import (
     build_elf_executable,
 )
 
-from .mapping import (
-    MemoryLayoutEntryType
+
+from ..memory import (
+    MemorySection,
 )
 
 
@@ -264,14 +265,14 @@ class CEmuWindow(QMainWindow):
                                              self.shortcuts.description("generate_pe_exe"),
                                              self.shortcuts.shortcut("generate_pe_exe"))
 
-        generateElfAction = self.add_menu_item("Generate ELF executable", self.generate_elf,
-                                             self.shortcuts.description("generate_elf_exe"),
-                                             self.shortcuts.shortcut("generate_elf_exe"))
+        #generateElfAction = self.add_menu_item("Generate ELF executable", self.generate_elf,
+        #                                     self.shortcuts.description("generate_elf_exe"),
+        #                                     self.shortcuts.shortcut("generate_elf_exe"))
 
         exportAsSubMenu.addAction(saveCAction)
         exportAsSubMenu.addAction(saveAsAsmAction)
         exportAsSubMenu.addAction(generatePeAction)
-        exportAsSubMenu.addAction(generateElfAction)
+        #exportAsSubMenu.addAction(generateElfAction)
 
         fileMenu.addMenu(exportAsSubMenu)
         fileMenu.addSeparator()
@@ -652,7 +653,7 @@ class CEmuWindow(QMainWindow):
         return self.__regsWidget.getRegisterValues()
 
 
-    def get_memory_layout(self) -> List[ MemoryLayoutEntryType ]:
+    def get_memory_layout(self) -> List[MemorySection]:
         """
         Returns the memory layout as defined by the __mapWidget values as a structured list.
         """

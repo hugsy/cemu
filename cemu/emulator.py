@@ -18,6 +18,9 @@ from .arch import (
 
 from .utils import get_arch_mode, assemble
 
+from .memory import MemorySection
+
+
 @unique
 class EmulatorState(Enum):
     NOT_RUNNING = 0
@@ -150,11 +153,12 @@ class Emulator:
         return
 
 
-    def populate_memory(self, areas: List[Tuple[str,int,int,str,Any]]) -> bool:
+    def populate_memory(self, areas: List[MemorySection]) -> bool:
         """
         Populates the VM memory layout according to the values given as parameter.
         """
-        for name, address, size, permission, input_file in areas:
+        for area in areas:
+            name, address, size, permission, input_file = area.export()
             perm = self.unicorn_permissions(permission)
             self.vm.mem_map(address, size, perm)
             self.areas[name] = [address, size, permission,]
@@ -351,7 +355,7 @@ class Emulator:
         return
 
 
-    def lookup_map(self, mapname):
+    def lookup_map(self, mapname: str):
         """
         """
         for area in self.areas.keys():

@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 
-import string
 import importlib
-import re
 import os
+import random
+import re
+import string
 
 from typing import Tuple, List
 
@@ -232,3 +233,11 @@ def get_cursor_position(widget: QTextEdit) -> Tuple[int, int]:
     Returns the position of a cursor like (nb_row, nb_col) from a textedit widget
     """
     return (get_cursor_row_number(widget), get_cursor_column_number(widget))
+
+
+def generate_random_string(length: int) -> str:
+    """
+    Returns a random string
+    """
+    charset = string.ascii_letters + string.digits
+    return "".join(random.choice(charset) for i in range(length))
