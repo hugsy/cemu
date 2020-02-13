@@ -1,6 +1,6 @@
 # CEMU #
 
-[![MIT](https://img.shields.io/packagist/l/doctrine/orm.svg?maxAge=2592000?style=plastic)](https://github.com/hugsy/cemu/blob/master/LICENSE) [![IRC](https://img.shields.io/badge/freenode-%23%23cemu-yellowgreen.svg)](https://webchat.freenode.net/?channels=##cemu) [![Python-Version](https://img.shields.io/pypi/pyversions/cemu.svg)](https://pypi.python.org/pypi/cemu) [![PyPi-Version](https://img.shields.io/pypi/v/cemu.svg)](https://pypi.python.org/pypi/cemu)
+[![MIT](https://img.shields.io/packagist/l/doctrine/orm.svg?maxAge=2592000?style=plastic)](https://github.com/hugsy/cemu/blob/master/LICENSE) [![IRC](https://img.shields.io/badge/freenode-%23%23cemu-yellowgreen.svg)](https://webchat.freenode.net/?channels=##cemu) [![Python-Version](https://img.shields.io/pypi/pyversions/cemu.svg)](https://pypi.python.org/pypi/cemu) [![PyPi-Version](https://img.shields.io/pypi/v/cemu.svg)](https://pypi.python.org/pypi/cemu) [![Downloads](https://pepy.tech/badge/cemu)](https://pepy.tech/project/cemu)
 
 ![cemu-linux](https://i.imgur.com/iHtWvTL.png)
 
