@@ -40,7 +40,7 @@ architectures:
 ## Installation ##
 
 Since version 0.2.2, `cemu` is now Python3 only for simplicity (and also due to
-the fact that [Python2 will soon cease to exist](https://pythonclock.org/)).
+the fact that [Python2 is not supported anymore](https://pythonclock.org/)).
 
 If your current installation of `cemu` is <= 0.2.1 and on Python2, please
 uninstall it and install it using Python3.
