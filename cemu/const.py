@@ -10,7 +10,7 @@ ISSUE_LINK          = 'https://github.com/{}/{}/issues'.format(AUTHOR, PROGNAME)
 RELEASE_LINK        = '{}/archive/{}.tar.gz'.format(URL, VERSION)
 LICENSE             = 'MIT'
 
-HOME               = os.getenv("HOME")
+HOME               = os.path.expanduser("~")
 PKG_PATH           = os.path.dirname(os.path.realpath(__file__))
 ICON_PATH          = os.sep.join([PKG_PATH, "img", "icon.png"])
 EXAMPLE_PATH       = os.sep.join([PKG_PATH, "examples"])
