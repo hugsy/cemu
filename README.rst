@@ -1,10 +1,10 @@
 CEMU
 ====
 
-|MIT| |IRC| |Python-Version| |PyPi-Version|
+|MIT| |Python-Version| |PyPi-Version|
+`Discord <https://discord.gg/qBn9MbG9vp>`__
 
-
-.. figure:: https://i.imgur.com/7DI6BxR.png
+.. figure:: https://i.imgur.com/iHtWvTL.png
    :alt: cemu-linux
 
    cemu-linux
@@ -24,8 +24,8 @@ and executing it in an QEMU-based emulator.
 **CEmu** combines all the advantages of a basic assembly IDE,
 compilation and execution environment, by relying on the great libraries
 `Keystone <https://github.com/keystone-engine/keystone>`__,
-`Unicorn <https://github.com/unicorn-engine/unicorn/>`__ and
-`Capstone <https://github.com/aquynh/capstone>`__ engines in a Qt
+`Unicorn <https:/github.com/unicorn-engine/unicorn/>`__ and
+`Capstone <https://github.com/aquynh/capstone>`__ libraries in a Qt6
 powered GUI.
 
 It allows to test binary samples, check your shellcodes or even simply
@@ -36,19 +36,22 @@ architectures:
 -  Arm / AArch64
 -  MIPS / MIPS64
 -  SPARC / SPARC64
--  (more to come)
+-  PPC (but not emulation)
 
-``CEmu`` was tested and works on Linux, Windows and MacOSX.
+``CEmu`` was mostly tested to work on Linux and Windows and MacOSX.
 
 Installation
 ------------
 
+**Notes**
+
 Since version 0.2.2, ``cemu`` is now Python3 only for simplicity (and
 also due to the fact that `Python2 will soon cease to
-exist <https://pythonclock.org/>`__).
+exist <https://pythonclock.org/>`__). If your current installation of
+``cemu`` is <= 0.2.1 and on Python2, please uninstall it and install it
+using Python3.
 
-If your current installation of ``cemu`` is <= 0.2.1 and on Python2,
-please uninstall it and install it using Python3.
+In addition, Python >= 3.8 is required, starting ``0.6``.
 
 Quick install with PIP
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -57,91 +60,33 @@ Last stable from PyPI:
 
 .. code:: bash
 
-    pip3 install cemu
+   pip3 install cemu
 
 Last stable from Github:
 
 .. code:: bash
 
-    git clone https://github.com/hugsy/cemu && cd cemu
-    pip3 install --upgrade .
+   git clone https://github.com/hugsy/cemu
+   cd cemu
+   pip3 install --upgrade .
 
-For 99% of cases, that's all you need to do. ``cemu`` will be installed
-in your ``${LOCALPATH}/bin`` directory (by default,
-``/usr/local/bin/cemu`` if installed as root, ``~/.local/bin/cemu`` for
-non-root).
-
-Installation notes
-~~~~~~~~~~~~~~~~~~
-
-Kali Linux
-^^^^^^^^^^
-
-If you are using Kali Linux, there is a `known
-problem <https://github.com/keystone-engine/keystone/issues/235>`__ with
-the installation of the ``keystone-engine`` package using PIP. A quick'n
-dirty fix for that would be (as ``root``):
-
-.. code:: bash
-
-    $ sudo updatedb
-    $ sudo locate libkeystone.so
-    $ sudo ln -sf /path/to/libkeystone.so/found/above /usr/local/lib/libkeystone.so
-
-OSX
-^^^
-
-If you are using OSX, I would highly recommand installing Capstone
-engine directly using ``brew.sh`` command instead of ``pip``, as its
-version seems more up-to-date than the one on PyPI. Doing so, the
-installation should work out of the box:
-
-.. code:: bash
-
-    $ brew install capstone
-    $ pip3 install -U cemu
-
-Windows
-^^^^^^^
-
-The fastest way for Windows is to install the packaged binaries for:
-
--  Keystone (http://www.keystone-engine.org/download/)
-
-   -  Including the `Microsoft VC++ runtime
-      library <https://www.microsoft.com/en-gb/download/details.aspx?id=40784>`__
-
--  Capstone (http://www.capstone-engine.org/download/)
--  Unicorn (http://www.unicorn-engine.org/download/)
-
-Then spawn ``cmd.exe`` and install the missing Python packages using
-``pip``:
-
-.. code:: bash
-
-    # From PyPI
-    C:\> pip.exe install -U cemu
-    # From Github
-    ## Download ZIP and extract it
-    C:\> cd path\to\cemu
-    C:\path\to\cemu> pip.exe install . -U
-
-``CEmu`` launcher (``cemu.exe``) will be in the ``C:\Python3\Scripts``
-directory.
+For 99% of cases, that’s all you need to do. ``cemu`` will be installed
+in the associated ``Scripts`` directory: \* On Linux by default the
+executable will be found as ``/usr/local/bin/cemu`` if installed as
+root, ``~/.local/bin/cemu`` for non-root \* On Windows,
+``%PYTHON_DIR%\Scripts\cemu.exe`` if installed with privileges,
+``%APPDATA%\Python\Python39\Scripts\cemu.exe`` if not
 
 Contribution
 ------------
 
 ``cemu`` was created and maintained by myself,
 ```@_hugsy_`` <https://twitter.com/_hugsy_>`__, but kept fresh thanks to
-all the
-`contributors <https://github.com/hugsy/cemu/graphs/contributors>`__.
+`all the
+contributors <https://github.com/hugsy/cemu/graphs/contributors>`__.
 
 .. |MIT| image:: https://img.shields.io/packagist/l/doctrine/orm.svg?maxAge=2592000?style=plastic
    :target: https://github.com/hugsy/cemu/blob/master/LICENSE
-.. |IRC| image:: https://img.shields.io/badge/freenode-%23%23cemu-yellowgreen.svg
-   :target: https://webchat.freenode.net/?channels=##cemu
 .. |Python-Version| image:: https://img.shields.io/pypi/pyversions/cemu.svg
-   :target: https://pypi.python.org/pypi/cemu
 .. |PyPi-Version| image:: https://img.shields.io/pypi/v/cemu.svg
    :target: https://pypi.python.org/pypi/cemu
