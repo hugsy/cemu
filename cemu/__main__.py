@@ -4,12 +4,11 @@
 import sys
 
 
-def main():
+def main() -> int:
     from cemu.core import Cemu
     Cemu(sys.argv)
-    return
+    return 0
 
 
 if __name__ == '__main__':
-    main(sys.argv)
-    sys.exit(0)
+    sys.exit( main() )

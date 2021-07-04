@@ -1,0 +1,5 @@
+capstone
+unicorn
+PyQt6
+Pygments
+lief

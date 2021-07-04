@@ -12,7 +12,7 @@ import capstone
 import keystone
 import unicorn
 
-from PyQt5.QtWidgets import (
+from PyQt6.QtWidgets import (
     QTextEdit,
 )
 

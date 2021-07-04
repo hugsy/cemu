@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import (
+from PyQt6.QtWidgets import (
     QVBoxLayout,
     QHBoxLayout,
     QWidget,
@@ -9,11 +9,11 @@ from PyQt5.QtWidgets import (
     QLabel,
 )
 
-from PyQt5.QtGui import(
+from PyQt6.QtGui import(
     QFont,
 )
 
-from PyQt5.QtCore import(
+from PyQt6.QtCore import(
     QFileInfo,
     pyqtSignal,
     QEvent

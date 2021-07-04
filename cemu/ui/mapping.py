@@ -1,11 +1,11 @@
 import os
-from PyQt5.QtCore import (
+from PyQt6.QtCore import (
     Qt,
     QVariant,
     QStringListModel
 )
 
-from PyQt5.QtWidgets import (
+from PyQt6.QtWidgets import (
     QVBoxLayout,
     QTableWidget,
     QHeaderView,

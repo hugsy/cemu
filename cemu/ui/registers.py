@@ -1,6 +1,6 @@
 from typing import Dict
 
-from PyQt5.QtWidgets import (
+from PyQt6.QtWidgets import (
     QVBoxLayout,
     QHBoxLayout,
     QTableWidget,
@@ -10,12 +10,12 @@ from PyQt5.QtWidgets import (
     QDockWidget,
 )
 
-from PyQt5.QtGui import(
+from PyQt6.QtGui import(
     QFont,
     QColor
 )
 
-from PyQt5.QtCore import (
+from PyQt6.QtCore import (
     Qt,
     pyqtSignal,
     QEvent,

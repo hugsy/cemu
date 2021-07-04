@@ -1,13 +1,13 @@
 import time
 
-from PyQt5.QtWidgets import (
+from PyQt6.QtWidgets import (
     QVBoxLayout,
     QTextEdit,
     QFrame,
     QDockWidget,
 )
 
-from PyQt5.QtGui import(
+from PyQt6.QtGui import(
     QFont,
 )
 

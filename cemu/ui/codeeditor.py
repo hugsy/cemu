@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import (
+from PyQt6.QtWidgets import (
     QVBoxLayout,
     QHBoxLayout,
     QLabel,
@@ -8,12 +8,12 @@ from PyQt5.QtWidgets import (
     QDockWidget,
 )
 
-from PyQt5.QtGui import(
+from PyQt6.QtGui import(
     QFont,
     QTextFormat,
 )
 
-from PyQt5.QtCore import(
+from PyQt6.QtCore import(
     QVariant,
     Qt,
 )

@@ -1,0 +1,39 @@
+name: "Continuous Delivery"
+on:
+  push:
+    branches:
+      - main
+      - dev
+
+env:
+  NAME: cemu
+
+jobs:
+  build:
+    name: "Building cemu"
+    strategy:
+      matrix:
+        fail-fast: false
+        os: [windows-latest, ubuntu-latest]
+        python: [3.8, 3.9]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - uses: rlespinasse/github-slug-action@v3.x
+
+    - name: Build artifact
+      shell: bash
+      run: |
+      mkdir build
+      pip3 install --upgrade pip
+      pip3 install --user --upgrade --file requirements.txt
+      python3 setup.py install --user
+
+    - name: Publish artifact
+      id: publish_artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: ${{ env.NAME }}_${{ env.GITHUB_REF_SLUG }}_${{ env.GITHUB_SHA_SHORT }}
+        path: build/

@@ -1,6 +1,6 @@
 import sys
 
-from PyQt5.QtWidgets import (
+from PyQt6.QtWidgets import (
     QWidget,
     QDockWidget,
     QVBoxLayout,

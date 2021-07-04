@@ -5,12 +5,12 @@ import sys
 
 from typing import Callable, Dict, List, Tuple, Any
 
-from PyQt5.QtCore import (
+from PyQt6.QtCore import (
     Qt,
     pyqtSignal,
 )
 
-from PyQt5.QtWidgets import (
+from PyQt6.QtWidgets import (
     QAction,
     qApp,
     QApplication,
@@ -27,11 +27,11 @@ from PyQt5.QtWidgets import (
     QWidget,
 )
 
-from PyQt5.QtGui import(
+from PyQt6.QtGui import(
     QIcon,
 )
 
-from PyQt5.QtCore import(
+from PyQt6.QtCore import(
     QSettings,
     QFileInfo
 )
