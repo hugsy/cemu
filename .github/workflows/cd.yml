@@ -26,10 +26,10 @@ jobs:
     - name: Build artifact
       shell: bash
       run: |
-      mkdir build
-      pip3 install --upgrade pip
-      pip3 install --user --upgrade --file requirements.txt
-      python3 setup.py install --user
+        mkdir build
+        pip3 install --upgrade pip
+        pip3 install --user --upgrade --file requirements.txt
+        python3 setup.py install --user
 
     - name: Publish artifact
       id: publish_artifact
