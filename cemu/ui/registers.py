@@ -63,7 +63,7 @@ class RegistersWidget(QDockWidget):
         for i, reg in enumerate(registers):
             self.__values.setRowHeight(i, self.__row_size)
             name = QTableWidgetItem(reg)
-            name.setFlags(Qt.NoItemFlags)
+            name.setFlags(Qt.ItemFlag.NoItemFlags)
             val = emu.get_register_value(reg) if emu.vm else 0
             old_val = self.__old_register_values.get(reg, 0)
             if type(val) in (int, int):
@@ -74,7 +74,7 @@ class RegistersWidget(QDockWidget):
             if old_val != val:
                 self.__old_register_values[reg] = val
                 value.setForeground(QColor(Qt.red))
-            value.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsEditable)
+            value.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEditable)
             self.__values.setItem(i, 0, name)
             self.__values.setItem(i, 1, value)
         return

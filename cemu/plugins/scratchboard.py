@@ -22,7 +22,7 @@ class ScratchboardWidget(QDockWidget):
         layout = QVBoxLayout()
         self.__editor = QTextEdit()
         self.__editor.setFont(QFont('Courier', 11))
-        self.__editor.setFrameStyle(QFrame.Panel | QFrame.Plain)
+        self.__editor.setFrameStyle(QFrame.Shape.Panel | QFrame.Shape.NoFrame)
         self.__highlighter = Highlighter(self.__editor, "rest")
         self.setWidget(self.__editor)
         return

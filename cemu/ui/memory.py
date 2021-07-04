@@ -43,7 +43,7 @@ class MemoryWidget(QDockWidget):
 
         memview_layout = QVBoxLayout()
         self.__editor = QTextEdit()
-        self.__editor.setFrameStyle(QFrame.Panel | QFrame.Plain)
+        self.__editor.setFrameStyle(QFrame.Shape.Panel | QFrame.Shape.NoFrame)
         self.__editor.setFont(QFont('Courier', 10))
         self.__editor.setReadOnly(True)
         memview_layout.addWidget(title_widget)

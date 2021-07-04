@@ -34,8 +34,8 @@ class CodeEdit(QTextEdit):
         super(CodeEdit, self).__init__(parent)
         self.cursorPositionChanged.connect(self.UpdateHighlightedLine)
         self.setFont(QFont('Courier', 11))
-        self.setFrameStyle(QFrame.Panel | QFrame.Plain)
-        self.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        self.setFrameStyle(QFrame.Shape.Panel | QFrame.Shape.NoFrame)
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         return
 
 
@@ -57,7 +57,7 @@ class AssemblyView(QTextEdit):
         self.setReadOnly(True)
         self.setFont(QFont('Courier', 11))
         self.setFixedWidth(140)
-        self.setFrameStyle(QFrame.Panel | QFrame.Plain)
+        self.setFrameStyle(QFrame.Shape.Panel | QFrame.Shape.NoFrame)
         self.setStyleSheet("background-color: rgb(211, 211, 211);")
         self.__editor = editor
         self.__editor.textChanged.connect(self.__update_assembly_code)

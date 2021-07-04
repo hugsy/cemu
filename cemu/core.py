@@ -27,5 +27,5 @@ def Cemu(args):
     """
     app.setStyleSheet(style)
     app.setWindowIcon(QIcon(ICON_PATH))
-    CEmuWindow()
-    sys.exit(app.exec_())
+    CEmuWindow(app)
+    sys.exit(app.exec())

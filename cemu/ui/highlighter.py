@@ -24,7 +24,7 @@ class QFormatter(Formatter):
             if style['bgcolor']:
                 qtf.setBackground(self.hex2QColor(style['bgcolor']))
             if style['bold']:
-                qtf.setFontWeight(QFont.Bold)
+                qtf.setFontWeight(QFont.Weight.Bold)
             if style['italic']:
                 qtf.setFontItalic(True)
             if style['underline']:

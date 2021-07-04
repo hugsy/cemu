@@ -18,7 +18,7 @@ class LogWidget(QDockWidget):
         self.parent = self.parentWidget()
         self.__editor = QTextEdit()
         self.__editor.setFont(QFont('Courier', 11))
-        self.__editor.setFrameStyle(QFrame.Panel | QFrame.Plain)
+        self.__editor.setFrameStyle(QFrame.Shape.Panel | QFrame.Shape.NoFrame)
         self.__editor.setReadOnly(True)
         self.setWidget(self.__editor)
         self.__timestamp_format = "%Y/%m/%d - %H:%M:%S"

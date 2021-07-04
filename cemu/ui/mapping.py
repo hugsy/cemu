@@ -169,7 +169,7 @@ class MemoryMappingWidget(QDockWidget):
         wid.setMinimumWidth(400)
         layout.addWidget(wid)
 
-        msgbox.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
+        msgbox.setStandardButtons(QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel)
 
         ret = msgbox.exec()
         if ret == QMessageBox.Ok:

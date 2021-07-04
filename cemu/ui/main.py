@@ -7,33 +7,31 @@ from typing import Callable, Dict, List, Tuple, Any
 
 from PyQt6.QtCore import (
     Qt,
-    pyqtSignal,
 )
 
+
+
+
 from PyQt6.QtWidgets import (
-    QAction,
-    qApp,
     QApplication,
     QDockWidget,
     QFileDialog,
     QGridLayout,
-    QHBoxLayout,
     QLabel,
     QMainWindow,
     QMenu,
     QMessageBox,
-    QTabWidget,
-    QVBoxLayout,
     QWidget,
 )
 
 from PyQt6.QtGui import(
+    QAction,
     QIcon,
 )
 
 from PyQt6.QtCore import(
+    QFileInfo,
     QSettings,
-    QFileInfo
 )
 
 from ..utils import (
@@ -89,8 +87,9 @@ from ..memory import (
 
 class CEmuWindow(QMainWindow):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, app: QApplication, *args, **kwargs):
         super(CEmuWindow, self).__init__()
+        self.__app = app
         self.settings = Settings()
         self.arch = get_architecture_by_name(self.settings.get("Global", "DefaultArchitecture", "x86_64"))
         self.recentFileActions = []
@@ -99,7 +98,7 @@ class CEmuWindow(QMainWindow):
         self.archActions = {}
         self.signals = {}
         self.current_file = None
-        self.setAttribute(Qt.WA_DeleteOnClose)
+        # self.setAttribute(Qt.WA_DeleteOnClose)
 
         self.shortcuts = Shortcut()
         self.shortcuts.load_from_settings(self.settings)
@@ -116,11 +115,11 @@ class CEmuWindow(QMainWindow):
         self.__codeWidget           = CodeWidget(self); self.__dockable_widgets.append(self.__codeWidget)
         self.setCentralWidget(self.__codeWidget)
 
-        self.addDockWidget(Qt.LeftDockWidgetArea, self.__regsWidget)
-        self.addDockWidget(Qt.LeftDockWidgetArea, self.__mapWidget)
-        self.addDockWidget(Qt.RightDockWidgetArea, self.__memWidget)
-        self.addDockWidget(Qt.RightDockWidgetArea, self.__cmdWidget)
-        self.addDockWidget(Qt.RightDockWidgetArea, self.__logWidget)
+        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self.__regsWidget)
+        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self.__mapWidget)
+        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.__memWidget)
+        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.__cmdWidget)
+        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.__logWidget)
 
 
         # ... and the extra plugins too
@@ -131,7 +130,7 @@ class CEmuWindow(QMainWindow):
         self.setMainWindowMenuBar()
 
         # set up on-quit hooks
-        qApp.aboutToQuit.connect(self.onAboutToQuit)
+        self.__app.aboutToQuit.connect(self.onAboutToQuit)
 
         # show everything
         self.show()
@@ -170,7 +169,7 @@ class CEmuWindow(QMainWindow):
 
             self.__plugins.append(m)
             nb_added += 1
-            self.addDockWidget(Qt.RightDockWidgetArea, m)
+            self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, m)
             self.log("Loaded plugin '{}'".format(p))
         return nb_added
 
@@ -182,15 +181,14 @@ class CEmuWindow(QMainWindow):
         self.updateTitle()
 
         # center the window
-        frameGm = self.frameGeometry()
-        screen = QApplication.desktop().screenNumber(QApplication.desktop().cursor().pos())
-        centerPoint = QApplication.desktop().screenGeometry(screen).center()
-        frameGm.moveCenter(centerPoint)
-        self.move(frameGm.topLeft())
+        frame_geometry = self.frameGeometry()
+        screen = self.screen().availableGeometry().center()
+        frame_geometry.moveCenter(screen)
+        self.move(frame_geometry.topLeft())
 
         # apply the style
         style = self.settings.get("Theme", "QtStyle", "Cleanlooks")
-        qApp.setStyle(style)
+        self.__app.setStyle(style)
         return
 
 
