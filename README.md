@@ -20,7 +20,7 @@ It allows to test binary samples, check your shellcodes or even simply learn how
   - SPARC / SPARC64
   - PPC (but not emulation)
 
-`CEmu` was mostly tested to work on Linux and Windows and MacOSX.
+`CEmu` was mostly tested to work on Linux and Windows, but should work on MacOS.
 
 
 ## Installation ##
