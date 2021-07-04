@@ -24,11 +24,19 @@ jobs:
     - uses: rlespinasse/github-slug-action@v3.x
 
     - name: "Install Pre-requisite for Linux build"
-      if: ${{ matrix.os }} == "ubuntu-latest"
+      if: matrix.os == "ubuntu-latest"
+      shell: bash
       run: |
         sudo apt update
         sudo apt upgrade -y
         sudo apt install -y build-essential python3-dev python3-pip python3-wheel python3-setuptools
+
+    - name: "Install Pre-requisite for Windows build"
+      if: matrix.os == "windows-latest"
+      shell: pwsh
+      run: |
+        echo todo
+
 
     - name: Build artifact
       shell: bash
