@@ -12,7 +12,7 @@ jobs:
   build:
     name: "Building cemu"
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         os: [windows-latest, ubuntu-latest]
         python: [3.8, 3.9]
@@ -27,7 +27,7 @@ jobs:
       shell: bash
       run: |
         mkdir build
-        pip3 install --upgrade pip
+        pip3 install --upgrade pip setuptools wheel
         pip3 install --user --upgrade -r requirements.txt
         python3 setup.py install --user
 
@@ -35,5 +35,5 @@ jobs:
       id: publish_artifact
       uses: actions/upload-artifact@v2
       with:
-        name: ${{ env.NAME }}_${{ env.GITHUB_REF_SLUG }}_${{ env.GITHUB_SHA_SHORT }}
+        name: ${{ env.NAME }}_${{ matrix.os }}_${{ env.GITHUB_REF_SLUG }}_${{ env.GITHUB_SHA_SHORT }}
         path: build/
