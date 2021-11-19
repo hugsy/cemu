@@ -32,6 +32,6 @@ setup(
     include_package_data=True,
     packages=find_packages(),
     install_requires=get_required_packages(),
-    entry_points={'console_scripts': ['cemu=const.__main__:main'],},
+    entry_points={'console_scripts': ['cemu=cemu.__main__:main'],},
     keywords = ['assembly', 'disassembly', 'emulation', 'x86', 'x64', 'arm', 'mips', 'powerpc', 'sparc'],
 )
