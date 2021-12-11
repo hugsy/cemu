@@ -10,7 +10,7 @@
 
 Writing assembly is fun. Assembly is the lowest language (humanly understandable) available to communicate with computers, and is crucial to understand the internal mechanisms of any machine. Unfortunately, setting up an environment to write, compile and run assembly for various architectures (x86, ARM, MIPS, SPARC) has always been painful. **CEmu** is an attempt to fix this by providing a bundled GUI application that empowers users to write assembly and test it by compiling it to bytecode and executing it in an QEMU-based emulator.
 
-**CEmu** combines all the advantages of a basic assembly IDE, compilation and execution environment, by relying on the great libraries [Keystone](https://github.com/keystone-engine/keystone), [Unicorn](https:/github.com/unicorn-engine/unicorn/) and [Capstone](https://github.com/aquynh/capstone) libraries in a Qt6 powered GUI.
+**CEmu** combines all the advantages of a basic assembly IDE, compilation and execution environment, by relying on the great libraries [Keystone](https://github.com/keystone-engine/keystone), [Unicorn](https://github.com/unicorn-engine/unicorn/) and [Capstone](https://github.com/aquynh/capstone) libraries in a Qt6 powered GUI.
 
 It allows to test binary samples, check your shellcodes or even simply learn how to write assembly code, all of this for the following architectures:
 
