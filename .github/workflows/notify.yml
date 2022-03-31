@@ -27,7 +27,7 @@ jobs:
               ● ') }}
 
           color: 0x0000ff
-          username: ${{ github.actor }} via GithubBot
+          username: ${{ github.actor }} on CEMU
           avatar_url: ${{ github.actor.avatar_url }}
 
       - name: Pull Request Notification
@@ -44,7 +44,7 @@ jobs:
             ---
             Link: ${{ github.event.pull_request.html_url }}
           color: 0xff0000
-          username: ${{ github.actor }} via GithubBot
+          username: ${{ github.actor }} on CEMU
           avatar_url: ${{ github.actor.avatar_url }}
 
       - name:  Issue Notification
@@ -61,5 +61,5 @@ jobs:
             ---
             Link: ${{ github.event.issue.html_url }}
           color: 0x00ff00
-          username: ${{ github.actor }} via GithubBot
+          username: ${{ github.actor }} on CEMU
           avatar_url: ${{ github.actor.avatar_url }}
