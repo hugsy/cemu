@@ -28,7 +28,7 @@ jobs:
 
           color: 0x0000ff
           username: ${{ github.actor }} on CEMU
-          avatar_url: ${{ github.actor.avatar_url }}
+          avatar_url: https://snipstock.com/assets/cdn/png/new/23ee1d96fccd86fd70f6d8e9bd67d81b.png
 
       - name: Pull Request Notification
         if: github.event_name == 'pull_request' && github.event.action == 'opened' && github.repository_owner == 'hugsy'
@@ -45,7 +45,7 @@ jobs:
             Link: ${{ github.event.pull_request.html_url }}
           color: 0xff0000
           username: ${{ github.actor }} on CEMU
-          avatar_url: ${{ github.actor.avatar_url }}
+          avatar_url: https://snipstock.com/assets/cdn/png/new/23ee1d96fccd86fd70f6d8e9bd67d81b.png
 
       - name:  Issue Notification
         if: github.event_name == 'issues' && github.event.action == 'opened' && github.repository_owner == 'hugsy'
@@ -62,4 +62,4 @@ jobs:
             Link: ${{ github.event.issue.html_url }}
           color: 0x00ff00
           username: ${{ github.actor }} on CEMU
-          avatar_url: ${{ github.actor.avatar_url }}
+          avatar_url: https://snipstock.com/assets/cdn/png/new/23ee1d96fccd86fd70f6d8e9bd67d81b.png
