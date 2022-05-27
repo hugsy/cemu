@@ -1,12 +1,7 @@
 
-import abc
 import enum
+from typing import Optional
 
-# from cemu.arch.arm import AARCH64, ARM
-# from cemu.arch.mips import MIPS, MIPS64
-# from cemu.arch.ppc import PowerPC
-# from cemu.arch.sparc import SPARC, SPARC64
-# from cemu.arch.x86 import X86, X86_32, X86_64
 from cemu.const import SYSCALLS_PATH
 
 
@@ -38,53 +33,27 @@ class Syntax(enum.Enum):
         return self.value
 
 
-class Architecture(object):
+class Architecture:
     """Generic metaclass for the architectures."""
-    __metaclass__ = abc.ABCMeta
+    name: str
+    endianness: Endianness = Endianness.LITTLE_ENDIAN
+    syntax: Syntax = Syntax.INTEL
+    registers: list[str]
+    instruction_length: int
+    flag: Optional[str]
+    pc: str
+    sp: str
+    ptrsize: int
+    regsize: int
+    syscall_filename: str
 
-    endianness = Endianness.LITTLE_ENDIAN
-    syntax = Syntax.INTEL
-    __syscalls = None
-
-    @abc.abstractproperty
-    def name(self):
-        pass
-
-    @abc.abstractproperty
-    def registers(self):
-        pass
-
-    @abc.abstractproperty
-    def instruction_length(self):
-        pass
-
-    @abc.abstractproperty
-    def flag(self):
-        pass
-
-    @abc.abstractproperty
-    def pc(self):
-        pass
-
-    @abc.abstractproperty
-    def sp(self):
-        pass
-
-    @abc.abstractproperty
-    def ptrsize(self):
-        pass
-
-    @abc.abstractproperty
-    def regsize(self):
-        pass
-
-    @abc.abstractproperty
-    def syscall_filename(self) -> str:
-        pass
-
-    def __str__(self):
+    def __repr__(self):
         return f"{self.name} (Ptrsize={self.ptrsize}, Endian={self.endianness}, Syntax={self.syntax})"
 
+    def __str__(self):
+        return f"{self.name}"
+
+    __syscalls: Optional[dict[str, int]] = None
     syscall_base = 0
 
     @property
@@ -186,8 +155,9 @@ def get_all_architecture_names():
 
 
 def get_architecture_by_name(name):
+    name = name.lower()
     for abi in Architectures:
         for arch in Architectures[abi]:
-            if arch.__class__.__name__.lower() == name.lower():
+            if arch.__class__.__name__.lower() == name:
                 return arch
-    raise KeyError("Cannot find architecture '{}'".format(name))
+    raise KeyError(f"Cannot find architecture '{name}'")

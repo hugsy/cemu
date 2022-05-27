@@ -125,9 +125,10 @@ class PythonConsole(QTextEdit):
 
         if command:
             self.appendPlainText("\n")
+            old_stdout = sys.stdout
+            old_stderr = sys.stderr
+
             try:
-                old_stdout = sys.stdout
-                old_stderr = sys.stderr
                 sys.stdout = StdoutRedirector(self.appendPlainText)
                 sys.stderr = sys.stdout
 
