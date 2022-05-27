@@ -1,85 +1,32 @@
 import functools
-import tempfile
 import os
-
+import tempfile
 from typing import Callable
 
-from PyQt6.QtCore import (
-    Qt,
-)
+from PyQt6.QtCore import QFileInfo, QSettings, Qt
+from PyQt6.QtGui import QAction, QIcon
+from PyQt6.QtWidgets import (QApplication, QDockWidget, QFileDialog,
+                             QGridLayout, QLabel, QMainWindow, QMenu,
+                             QMessageBox, QWidget)
 
-
-from PyQt6.QtWidgets import (
-    QApplication,
-    QDockWidget,
-    QFileDialog,
-    QGridLayout,
-    QLabel,
-    QMainWindow,
-    QMenu,
-    QMessageBox,
-    QWidget,
-)
-
-from PyQt6.QtGui import(
-    QAction,
-    QIcon,
-)
-
-from PyQt6.QtCore import(
-    QFileInfo,
-    QSettings,
-)
-
-from ..utils import (
-    list_available_plugins,
-    load_plugin,
-    assemble,
-    disassemble_file
-)
-
+from ..arch import (Architecture, Architectures, Endianness, Syntax,
+                    get_architecture_by_name)
+from ..const import (AUTHOR, COMMENT_MARKER, CONFIG_FILEPATH, EXAMPLE_PATH,
+                     HOME, ISSUE_LINK, PROPERTY_MARKER, TEMPLATE_PATH, TITLE,
+                     URL, VERSION)
 from ..emulator import Emulator
-from ..shortcuts import Shortcut
-from ..arch import (
-    Architecture,
-    Architectures,
-    get_architecture_by_name,
-    Endianness,
-    Syntax
-)
-
-from ..const import (
-    COMMENT_MARKER,
-    PROPERTY_MARKER,
-    EXAMPLE_PATH,
-    TEMPLATE_PATH,
-    HOME,
-    TITLE,
-    AUTHOR,
-    VERSION,
-    URL,
-    ISSUE_LINK,
-    CONFIG_FILEPATH,
-)
-
-from .codeeditor import CodeWidget
-from .mapping import MemoryMappingWidget
-from .log import LogWidget
-from .command import CommandWidget
-from .registers import RegistersWidget
-from .memory import MemoryWidget
-
+from ..exports import build_elf_executable, build_pe_executable
+from ..memory import MemorySection
 from ..settings import Settings
-
-from ..exports import (
-    build_pe_executable,
-    build_elf_executable,
-)
-
-
-from ..memory import (
-    MemorySection,
-)
+from ..shortcuts import Shortcut
+from ..utils import (assemble, disassemble_file, list_available_plugins,
+                     load_plugin)
+from .codeeditor import CodeWidget
+from .command import CommandWidget
+from .log import LogWidget
+from .mapping import MemoryMappingWidget
+from .memory import MemoryWidget
+from .registers import RegistersWidget
 
 
 class CEmuWindow(QMainWindow):
@@ -88,9 +35,10 @@ class CEmuWindow(QMainWindow):
         super(CEmuWindow, self).__init__()
         self.__app = app
         self.settings = Settings()
-        self.arch = get_architecture_by_name(self.settings.get("Global", "DefaultArchitecture", "x86_64"))
+        self.arch = get_architecture_by_name(
+            self.settings.get("Global", "DefaultArchitecture", "x86_64"))
         self.recentFileActions = []
-        self.__plugins: list(QDockWidget) = []
+        self.__plugins: list[QDockWidget] = []
         self.__dockable_widgets = []
         self.archActions = {}
         self.signals = {}
@@ -104,20 +52,30 @@ class CEmuWindow(QMainWindow):
         self.emulator = Emulator(self)
 
         # set up the dockable items
-        self.__regsWidget           = RegistersWidget(self); self.__dockable_widgets.append(self.__regsWidget)
-        self.__mapWidget            = MemoryMappingWidget(self); self.__dockable_widgets.append(self.__mapWidget)
-        self.__memWidget            = MemoryWidget(self); self.__dockable_widgets.append(self.__memWidget)
-        self.__cmdWidget            = CommandWidget(self); self.__dockable_widgets.append(self.__cmdWidget)
-        self.__logWidget            = LogWidget(self); self.__dockable_widgets.append(self.__logWidget)
-        self.__codeWidget           = CodeWidget(self); self.__dockable_widgets.append(self.__codeWidget)
+        self.__regsWidget = RegistersWidget(self)
+        self.__dockable_widgets.append(self.__regsWidget)
+        self.__mapWidget = MemoryMappingWidget(self)
+        self.__dockable_widgets.append(self.__mapWidget)
+        self.__memWidget = MemoryWidget(self)
+        self.__dockable_widgets.append(self.__memWidget)
+        self.__cmdWidget = CommandWidget(self)
+        self.__dockable_widgets.append(self.__cmdWidget)
+        self.__logWidget = LogWidget(self)
+        self.__dockable_widgets.append(self.__logWidget)
+        self.__codeWidget = CodeWidget(self)
+        self.__dockable_widgets.append(self.__codeWidget)
         self.setCentralWidget(self.__codeWidget)
 
-        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self.__regsWidget)
-        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self.__mapWidget)
-        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.__memWidget)
-        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.__cmdWidget)
-        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.__logWidget)
-
+        self.addDockWidget(
+            Qt.DockWidgetArea.LeftDockWidgetArea, self.__regsWidget)
+        self.addDockWidget(
+            Qt.DockWidgetArea.LeftDockWidgetArea, self.__mapWidget)
+        self.addDockWidget(
+            Qt.DockWidgetArea.RightDockWidgetArea, self.__memWidget)
+        self.addDockWidget(
+            Qt.DockWidgetArea.RightDockWidgetArea, self.__cmdWidget)
+        self.addDockWidget(
+            Qt.DockWidgetArea.RightDockWidgetArea, self.__logWidget)
 
         # ... and the extra plugins too
         self.LoadExtraPlugins()
@@ -133,13 +91,11 @@ class CEmuWindow(QMainWindow):
         self.show()
         return
 
-
     def __del__(self):
         """
         Overriding CEmuWindow deletion procedure
         """
         return
-
 
     def onAboutToQuit(self):
         """
@@ -149,8 +105,6 @@ class CEmuWindow(QMainWindow):
             print("Saving settings...")
             self.settings.save()
         return
-
-
 
     def LoadExtraPlugins(self) -> int:
         nb_added = 0
@@ -172,7 +126,6 @@ class CEmuWindow(QMainWindow):
             self.log("Loaded plugin '{}'".format(p))
         return nb_added
 
-
     def setMainWindowProperty(self) -> None:
         width = self.settings.getint("Global", "WindowWidth", 1600)
         heigth = self.settings.getint("Global", "WindowHeigth", 800)
@@ -190,8 +143,7 @@ class CEmuWindow(QMainWindow):
         self.__app.setStyle(style)
         return
 
-
-    def add_menu_item(self, title: str, callback: Callable, description:str=None, shortcut:str=None, **kwargs) -> QAction:
+    def add_menu_item(self, title: str, callback: Callable, description: str = "", shortcut: str = "", **kwargs) -> QAction:
         """
         Helper function to create a QAction for the menu bar.
         """
@@ -202,13 +154,12 @@ class CEmuWindow(QMainWindow):
             if "checked" in kwargs:
                 action.setChecked(kwargs["checkable"])
 
-        action.triggered.connect( callback )
+        action.triggered.connect(callback)
         if description:
             action.setStatusTip(description)
         if shortcut:
             action.setShortcut(shortcut)
         return action
-
 
     def setMainWindowMenuBar(self):
         statusBar = self.statusBar()
@@ -219,15 +170,18 @@ class CEmuWindow(QMainWindow):
         fileMenu = menubar.addMenu("&File")
 
         loadAsmAction = self.add_menu_item("Load Assembly", self.loadCodeText,
-                                           self.shortcuts.description("load_assembly"),
+                                           self.shortcuts.description(
+                                               "load_assembly"),
                                            self.shortcuts.shortcut("load_assembly"))
 
         loadBinAction = self.add_menu_item("Load Binary", self.loadCodeBin,
-                                           self.shortcuts.description("load_binary"),
+                                           self.shortcuts.description(
+                                               "load_binary"),
                                            self.shortcuts.shortcut("load_binary"))
 
         for _ in range(maxRecentFiles):
-            self.recentFileActions.append(QAction(self, visible=False, triggered=self.openRecentFile))
+            self.recentFileActions.append(
+                QAction(self, visible=False, triggered=self.openRecentFile))
 
         clearRecentFilesAction = self.add_menu_item("Clear Recent Files", self.clearRecentFiles,
                                                     "Clear Recent Files", "")
@@ -236,12 +190,14 @@ class CEmuWindow(QMainWindow):
         saveAsSubMenu = QMenu("Save As", self)
 
         saveAsmAction = self.add_menu_item("Save Assembly", self.saveCodeText,
-                                           self.shortcuts.description("save_as_asm"),
+                                           self.shortcuts.description(
+                                               "save_as_asm"),
                                            self.shortcuts.shortcut("save_as_asm"))
 
-        saveBinAction = self.add_menu_item ("Save Binary", self.saveCodeBin,
-                                            self.shortcuts.description("save_as_binary"),
-                                            self.shortcuts.shortcut("save_as_binary"))
+        saveBinAction = self.add_menu_item("Save Binary", self.saveCodeBin,
+                                           self.shortcuts.description(
+                                               "save_as_binary"),
+                                           self.shortcuts.shortcut("save_as_binary"))
 
         saveAsSubMenu.addAction(saveAsmAction)
         saveAsSubMenu.addAction(saveBinAction)
@@ -251,25 +207,28 @@ class CEmuWindow(QMainWindow):
         # "Export As" sub-menu
         exportAsSubMenu = QMenu("Export As", self)
         saveCAction = self.add_menu_item("Generate C code", self.saveAsCFile,
-                                         self.shortcuts.description("generate_c_file"),
+                                         self.shortcuts.description(
+                                             "generate_c_file"),
                                          self.shortcuts.shortcut("generate_c_file"))
 
         saveAsAsmAction = self.add_menu_item("Generate Assembly code", self.saveAsAsmFile,
-                                             self.shortcuts.description("generate_asm_file"),
+                                             self.shortcuts.description(
+                                                 "generate_asm_file"),
                                              self.shortcuts.shortcut("generate_asm_file"))
 
         generatePeAction = self.add_menu_item("Generate PE executable", self.generate_pe,
-                                             self.shortcuts.description("generate_pe_exe"),
-                                             self.shortcuts.shortcut("generate_pe_exe"))
+                                              self.shortcuts.description(
+                                                  "generate_pe_exe"),
+                                              self.shortcuts.shortcut("generate_pe_exe"))
 
-        #generateElfAction = self.add_menu_item("Generate ELF executable", self.generate_elf,
+        # generateElfAction = self.add_menu_item("Generate ELF executable", self.generate_elf,
         #                                     self.shortcuts.description("generate_elf_exe"),
         #                                     self.shortcuts.shortcut("generate_elf_exe"))
 
         exportAsSubMenu.addAction(saveCAction)
         exportAsSubMenu.addAction(saveAsAsmAction)
         exportAsSubMenu.addAction(generatePeAction)
-        #exportAsSubMenu.addAction(generateElfAction)
+        # exportAsSubMenu.addAction(generateElfAction)
 
         fileMenu.addMenu(exportAsSubMenu)
         fileMenu.addSeparator()
@@ -291,7 +250,8 @@ class CEmuWindow(QMainWindow):
         fileMenu.addSeparator()
 
         quitAction = self.add_menu_item("Quit", QApplication.quit,
-                                        self.shortcuts.shortcut("exit_application"),
+                                        self.shortcuts.shortcut(
+                                            "exit_application"),
                                         self.shortcuts.description("exit_application"))
 
         fileMenu.addAction(quitAction)
@@ -306,22 +266,25 @@ class CEmuWindow(QMainWindow):
                     self.archActions[arch.name].setEnabled(False)
                     self.currentAction = self.archActions[arch.name]
 
-                self.archActions[arch.name].setStatusTip(f"Switch context to architecture: '{arch}'")
-                self.archActions[arch.name].triggered.connect( functools.partial(self.onUpdateArchitecture, arch) )
+                self.archActions[arch.name].setStatusTip(
+                    f"Switch context to architecture: '{arch}'")
+                self.archActions[arch.name].triggered.connect(
+                    functools.partial(self.onUpdateArchitecture, arch))
                 archSubMenu.addAction(self.archActions[arch.name])
 
         # Add the View Window menu bar
         viewWindowsMenu = menubar.addMenu("&View")
         for w in self.__dockable_widgets:
             name = w.windowTitle()
-            action = self.add_menu_item(name, self.onCheckWindowMenuBarItem, f"Window '{name}'", checkable=True, checked=True)
+            action = self.add_menu_item(
+                name, self.onCheckWindowMenuBarItem, f"Window '{name}'", checkable=True, checked=True)
             viewWindowsMenu.addAction(action)
-
 
         # Add Help menu bar
         helpMenu = menubar.addMenu("&Help")
         shortcutAction = self.add_menu_item("Shortcuts", self.showShortcutPopup,
-                                            self.shortcuts.description("shortcut_popup"),
+                                            self.shortcuts.description(
+                                                "shortcut_popup"),
                                             self.shortcuts.shortcut("shortcut_popup"))
 
         aboutAction = self.add_menu_item("About", self.about_popup,
@@ -330,7 +293,6 @@ class CEmuWindow(QMainWindow):
         helpMenu.addAction(shortcutAction)
         helpMenu.addAction(aboutAction)
         return
-
 
     def get_widget_by_name(self, name: str) -> QDockWidget:
         """
@@ -341,7 +303,6 @@ class CEmuWindow(QMainWindow):
                 return w
         return None
 
-
     def onCheckWindowMenuBarItem(self, state: bool) -> None:
         """
         Callback for toggling the visibility of dockable widgets
@@ -351,8 +312,6 @@ class CEmuWindow(QMainWindow):
         if widget:
             widget.hide() if state == False else widget.show()
         return
-
-
 
     def loadFile(self, fname: str, data=None):
 
@@ -373,13 +332,15 @@ class CEmuWindow(QMainWindow):
                     arch = get_architecture_by_name(arch_from_file)
                     self.onUpdateArchitecture(arch)
                 except KeyError:
-                    self.err(f"Unknown architecture '{arch_from_file:s}', discarding...")
+                    self.err(
+                        f"Unknown architecture '{arch_from_file:s}', discarding...")
                     continue
 
             if part[2].startswith("endian:"):
                 endian_from_file = part[2][7:].lower()
                 if endian_from_file not in ("little", "big"):
-                    self.err(f"Incorrect endianness '{endian_from_file:s}', discarding...")
+                    self.err(
+                        f"Incorrect endianness '{endian_from_file:s}', discarding...")
                     continue
                 self.arch.endianness = Endianness.LITTLE if endian_from_file == "little" else Endianness.BIG
                 self.ok(f"Changed endianness to '{endian_from_file:s}'")
@@ -387,9 +348,10 @@ class CEmuWindow(QMainWindow):
             if part[2].startswith("syntax:"):
                 syntax_from_file = part[2][7:].lower()
                 if syntax_from_file not in ("att", "intel"):
-                    self.err(f"Incorrect syntax '{syntax_from_file:s}', discarding...")
+                    self.err(
+                        f"Incorrect syntax '{syntax_from_file:s}', discarding...")
                     continue
-                self.arch.syntax = Syntax.ATT if syntax_from_file=="att" else Syntax.INTEL
+                self.arch.syntax = Syntax.ATT if syntax_from_file == "att" else Syntax.INTEL
                 self.ok(f"Changed syntax to '{syntax_from_file:s}'")
 
         self.__codeWidget.editor.setPlainText(data)
@@ -406,7 +368,8 @@ class CEmuWindow(QMainWindow):
         return
 
     def loadCode(self, title, filter, run_disassembler):
-        qFile, _ = QFileDialog.getOpenFileName(self, title, EXAMPLE_PATH, filter + ";;All files (*.*)")
+        qFile, _ = QFileDialog.getOpenFileName(
+            self, title, EXAMPLE_PATH, filter + ";;All files (*.*)")
 
         if not os.access(qFile, os.R_OK):
             self.err(f"Failed to read '{qFile}'")
@@ -419,17 +382,15 @@ class CEmuWindow(QMainWindow):
             self.loadFile(qFile)
         return
 
-
     def loadCodeText(self):
         return self.loadCode("Open Assembly file", "Assembly files (*.asm *.s)", False)
-
 
     def loadCodeBin(self):
         return self.loadCode("Open Raw file", "Raw binary files (*.raw)", True)
 
-
     def saveCode(self, title, filter, run_assembler):
-        qFile, _ = QFileDialog().getSaveFileName(self, title, HOME, filter=filter + ";;All files (*.*)")
+        qFile, _ = QFileDialog().getSaveFileName(
+            self, title, HOME, filter=filter + ";;All files (*.*)")
         if not qFile:
             return
 
@@ -448,17 +409,15 @@ class CEmuWindow(QMainWindow):
         self.ok(f"Saved as '{qFile:s}'")
         return
 
-
     def saveCodeText(self):
         return self.saveCode("Save Assembly Pane As", "Assembly files (*.asm *.s)", False)
-
 
     def saveCodeBin(self):
         return self.saveCode("Save Raw Binary Pane As", "Raw binary files (*.raw)", True)
 
-
     def saveAsCFile(self):
-        template = open(os.sep.join([TEMPLATE_PATH, "template.c"]), "rb").read()
+        template = open(os.sep.join(
+            [TEMPLATE_PATH, "template.c"]), "rb").read()
         insns = self.__codeWidget.parser.getCleanCodeAsByte(as_string=False)
         title = bytes(self.arch.name, encoding="utf-8")
         sc = b'""\n'
@@ -469,9 +428,10 @@ class CEmuWindow(QMainWindow):
                 self.log("Failed to compile: error at line {:d}".format(-cnt))
                 return
 
-            c = b'"' + b''.join([ b'\\x%.2x'%txt[i] for i in range(len(txt)) ]) + b'"'
+            c = b'"' + b''.join([b'\\x%.2x' % txt[i]
+                                for i in range(len(txt))]) + b'"'
             c = c.ljust(60, b' ')
-            c+= b'// ' + insn + b'\n'
+            c += b'// ' + insn + b'\n'
             sc += b'\t' + c
             i += len(txt)
 
@@ -483,7 +443,6 @@ class CEmuWindow(QMainWindow):
         self.log("Saved as '%s'" % fpath)
         return
 
-
     def generate_pe(self) -> None:
         """
         Uses LIEF to create a valid PE from the current session
@@ -492,12 +451,12 @@ class CEmuWindow(QMainWindow):
         asm_code, nb_insns = assemble(self.get_code(as_string=True), self.arch)
         if nb_insns:
             try:
-                outfile = build_pe_executable(asm_code, memory_layout, self.arch)
+                outfile = build_pe_executable(
+                    asm_code, memory_layout, self.arch)
                 self.log("PE file written as '{}'".format(outfile))
             except Exception as e:
                 self.log("PE creation triggered an exception: {}".format(str(e)))
         return
-
 
     def generate_elf(self) -> None:
         """
@@ -507,24 +466,23 @@ class CEmuWindow(QMainWindow):
         asm_code, nb_insns = assemble(self.get_code(as_string=True), self.arch)
         if nb_insns:
             try:
-                outfile = build_elf_executable(asm_code, memory_layout, self.arch)
+                outfile = build_elf_executable(
+                    asm_code, memory_layout, self.arch)
                 self.log(f"ELF file written as '{outfile}'")
             except Exception as e:
                 self.log(f"ELF creation triggered an exception: {e}")
         return
 
-
     def saveAsAsmFile(self) -> None:
-        asm_fmt = open( os.sep.join([TEMPLATE_PATH, "template.asm"]), "rb").read()
+        asm_fmt = (TEMPLATE_PATH / "template.asm").open("rb").read()
         txt = self.__codeWidget.parser.getCleanCodeAsByte(as_string=True)
         title = bytes(self.arch.name, encoding="utf-8")
-        asm = asm_fmt % (title, b'\n'.join([b"\t%s"%x for x in txt.split(b'\n')]))
-        fd, fpath = tempfile.mkstemp(suffix=".asm")
-        with os.reopen(fd, "wb") as f:
-            f.write(asm)
-        self.log(f"Saved as '{fpath}'")
+        asm = asm_fmt % (title, b'\n'.join(
+            [b"\t%s" % x for x in txt.split(b'\n')]))
+        with tempfile.NamedTemporaryFile("wb", suffix=".asm", delete=False) as fd:
+            fd.write(asm)
+            self.log(f"Saved as '{fd.name}'")
         return
-
 
     def onUpdateArchitecture(self, arch: Architecture) -> None:
         self.currentAction.setEnabled(True)
@@ -537,18 +495,17 @@ class CEmuWindow(QMainWindow):
         self.updateTitle()
         return
 
-
-    def updateTitle(self, msg: str="") -> None:
+    def updateTitle(self, msg: str = "") -> None:
         title = f"{TITLE} ({self.arch})"
         if msg:
-            title+=f": {msg}"
+            title += f": {msg}"
         self.setWindowTitle(title)
         return
 
-
     def showShortcutPopup(self):
         msgbox = QMessageBox(self)
-        msgbox.setWindowTitle("CEMU Shortcuts from: {:s}".format(CONFIG_FILEPATH))
+        msgbox.setWindowTitle(
+            "CEMU Shortcuts from: {:s}".format(CONFIG_FILEPATH))
 
         wid = QWidget()
         grid = QGridLayout()
@@ -572,8 +529,9 @@ class CEmuWindow(QMainWindow):
         return
 
     def about_popup(self):
-        templ = open(TEMPLATE_PATH + "/about.html", "r").read()
-        desc = templ.format(author=AUTHOR, version=VERSION, project_link=URL, issues_link=ISSUE_LINK)
+        templ = (TEMPLATE_PATH / "about.html").open().read()
+        desc = templ.format(author=AUTHOR, version=VERSION,
+                            project_link=URL, issues_link=ISSUE_LINK)
         msgbox = QMessageBox(self)
         msgbox.setIcon(QMessageBox.Information)
         msgbox.setWindowTitle("About CEMU")
@@ -615,13 +573,11 @@ class CEmuWindow(QMainWindow):
             self.recentFileActions[j].setVisible(False)
         return
 
-
     def clearRecentFiles(self) -> None:
         settings = QSettings('Cemu', 'Recent Files')
         settings.setValue('recentFileList', [])
         self.updateRecentFileActions()
         return
-
 
     def log(self, msg, to_cli=False) -> None:
         """
@@ -632,7 +588,6 @@ class CEmuWindow(QMainWindow):
             print(msg)
         return
 
-
     def ok(self, msg, to_cli=False) -> None:
         return self.log(f"[+] {msg}", to_cli)
 
@@ -642,13 +597,11 @@ class CEmuWindow(QMainWindow):
     def err(self, msg, to_cli=False) -> None:
         return self.log(f"[-] {msg}", to_cli)
 
-
-    def get_code(self, as_string: bool=False) -> bytearray:
+    def get_code(self, as_string: bool = False) -> bytearray:
         """
         Return as a bytearray the code from the code editor.
         """
         return self.__codeWidget.parser.getCleanCodeAsByte(as_string)
-
 
     def get_registers(self) -> dict[str, int]:
         """
@@ -657,15 +610,8 @@ class CEmuWindow(QMainWindow):
         self.__regsWidget.updateGrid()
         return self.__regsWidget.getRegisterValues()
 
-
     def get_memory_layout(self) -> list[MemorySection]:
         """
         Returns the memory layout as defined by the __mapWidget values as a structured list.
         """
         return self.__mapWidget.maps
-
-
-
-
-
-

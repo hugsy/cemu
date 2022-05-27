@@ -1,31 +1,15 @@
-# -*- coding: utf-8 -*-
-
 import sys
 
-from PyQt6.QtWidgets import(
-    QApplication,
-)
+from PyQt6.QtGui import QIcon
+from PyQt6.QtWidgets import QApplication
 
-from PyQt6.QtGui import(
-    QIcon
-)
-
-from .const import ICON_PATH
-from .ui.main import CEmuWindow
+from cemu.const import DEFAULT_STYLE_PATH, ICON_PATH
+from cemu.ui.main import CEmuWindow
 
 
 def Cemu(args):
-    app = QApplication(sys.argv)
-    style = """
-    QMainWindow, QWidget{
-    background-color: darkgray;
-    }
-
-    QTextEdit, QLineEdit, QTableWidget{
-    background-color: white;
-    }
-    """
-    app.setStyleSheet(style)
-    app.setWindowIcon(QIcon(ICON_PATH))
+    app = QApplication(args)
+    app.setStyleSheet(DEFAULT_STYLE_PATH.open().read())
+    app.setWindowIcon(QIcon(str(ICON_PATH.absolute())))
     CEmuWindow(app)
     sys.exit(app.exec())

@@ -1,0 +1,10 @@
+QMainWindow,
+QWidget {
+    background-color: darkgray;
+}
+
+QTextEdit,
+QLineEdit,
+QTableWidget {
+    background-color: white;
+}

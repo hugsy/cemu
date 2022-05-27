@@ -1,15 +1,9 @@
 import time
 
-from PyQt6.QtWidgets import (
-    QVBoxLayout,
-    QTextEdit,
-    QFrame,
-    QDockWidget,
-)
+from PyQt6.QtGui import QFont
+from PyQt6.QtWidgets import QDockWidget, QFrame, QTextEdit
 
-from PyQt6.QtGui import(
-    QFont,
-)
+from cemu.const import LOG_DEFAULT_TIMESTAMP_FORMAT, LOG_INSERT_TIMESTAMP
 
 
 class LogWidget(QDockWidget):
@@ -21,34 +15,26 @@ class LogWidget(QDockWidget):
         self.__editor.setFrameStyle(QFrame.Shape.Panel | QFrame.Shape.NoFrame)
         self.__editor.setReadOnly(True)
         self.setWidget(self.__editor)
-        self.__timestamp_format = "%Y/%m/%d - %H:%M:%S"
-        return
+        self.__use_timestamp = LOG_INSERT_TIMESTAMP
+        self.__timestamp_format = LOG_DEFAULT_TIMESTAMP_FORMAT
 
-
-    def log(self, msg: str, add_timestamp: bool = True) -> None:
+    def log(self, msg: str) -> None:
         ts = ""
-        if add_timestamp:
-            ts = time.strftime(self.__timestamp_format)
-        self.__editor.append("{}: {}".format(ts, msg))
-        return
-
+        if self.__use_timestamp:
+            ts = time.strftime(self.__timestamp_format) + ": "
+        self.__editor.append(f"{ts}{msg}")
 
     def error(self, msg: str) -> None:
-        return self.log("[-] {}".format(msg))
-
+        self.log(f"[ERROR] {msg}")
 
     def warn(self, msg: str) -> None:
-        return self.log("[!] {}".format(msg))
-
+        self.log(f"[WARNING] {msg}")
 
     def info(self, msg: str) -> None:
-        return self.log("[*] {}".format(msg))
-
+        self.log(f"[INFO] {msg}")
 
     def ok(self, msg: str) -> None:
-        return self.log("[+] {}".format(msg))
-
+        self.log(f"[SUCCESS] {msg}")
 
     def clear(self) -> None:
         self.__editor.clear()
-        return

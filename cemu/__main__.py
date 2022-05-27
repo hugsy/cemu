@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
+import pathlib
 import sys
 
 
-def main() -> int:
+def main():
     from cemu.core import Cemu
     Cemu(sys.argv)
-    return 0
 
 
-if __name__ == '__main__':
-    sys.exit( main() )
+if __name__ == "__main__":
+    path = pathlib.Path(__file__).absolute().parent.parent
+    sys.path.append(str(path))
+    main()

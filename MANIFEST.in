@@ -3,3 +3,4 @@ include cemu/examples/*.raw
 include cemu/examples/*.asm
 include cemu/syscalls/*.csv
 include cemu/templates/*
+include cemu/styles/*
