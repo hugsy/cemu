@@ -369,7 +369,7 @@ class CEmuWindow(QMainWindow):
 
     def loadCode(self, title, filter, run_disassembler):
         qFile, _ = QFileDialog.getOpenFileName(
-            self, title, EXAMPLE_PATH, filter + ";;All files (*.*)")
+            self, title, str(EXAMPLE_PATH), filter + ";;All files (*.*)")
 
         if not os.access(qFile, os.R_OK):
             self.err(f"Failed to read '{qFile}'")
@@ -390,7 +390,7 @@ class CEmuWindow(QMainWindow):
 
     def saveCode(self, title, filter, run_assembler):
         qFile, _ = QFileDialog().getSaveFileName(
-            self, title, HOME, filter=filter + ";;All files (*.*)")
+            self, title, str(HOME), filter=filter + ";;All files (*.*)")
         if not qFile:
             return
 
@@ -416,8 +416,7 @@ class CEmuWindow(QMainWindow):
         return self.saveCode("Save Raw Binary Pane As", "Raw binary files (*.raw)", True)
 
     def saveAsCFile(self):
-        template = open(os.sep.join(
-            [TEMPLATE_PATH, "template.c"]), "rb").read()
+        template = (TEMPLATE_PATH / "template.c").open("rb").read()
         insns = self.__codeWidget.parser.getCleanCodeAsByte(as_string=False)
         title = bytes(self.arch.name, encoding="utf-8")
         sc = b'""\n'

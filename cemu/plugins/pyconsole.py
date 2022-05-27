@@ -15,9 +15,9 @@ class PythonConsoleWidget(QDockWidget):
 
     version = "{}.{}.{}-{}.{}".format(*sys.version_info)
     motd = "[+] Welcome to CEMU Python console (v{})".format(version)
-    motd+= "\nYou can interact with any emulator component (registers, memory, code, etc.)."
-    motd+= "\nThe emulator is exposed via the `emu` object, and the VM via `vm`!"
-    motd+= "\n"
+    motd += "\nYou can interact with any emulator component (registers, memory, code, etc.)."
+    motd += "\nThe emulator is exposed via the `emu` object, and the VM via `vm`!"
+    motd += "\n"
 
     def __init__(self, parent, *args, **kwargs):
         super(PythonConsoleWidget, self).__init__("Python Console", parent)
@@ -29,7 +29,7 @@ class PythonConsoleWidget(QDockWidget):
         return
 
 
-def register(parent) -> object:
+def register(parent) -> Optional[QDockWidget]:
     log = parent.log
     try:
         return PythonConsoleWidget(parent)

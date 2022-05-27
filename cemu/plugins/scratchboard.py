@@ -1,3 +1,4 @@
+from typing import Optional
 from cemu.ui.main import CEmuWindow
 from PyQt6.QtWidgets import (
     QFrame,
@@ -29,7 +30,7 @@ class ScratchboardWidget(QDockWidget):
         return
 
 
-def register(parent: CEmuWindow) -> QDockWidget:
+def register(parent: CEmuWindow) -> Optional[QDockWidget]:
     log = parent.log
     try:
         return ScratchboardWidget(parent)
