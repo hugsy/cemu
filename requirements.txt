@@ -1,5 +1,6 @@
 capstone
 unicorn
+keystone-engine
 PyQt6
 Pygments
 lief
