@@ -1,15 +1,12 @@
-# -*- coding: utf-8 -*-
 
-from cemu.arch.ppc import PowerPC
-from cemu.arch.sparc import SPARC, SPARC64
-from cemu.arch.mips import MIPS, MIPS64
-from cemu.arch.arm import ARM, AARCH64
-from cemu.arch.x86 import X86, X86_32, X86_64
-import enum
-import os
-import csv
 import abc
+import enum
 
+# from cemu.arch.arm import AARCH64, ARM
+# from cemu.arch.mips import MIPS, MIPS64
+# from cemu.arch.ppc import PowerPC
+# from cemu.arch.sparc import SPARC, SPARC64
+# from cemu.arch.x86 import X86, X86_32, X86_64
 from cemu.const import SYSCALLS_PATH
 
 
@@ -112,62 +109,72 @@ class Architecture(object):
         return self.name == x.name and self.endianness == x.endianness and self.syntax == x.syntax
 
 
-Architectures = {
-    "x86": [X86(), X86_32(), X86_64(),
-            X86(syntax=Syntax.ATT), X86_32(syntax=Syntax.ATT), X86_64(syntax=Syntax.ATT)],
-    "arm": [ARM(), ARM(thumb=True), AARCH64()],
-    "mips": [MIPS(), MIPS(endian=Endianness.BIG_ENDIAN), MIPS64(), MIPS64(endian=Endianness.BIG_ENDIAN)],
-    "sparc": [SPARC(), SPARC64()],
-    # "ppc": [PowerPC()] # not supported by unicorn yet
-}
+Architectures: dict[str, list[Architecture]] = {}
 
 
-def is_x86_16(a):
-    return a.__class__.__name__ == "X86"
+def load_architectures() -> None:
+    """Instanciate all the architecture objects
+    """
+    global Architectures
+
+    if len(Architectures) > 0:
+        return
+
+    Architectures["x86"] = [x86.X86(), x86.X86_32(), x86.X86_64(), x86.X86(
+        syntax=Syntax.ATT), x86.X86_32(syntax=Syntax.ATT), x86.X86_64(syntax=Syntax.ATT)]
+    Architectures["arm"] = [arm.ARM(), arm.ARM(thumb=True), arm.AARCH64()]
+    Architectures["mips"] = [mips.MIPS(), mips.MIPS(endian=Endianness.BIG_ENDIAN),
+                             mips.MIPS64(), mips.MIPS64(endian=Endianness.BIG_ENDIAN)]
+    Architectures["sparc"] = [sparc.SPARC(), sparc.SPARC64()]
+    return
 
 
-def is_x86_32(a):
-    return a.__class__.__name__ == "X86_32"
+def is_x86_16(a: Architecture):
+    return a.name == "Intel 8086 16bit"
 
 
-def is_x86_64(a):
-    return a.__class__.__name__ == "X86_64"
+def is_x86_32(a: Architecture):
+    return a.name == "Intel i386 32bit"
 
 
-def is_x86(a):
+def is_x86_64(a: Architecture):
+    return a.name == "Intel i386 64bit"
+
+
+def is_x86(a: Architecture):
     return is_x86_16(a) or is_x86_32(a) or is_x86_64(a)
 
 
-def is_arm(a):
-    return isinstance(a, ARM)
+def is_arm(a: Architecture):
+    return a.name in ("ARM THUMB mode", "ARM Native mode")
 
 
-def is_arm_thumb(a):
-    return is_arm(a) and a.thumb == True
+def is_arm_thumb(a: Architecture):
+    return a.name == "ARM THUMB mode"
 
 
-def is_aarch64(a):
-    return isinstance(a, AARCH64)
+def is_aarch64(a: Architecture):
+    return a.name == "ARM AARCH64"
 
 
-def is_mips(a):
-    return isinstance(a, MIPS)
+def is_mips(a: Architecture):
+    return a.name == "MIPS 32bits"
 
 
-def is_mips64(a):
-    return isinstance(a, MIPS64)
+def is_mips64(a: Architecture):
+    return a.name == "MIPS 64bits"
 
 
-def is_sparc(a):
-    return isinstance(a, SPARC)
+def is_sparc(a: Architecture):
+    return a.name == "SPARC 32bits"
 
 
-def is_sparc64(a):
-    return isinstance(a, SPARC64)
+def is_sparc64(a: Architecture):
+    return a.name == "SPARC 64bits"
 
 
-def is_ppc(a):
-    return isinstance(a, PowerPC)
+def is_ppc(a: Architecture):
+    return a.name == "PowerPC 32bits"
 
 
 def get_all_architecture_names():

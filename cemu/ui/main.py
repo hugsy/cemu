@@ -10,7 +10,7 @@ from PyQt6.QtWidgets import (QApplication, QDockWidget, QFileDialog,
                              QMessageBox, QWidget)
 
 from ..arch import (Architecture, Architectures, Endianness, Syntax,
-                    get_architecture_by_name)
+                    get_architecture_by_name, load_architectures)
 from ..const import (AUTHOR, COMMENT_MARKER, CONFIG_FILEPATH, EXAMPLE_PATH,
                      HOME, ISSUE_LINK, PROPERTY_MARKER, TEMPLATE_PATH, TITLE,
                      URL, VERSION)
@@ -35,6 +35,7 @@ class CEmuWindow(QMainWindow):
         super(CEmuWindow, self).__init__()
         self.__app = app
         self.settings = Settings()
+        load_architectures()
         self.arch = get_architecture_by_name(
             self.settings.get("Global", "DefaultArchitecture", "x86_64"))
         self.recentFileActions = []
@@ -110,7 +111,7 @@ class CEmuWindow(QMainWindow):
         nb_added = 0
 
         for p in list_available_plugins():
-            module = load_plugin(p)
+            module = load_plugin(p.stem)
             if not module or not getattr(module, "register"):
                 print(f"module {p} is invalid")
                 continue
@@ -486,8 +487,7 @@ class CEmuWindow(QMainWindow):
     def onUpdateArchitecture(self, arch: Architecture) -> None:
         self.currentAction.setEnabled(True)
         self.arch = arch
-        self.info(f"Switching to '{self.arch:s}'", to_cli=False)
-        self.info(f"Switching to '{self.arch:s}'", to_cli=True)
+        self.info(f"Switching to '{self.arch}'", to_cli=True)
         self.__regsWidget.updateGrid()
         self.archActions[arch.name].setEnabled(False)
         self.currentAction = self.archActions[arch.name]
@@ -588,13 +588,16 @@ class CEmuWindow(QMainWindow):
         return
 
     def ok(self, msg, to_cli=False) -> None:
-        return self.log(f"[+] {msg}", to_cli)
+        return self.log(f"[SUCCESS] {msg}", to_cli)
 
     def info(self, msg, to_cli=False) -> None:
-        return self.log(f"[*] {msg}", to_cli)
+        return self.log(f"[INFO] {msg}", to_cli)
+
+    def warn(self, msg, to_cli=False) -> None:
+        return self.log(f"[WARNING] {msg}", to_cli)
 
     def err(self, msg, to_cli=False) -> None:
-        return self.log(f"[-] {msg}", to_cli)
+        return self.log(f"[ERROR] {msg}", to_cli)
 
     def get_code(self, as_string: bool = False) -> bytearray:
         """

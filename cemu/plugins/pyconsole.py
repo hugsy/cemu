@@ -1,10 +1,8 @@
 import sys
+from typing import Optional
 
 from PyQt6.QtWidgets import (
-    QWidget,
     QDockWidget,
-    QVBoxLayout,
-    QLabel
 )
 
 from cemu.ui.highlighter import Highlighter

@@ -1,5 +1,6 @@
 import os
-import sys, traceback
+import sys
+import traceback
 
 from PyQt6.QtCore import *
 from PyQt6.QtGui import *
@@ -61,9 +62,11 @@ class PythonConsole(QTextEdit):
         if self.getCommand() == command:
             return
         self.moveCursor(QTextCursor.MoveOperation.End)
-        self.moveCursor(QTextCursor.StartOfLine, QTextCursor.KeepAnchor)
+        self.moveCursor(QTextCursor.MoveOperation.StartOfLine,
+                        QTextCursor.MoveMode.KeepAnchor)
         for i in range(len(self.prompt)):
-            self.moveCursor(QTextCursor.Right, QTextCursor.KeepAnchor)
+            self.moveCursor(QTextCursor.MoveOperation.Right,
+                            QTextCursor.MoveMode.KeepAnchor)
         self.textCursor().removeSelectedText()
         self.textCursor().insertText(command)
         self.moveCursor(QTextCursor.MoveOperation.End)
@@ -86,7 +89,6 @@ class PythonConsole(QTextEdit):
             else:
                 return command
 
-
     def add_last_command_to_history(self):
         command = self.getCommand().rstrip()
         if command and (not self.history or self.history[-1] != command):
@@ -108,17 +110,14 @@ class PythonConsole(QTextEdit):
                 return self.history[self.history_index]
         return ''
 
-
     def get_current_position(self):
         return self.textCursor().columnNumber() - len(self.prompt)
 
-
     def move_cursor_to(self, position):
-        self.moveCursor(QTextCursor.StartOfLine)
+        self.moveCursor(QTextCursor.MoveOperation.StartOfLine)
         for i in range(len(self.prompt) + position):
-            self.moveCursor(QTextCursor.Right)
+            self.moveCursor(QTextCursor.MoveOperation.Right)
         return
-
 
     def run_command(self):
         command = self.getCommand()
@@ -144,7 +143,7 @@ class PythonConsole(QTextEdit):
 
             except Exception:
                 traceback_lines = traceback.format_exc().split('\n')
-                for i in (3,2,1,-1):
+                for i in (3, 2, 1, -1):
                     traceback_lines.pop(i)
                 self.appendPlainText('\n'.join(traceback_lines)+'\n')
 
@@ -155,63 +154,56 @@ class PythonConsole(QTextEdit):
         self.newPrompt()
         return
 
-
     def enter_handle(self):
         self.run_command()
         self.add_last_command_to_history()
         return
 
-
     def home_handle(self):
         self.move_cursor_to(0)
         return
 
-
     def pageup_handle(self):
         return
 
-
     def keyPressEvent(self, event):
-        if event.key() in (Qt.Key_Enter, Qt.Key_Return):
+        if event.key() in (Qt.Key.Key_Enter, Qt.Key.Key_Return):
             self.enter_handle()
             return
 
-        if event.key() == Qt.Key_Home:
+        if event.key() == Qt.Key.Key_Home:
             self.home_handle()
             return
 
-        if event.key() == Qt.Key_PageUp:
+        if event.key() == Qt.Key.Key_PageUp:
             self.pageup_handle()
             return
 
-        if event.key() in (Qt.Key_Left, Qt.Key_Backspace):
+        if event.key() in (Qt.Key.Key_Left, Qt.Key.Key_Backspace):
             if self.get_current_position() == 0:
                 return
 
-        if event.key() == Qt.Key_Up:
+        if event.key() == Qt.Key.Key_Up:
             self.setCommand(self.getPrevHistoryEntry())
             return
 
-        if event.key() == Qt.Key_Down:
+        if event.key() == Qt.Key.Key_Down:
             self.setCommand(self.getNextHistoryEntry())
             return
 
-        if event.key() == Qt.Key_D and event.modifiers() == Qt.ControlModifier:
+        if event.key() == Qt.Key.Key_D and event.modifiers() == Qt.KeyboardModifier.ControlModifier:
             self.close()
 
         super(PythonConsole, self).keyPressEvent(event)
         return
 
-
     @property
     def emu(self):
         return self.rootWindow.emulator
 
-
     @property
     def vm(self):
         return self.emu.vm
-
 
     @property
     def arch(self):

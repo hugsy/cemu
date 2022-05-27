@@ -43,11 +43,11 @@ def hexdump(source: bytearray, length: int = 0x10, separator: str = ".", show_ra
 
 def format_address(addr: int, arch: Architecture) -> str:
     if arch.ptrsize == 2:
-        return f"{addr:#.4x}"
+        return f"{addr:#04x}"
     elif arch.ptrsize == 4:
-        return f"{addr:#.8x}"
+        return f"{addr:#08x}"
     elif arch.ptrsize == 8:
-        return f"{addr:#.16x}"
+        return f"{addr:#016x}"
     else:
         raise ValueError(f"Invalid value for '{arch.ptrsize=}'")
 
@@ -267,7 +267,7 @@ def load_plugin(plugin: str) -> Optional[ModuleType]:
     try:
         mod = importlib.import_module(f"cemu.plugins.{plugin}")
     except ImportError as ie:
-        print(f"Failed to import '{plugin}' - reason: {ie:s}")
+        print(f"Failed to import '{plugin}' - reason: {str(ie)}")
         return None
     return mod
 

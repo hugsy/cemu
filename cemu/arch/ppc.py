@@ -1,11 +1,13 @@
-from cemu.arch import Architecture, Endianness, Syntax
+from cemu.arch import Architecture
 
-## PPC is currently unsupported by unicorn:
-## see https://github.com/unicorn-engine/unicorn/blob/master/include/unicorn/unicorn.h#L94
+# PPC is currently unsupported by unicorn:
+# see https://github.com/unicorn-engine/unicorn/blob/master/include/unicorn/unicorn.h#L94
+
+
 class PowerPC(Architecture):
     name = "PowerPC 32bits"
-    pc   = "PC"
-    sp   = "SP"
+    pc = "PC"
+    sp = "SP"
     flag = None
     registers = [
         'R0', 'R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7',

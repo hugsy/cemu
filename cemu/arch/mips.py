@@ -1,12 +1,12 @@
-from cemu.arch import Architecture, Endianness, Syntax
+from cemu.arch import Architecture, Endianness
 
 
 class MIPS(Architecture):
-    name = "MIPS 32bits"
-    pc   = "PC"
-    sp   = "SP"
+    name: str = "MIPS 32bits"
+    pc: str = "PC"
+    sp: str = "SP"
     flag = None
-    registers = [
+    registers: list[str] = [
         "ZERO", "AT", "V0", "V1",
         'A0', 'A1', 'A2', 'A3',
         'S0', 'S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8',
@@ -15,15 +15,12 @@ class MIPS(Architecture):
         sp,
         pc,
     ]
-    syscall_filename = "mips"
-    ptrsize = 4
+    syscall_filename: str = "mips"
+    ptrsize: int = 4
 
     def __init__(self, *args, **kwargs):
-        self.endianness = kwargs.get("endian", Endianness.LITTLE)
+        self.endianness = kwargs.get("endian", Endianness.LITTLE_ENDIAN)
         return
-
-    def __str__(self):
-        return "{} - {} endian".format(self.name, self.endian_str)
 
 
 class MIPS64(MIPS):
