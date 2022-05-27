@@ -41,7 +41,7 @@ class CodeEdit(QTextEdit):
     def UpdateHighlightedLine(self):
         selection = QTextEdit.ExtraSelection()
         selection.format.setBackground(self.palette().alternateBase())
-        selection.format.setProperty(QTextFormat.FullWidthSelection, QVariant(True))
+        selection.format.setProperty(QTextFormat.Property.FullWidthSelection, QVariant(True))
         selection.cursor = self.textCursor()
         selection.cursor.clearSelection()
         self.setExtraSelections([selection,])

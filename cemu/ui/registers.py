@@ -73,7 +73,7 @@ class RegistersWidget(QDockWidget):
             value = QTableWidgetItem( value )
             if old_val != val:
                 self.__old_register_values[reg] = val
-                value.setForeground(QColor(Qt.red))
+                value.setForeground(QColor("red"))
             value.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEditable)
             self.__values.setItem(i, 0, name)
             self.__values.setItem(i, 1, value)

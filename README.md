@@ -10,12 +10,12 @@
 
 Writing assembly is fun. Assembly is the lowest language (humanly understandable) available to communicate with computers, and is crucial to understand the internal mechanisms of any machine. Unfortunately, setting up an environment to write, compile and run assembly for various architectures (x86, ARM, MIPS, SPARC) has always been painful. **CEmu** is an attempt to fix this by providing a bundled GUI application that empowers users to write assembly and test it by compiling it to bytecode and executing it in an QEMU-based emulator.
 
-**CEmu** combines all the advantages of a basic assembly IDE, compilation and execution environment, by relying on the great libraries [Keystone](https://github.com/keystone-engine/keystone), [Unicorn](https:/github.com/unicorn-engine/unicorn/) and [Capstone](https://github.com/aquynh/capstone) libraries in a Qt6 powered GUI.
+**CEmu** combines all the advantages of a basic assembly IDE, compilation and execution environment, by relying on the great libraries [Keystone](https://github.com/keystone-engine/keystone), [Unicorn](https://github.com/unicorn-engine/unicorn/) and [Capstone](https://github.com/aquynh/capstone) libraries in a Qt6 powered GUI.
 
 It allows to test binary samples, check your shellcodes or even simply learn how to write assembly code, all of this for the following architectures:
 
   - x86-32 / x86-64
-  - Arm / AArch64
+  - ARM / AArch64
   - MIPS / MIPS64
   - SPARC / SPARC64
   - PPC (but not emulation)
@@ -27,9 +27,9 @@ It allows to test binary samples, check your shellcodes or even simply learn how
 
 __Notes__
 
-Since version 0.2.2, `cemu` is now Python3 only for simplicity (and also due to the fact that [Python2 will soon cease to exist](https://pythonclock.org/)). If your current installation of `cemu` is <= 0.2.1 and on Python2, please uninstall it and install it using Python3.
+Since version 0.2.2, `cemu` is now Python3 only for simplicity and mostly also due to the fact that Python2 is not developed any longer. If your current installation of `cemu` is <= 0.2.1 and on Python2, please uninstall it and install it using Python3.
 
-In addition, Python >= 3.9 is required, starting `0.6`.
+In addition, Python >= 3.10 is required, starting `0.6`.
 
 
 ### Quick install with PIP ###
@@ -50,7 +50,7 @@ pip3 install --upgrade .
 
 For 99% of cases, that's all you need to do. `cemu` will be installed in the associated `Scripts` directory:
  * On Linux by default the executable will be found as `/usr/local/bin/cemu` if installed as root, `~/.local/bin/cemu` for non-root
- * On Windows, `%PYTHON_DIR%\Scripts\cemu.exe` if installed with privileges, `%APPDATA%\Python\Python39\Scripts\cemu.exe` if not
+ * On Windows, `%PYTHON_DIR%\Scripts\cemu.exe` if installed with privileges, `%APPDATA%\Python\Python310\Scripts\cemu.exe` if not
 
 
 ## Contribution ##
