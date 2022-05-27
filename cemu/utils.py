@@ -6,7 +6,7 @@ import random
 import re
 import string
 
-from typing import Tuple, List
+from typing import Generator, Iterable, Tuple, List
 
 import capstone
 import keystone
@@ -27,11 +27,11 @@ from cemu.arch import (
 )
 
 
-def hexdump(source: bytearray, length: int=0x10, separator: string='.', show_raw: bool=False, base: int=0x00) -> string:
+def hexdump(source: bytearray, length: int=0x10, separator: string='.', show_raw: bool=False, base: int=0x00) -> str:
     """
     Produces a `hexdump` command like output version of the bytearray given.
     """
-    result = []
+    result: list(str) = []
     for i in range(0, len(source), length):
         s = source[i:i+length]
 
@@ -47,7 +47,7 @@ def hexdump(source: bytearray, length: int=0x10, separator: string='.', show_raw
 
 
 
-def format_address(addr, mode):
+def format_address(addr: int, mode):
     if mode.ptrsize == 2:
         return "%#.4x" % (addr & 0xFFFF)
     elif mode.ptrsize == 4:
@@ -122,12 +122,12 @@ def get_arch_mode(lib, a):
         if lib=="keystone":     arch, mode, endian = keystone.KS_ARCH_SPARC, keystone.KS_MODE_SPARC32, keystone.KS_MODE_LITTLE_ENDIAN
         elif lib=="capstone":   arch, mode, endian = capstone.CS_ARCH_SPARC, 0, capstone.CS_MODE_LITTLE_ENDIAN
         else:                   arch, mode, endian = unicorn.UC_ARCH_SPARC, unicorn.UC_MODE_SPARC32, unicorn.UC_MODE_LITTLE_ENDIAN
-    elif is_sparc(a):
+    elif is_sparc64(a):
         if lib=="keystone":     arch, mode, endian = keystone.KS_ARCH_SPARC, keystone.KS_MODE_SPARC64, keystone.KS_MODE_LITTLE_ENDIAN
         elif lib=="capstone":   arch, mode, endian = capstone.CS_ARCH_SPARC, 0, capstone.CS_MODE_LITTLE_ENDIAN
         else:                   arch, mode, endian = unicorn.UC_ARCH_SPARC, unicorn.UC_MODE_SPARC64, unicorn.UC_MODE_LITTLE_ENDIAN
 
-    if arch is None and mode is None and endian is None:
+    if not arch and not mode and not endian:
         raise Exception("Failed to get architecture parameter from mode")
 
     return arch, mode, endian
@@ -179,30 +179,26 @@ def assemble(asm_code: string, mode: int) -> Tuple[bytearray, int]:
 
 
 def ishex(x:string) -> bool:
-    if x.startswith("0x") or x.startswith("0X"):
+    if x.lower().startswith("0x"):
         x = x[2:]
     return all([c in string.hexdigits for c in x])
 
 
-def list_available_plugins():
+def list_available_plugins() -> Iterable[str]:
     pysearchre = re.compile('.py$', re.IGNORECASE)
-    pluginfiles = filter(pysearchre.search,
-                         os.listdir(os.path.join(os.path.dirname(__file__), "plugins")))
-    form_module = lambda fp: os.path.splitext(fp)[0]
-    plugins = map(form_module, pluginfiles)
-    for plugin in plugins:
+    plugin_files = filter(pysearchre.search, os.listdir(os.path.join(os.path.dirname(__file__), "plugins")))
+    form_module = lambda x: os.path.splitext(x)[0]
+    for plugin in map(form_module, plugin_files):
         if not plugin.startswith('__'):
             yield plugin
     return
 
 
-def load_plugin(plugin):
-    mod = None
-
+def load_plugin(plugin: str):
     try:
-        mod = importlib.import_module("cemu.plugins.{}".format(plugin))
+        mod = importlib.import_module(f"cemu.plugins.{plugin}")
     except ImportError as ie:
-        print("Failed to import '{}' - reason: {}".format(plugin, ie))
+        print(f"Failed to import '{plugin}' - reason: {ie:s}")
         return None
 
     return mod
@@ -215,7 +211,7 @@ def get_cursor_row_number(widget: QTextEdit) -> int:
     assert isinstance(widget, QTextEdit)
     pos = widget.textCursor().position()
     text = widget.toPlainText()
-    return text[:pos].count('\n')
+    return text[:pos].count( os.linesep )
 
 
 def get_cursor_column_number(widget: QTextEdit) -> int:
@@ -225,7 +221,7 @@ def get_cursor_column_number(widget: QTextEdit) -> int:
     assert isinstance(widget, QTextEdit)
     pos = widget.textCursor().position()
     text = widget.toPlainText()
-    return len(text[:pos].split('\n')[-1])
+    return len(text[:pos].split( os.linesep)[-1])
 
 
 def get_cursor_position(widget: QTextEdit) -> Tuple[int, int]:

@@ -1,3 +1,4 @@
+from cemu.ui.main import CEmuWindow
 from PyQt6.QtWidgets import (
     QFrame,
     QLabel,
@@ -15,7 +16,7 @@ from cemu.ui.highlighter import Highlighter
 
 
 class ScratchboardWidget(QDockWidget):
-    def __init__(self, parent, *args, **kwargs):
+    def __init__(self, parent: CEmuWindow, *args, **kwargs):
         super(ScratchboardWidget, self).__init__("Scratchboard", parent)
         self.parent = parent
         self.title = "Scratchboard"
@@ -28,10 +29,10 @@ class ScratchboardWidget(QDockWidget):
         return
 
 
-def register(parent) -> object:
+def register(parent: CEmuWindow) -> QDockWidget:
     log = parent.log
     try:
         return ScratchboardWidget(parent)
     except Exception as e:
-        log("Failed to register 'ScratchboardWidget': {}".format(e))
+        log(f"Failed to register 'ScratchboardWidget': {e}")
         return None

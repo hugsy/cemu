@@ -1,15 +1,12 @@
 import functools
 import tempfile
 import os
-import sys
 
-from typing import Callable, Dict, List, Tuple, Any
+from typing import Callable
 
 from PyQt6.QtCore import (
     Qt,
 )
-
-
 
 
 from PyQt6.QtWidgets import (
@@ -93,7 +90,7 @@ class CEmuWindow(QMainWindow):
         self.settings = Settings()
         self.arch = get_architecture_by_name(self.settings.get("Global", "DefaultArchitecture", "x86_64"))
         self.recentFileActions = []
-        self.__plugins = []
+        self.__plugins: list(QDockWidget) = []
         self.__dockable_widgets = []
         self.archActions = {}
         self.signals = {}
@@ -161,10 +158,12 @@ class CEmuWindow(QMainWindow):
         for p in list_available_plugins():
             module = load_plugin(p)
             if not module or not getattr(module, "register"):
+                print(f"module {p} is invalid")
                 continue
 
             m = module.register(self)
             if not m:
+                print(f"missing `register()` in module {p}")
                 continue
 
             self.__plugins.append(m)
@@ -227,7 +226,7 @@ class CEmuWindow(QMainWindow):
                                            self.shortcuts.description("load_binary"),
                                            self.shortcuts.shortcut("load_binary"))
 
-        for i in range(maxRecentFiles):
+        for _ in range(maxRecentFiles):
             self.recentFileActions.append(QAction(self, visible=False, triggered=self.openRecentFile))
 
         clearRecentFilesAction = self.add_menu_item("Clear Recent Files", self.clearRecentFiles,
@@ -307,16 +306,15 @@ class CEmuWindow(QMainWindow):
                     self.archActions[arch.name].setEnabled(False)
                     self.currentAction = self.archActions[arch.name]
 
-                self.archActions[arch.name].setStatusTip("Switch context to architecture: '%s'" % arch)
+                self.archActions[arch.name].setStatusTip(f"Switch context to architecture: '{arch}'")
                 self.archActions[arch.name].triggered.connect( functools.partial(self.onUpdateArchitecture, arch) )
                 archSubMenu.addAction(self.archActions[arch.name])
-
 
         # Add the View Window menu bar
         viewWindowsMenu = menubar.addMenu("&View")
         for w in self.__dockable_widgets:
             name = w.windowTitle()
-            action = self.add_menu_item(name, self.onCheckWindowMenuBarItem, "Window '{}'".format(name), checkable=True, checked=True)
+            action = self.add_menu_item(name, self.onCheckWindowMenuBarItem, f"Window '{name}'", checkable=True, checked=True)
             viewWindowsMenu.addAction(action)
 
 
@@ -356,9 +354,9 @@ class CEmuWindow(QMainWindow):
 
 
 
-    def loadFile(self, fname, data=None):
+    def loadFile(self, fname: str, data=None):
 
-        if data is None:
+        if not data:
             data = open(fname, 'r').read()
 
         for line in data.splitlines():
@@ -366,7 +364,7 @@ class CEmuWindow(QMainWindow):
             if len(part) < 3:
                 continue
 
-            if not (part[0] == COMMENT_MARKER and part[1] == PROPERTY_MARKER):
+            if (part[0], part[1]) != (COMMENT_MARKER, PROPERTY_MARKER):
                 continue
 
             if part[2].startswith("arch:"):
@@ -375,28 +373,27 @@ class CEmuWindow(QMainWindow):
                     arch = get_architecture_by_name(arch_from_file)
                     self.onUpdateArchitecture(arch)
                 except KeyError:
-                    self.log("Unknown architecture '{:s}', discarding...".format(arch_from_file))
+                    self.err(f"Unknown architecture '{arch_from_file:s}', discarding...")
                     continue
 
             if part[2].startswith("endian:"):
                 endian_from_file = part[2][7:].lower()
                 if endian_from_file not in ("little", "big"):
-                    self.log("Incorrect endianness '{:s}', discarding...".format(endian_from_file))
+                    self.err(f"Incorrect endianness '{endian_from_file:s}', discarding...")
                     continue
                 self.arch.endianness = Endianness.LITTLE if endian_from_file == "little" else Endianness.BIG
-                self.log("Changed endianness to '{:s}'".format(endian_from_file))
+                self.ok(f"Changed endianness to '{endian_from_file:s}'")
 
             if part[2].startswith("syntax:"):
                 syntax_from_file = part[2][7:].lower()
                 if syntax_from_file not in ("att", "intel"):
-                    self.log("Incorrect syntax '{:s}', discarding...".format(syntax_from_file))
+                    self.err(f"Incorrect syntax '{syntax_from_file:s}', discarding...")
                     continue
                 self.arch.syntax = Syntax.ATT if syntax_from_file=="att" else Syntax.INTEL
-                self.log("Changed syntax to '{:s}'".format(syntax_from_file))
-
+                self.ok(f"Changed syntax to '{syntax_from_file:s}'")
 
         self.__codeWidget.editor.setPlainText(data)
-        self.log("Loaded '%s'" % fname)
+        self.ok(f"Loaded '{fname}'")
         self.updateRecentFileActions(fname)
         self.current_file = fname
         self.updateTitle(self.current_file)
@@ -412,6 +409,7 @@ class CEmuWindow(QMainWindow):
         qFile, _ = QFileDialog.getOpenFileName(self, title, EXAMPLE_PATH, filter + ";;All files (*.*)")
 
         if not os.access(qFile, os.R_OK):
+            self.err(f"Failed to read '{qFile}'")
             return
 
         if run_disassembler or qFile.endswith(".raw"):
@@ -432,14 +430,14 @@ class CEmuWindow(QMainWindow):
 
     def saveCode(self, title, filter, run_assembler):
         qFile, _ = QFileDialog().getSaveFileName(self, title, HOME, filter=filter + ";;All files (*.*)")
-        if qFile is None or len(qFile)==0 or qFile=="":
+        if not qFile:
             return
 
         if run_assembler:
             asm = self.get_code(as_string=True)
             txt, cnt = assemble(asm, self.arch)
             if cnt < 0:
-                self.log("Failed to compile: error at line {:d}".format(-cnt))
+                self.err(f"Failed to compile: error at line {-cnt:d}")
                 return
         else:
             txt = self.get_code(as_string=True)
@@ -447,7 +445,7 @@ class CEmuWindow(QMainWindow):
         with open(qFile, "wb") as f:
             f.write(txt)
 
-        self.log("Saved as '%s'" % qFile)
+        self.ok(f"Saved as '{qFile:s}'")
         return
 
 
@@ -510,9 +508,9 @@ class CEmuWindow(QMainWindow):
         if nb_insns:
             try:
                 outfile = build_elf_executable(asm_code, memory_layout, self.arch)
-                self.log("ELF file written as '{}'".format(outfile))
+                self.log(f"ELF file written as '{outfile}'")
             except Exception as e:
-                self.log("ELF creation triggered an exception: {}".format(str(e)))
+                self.log(f"ELF creation triggered an exception: {e}")
         return
 
 
@@ -522,17 +520,17 @@ class CEmuWindow(QMainWindow):
         title = bytes(self.arch.name, encoding="utf-8")
         asm = asm_fmt % (title, b'\n'.join([b"\t%s"%x for x in txt.split(b'\n')]))
         fd, fpath = tempfile.mkstemp(suffix=".asm")
-        os.write(fd, asm)
-        os.close(fd)
-        self.log("Saved as '%s'" % fpath)
+        with os.reopen(fd, "wb") as f:
+            f.write(asm)
+        self.log(f"Saved as '{fpath}'")
         return
 
 
     def onUpdateArchitecture(self, arch: Architecture) -> None:
         self.currentAction.setEnabled(True)
         self.arch = arch
-        print("Switching to '%s'" % self.arch)
-        self.log("Switching to '%s'" % self.arch)
+        self.info(f"Switching to '{self.arch:s}'", to_cli=False)
+        self.info(f"Switching to '{self.arch:s}'", to_cli=True)
         self.__regsWidget.updateGrid()
         self.archActions[arch.name].setEnabled(False)
         self.currentAction = self.archActions[arch.name]
@@ -541,9 +539,9 @@ class CEmuWindow(QMainWindow):
 
 
     def updateTitle(self, msg: str="") -> None:
-        title = "{} ({})".format(TITLE, self.arch)
+        title = f"{TITLE} ({self.arch})"
         if msg:
-            title+=": {}".format(msg)
+            title+=f": {msg}"
         self.setWindowTitle(title)
         return
 
@@ -557,7 +555,7 @@ class CEmuWindow(QMainWindow):
         for j, title in enumerate(["Shortcut", "Description"]):
             lbl = QLabel()
             lbl.setTextFormat(Qt.RichText)
-            lbl.setText("<b>{}</b>".format(title))
+            lbl.setText(f"<b>{title}</b>")
             grid.addWidget(lbl, 0, j)
 
         for i, config_item in enumerate(self.shortcuts._config):
@@ -569,9 +567,8 @@ class CEmuWindow(QMainWindow):
 
         wid.setMinimumWidth(800)
         wid.setLayout(grid)
-        layout = msgbox.layout()
-        layout.addWidget(wid)
-        msgbox.exec_()
+        msgbox.layout().addWidget(wid)
+        msgbox.exec()
         return
 
     def about_popup(self):
@@ -583,7 +580,7 @@ class CEmuWindow(QMainWindow):
         msgbox.setTextFormat(Qt.RichText)
         msgbox.setText(desc)
         msgbox.setStandardButtons(QMessageBox.Ok)
-        msgbox.exec_()
+        msgbox.exec()
         return
 
     def updateRecentFileActions(self, insert_file=None):
@@ -609,7 +606,7 @@ class CEmuWindow(QMainWindow):
         for i in range(numRecentFiles):
             _file = files[i]
             _filename = QFileInfo(_file).fileName()
-            text = "&%d %s" % (i + 1, _filename)
+            text = f"&{i+1:d} {_filename:s}"
             self.recentFileActions[i].setText(text)
             self.recentFileActions[i].setData(_file)
             self.recentFileActions[i].setVisible(True)
@@ -636,6 +633,16 @@ class CEmuWindow(QMainWindow):
         return
 
 
+    def ok(self, msg, to_cli=False) -> None:
+        return self.log(f"[+] {msg}", to_cli)
+
+    def info(self, msg, to_cli=False) -> None:
+        return self.log(f"[*] {msg}", to_cli)
+
+    def err(self, msg, to_cli=False) -> None:
+        return self.log(f"[-] {msg}", to_cli)
+
+
     def get_code(self, as_string: bool=False) -> bytearray:
         """
         Return as a bytearray the code from the code editor.
@@ -643,7 +650,7 @@ class CEmuWindow(QMainWindow):
         return self.__codeWidget.parser.getCleanCodeAsByte(as_string)
 
 
-    def get_registers(self) -> Dict[str, int]:
+    def get_registers(self) -> dict[str, int]:
         """
         Returns the register widget values as a Dict
         """
@@ -651,7 +658,7 @@ class CEmuWindow(QMainWindow):
         return self.__regsWidget.getRegisterValues()
 
 
-    def get_memory_layout(self) -> List[MemorySection]:
+    def get_memory_layout(self) -> list[MemorySection]:
         """
         Returns the memory layout as defined by the __mapWidget values as a structured list.
         """

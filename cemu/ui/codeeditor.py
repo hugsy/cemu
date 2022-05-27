@@ -38,7 +38,6 @@ class CodeEdit(QTextEdit):
         self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         return
 
-
     def UpdateHighlightedLine(self):
         selection = QTextEdit.ExtraSelection()
         selection.format.setBackground(self.palette().alternateBase())

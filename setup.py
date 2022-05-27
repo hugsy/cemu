@@ -1,5 +1,4 @@
 from setuptools import setup, find_packages
-import platform
 import cemu.const as const
 
 def readme():
@@ -9,6 +8,7 @@ def readme():
 
 def get_required_packages():
     return [ x.strip() for x in open('./requirements.txt', 'r').readlines()]
+
 
 setup(
     name = const.PROGNAME,
@@ -20,11 +20,11 @@ setup(
         'Development Status :: 4 - Beta',
         'License :: OSI Approved :: MIT License',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
         'Topic :: Software Development :: Assemblers',
         'Natural Language :: English',
     ],
-    python_requires=">=3.8.0",
+    python_requires=">=3.9.0",
     author = const.AUTHOR,
     author_email = const.EMAIL,
     version = const.VERSION,

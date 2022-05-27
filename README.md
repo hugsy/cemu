@@ -1,6 +1,6 @@
 # CEMU #
 
-[![MIT](https://img.shields.io/packagist/l/doctrine/orm.svg?maxAge=2592000?style=plastic)](https://github.com/hugsy/cemu/blob/master/LICENSE) ![Python-Version](https://img.shields.io/pypi/pyversions/cemu.svg) [![PyPi-Version](https://img.shields.io/pypi/v/cemu.svg)](https://pypi.python.org/pypi/cemu) ![[Discord](https://discord.gg/qBn9MbG9vp)](https://img.shields.io/badge/Discord-CEmu)
+[![MIT](https://img.shields.io/packagist/l/doctrine/orm.svg?maxAge=2592000?style=plastic)](https://github.com/hugsy/cemu/blob/master/LICENSE) ![Python-Version](https://img.shields.io/pypi/pyversions/cemu.svg) [![PyPi-Version](https://img.shields.io/pypi/v/cemu.svg)](https://pypi.python.org/pypi/cemu) ![[Discord](https://discord.gg/qBn9MbG9vp)](https://img.shields.io/badge/Discord-CEmu-green)
 
 ![cemu-linux](https://i.imgur.com/iHtWvTL.png)
 
@@ -29,7 +29,7 @@ __Notes__
 
 Since version 0.2.2, `cemu` is now Python3 only for simplicity (and also due to the fact that [Python2 will soon cease to exist](https://pythonclock.org/)). If your current installation of `cemu` is <= 0.2.1 and on Python2, please uninstall it and install it using Python3.
 
-In addition, Python >= 3.8 is required, starting `0.6`.
+In addition, Python >= 3.9 is required, starting `0.6`.
 
 
 ### Quick install with PIP ###

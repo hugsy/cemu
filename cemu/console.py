@@ -1,8 +1,10 @@
+import os
 import sys, traceback
 
 from PyQt6.QtCore import *
 from PyQt6.QtGui import *
 from PyQt6.QtWidgets import *
+
 
 class StdoutRedirector:
     def __init__(self, write_func):
@@ -32,10 +34,10 @@ class PythonConsole(QTextEdit):
         self.__locales["vm"] = self.vm
         self.__globals = globals()
 
-        self.setWordWrapMode(QTextOption.WrapAnywhere)
+        self.setWordWrapMode(QTextOption.WrapMode.WrapAnywhere)
         self.setUndoRedoEnabled(False)
-        self.document().setDefaultFont(QFont("monospace", 10, QFont.Normal))
-        self.setText(self.startup_message+"\n")
+        self.document().setDefaultFont(QFont("monospace", 10, QFont.Weight.Normal))
+        self.setText(self.startup_message+os.linesep)
         self.newPrompt()
         return
 
@@ -47,7 +49,7 @@ class PythonConsole(QTextEdit):
     def newPrompt(self):
         prompt = '.' * len(self.prompt) if self.construct else self.prompt
         self.appendPlainText(prompt)
-        self.moveCursor(QTextCursor.End)
+        self.moveCursor(QTextCursor.MoveOperation.End)
         return
 
     def getCommand(self):
@@ -58,13 +60,13 @@ class PythonConsole(QTextEdit):
     def setCommand(self, command):
         if self.getCommand() == command:
             return
-        self.moveCursor(QTextCursor.End)
+        self.moveCursor(QTextCursor.MoveOperation.End)
         self.moveCursor(QTextCursor.StartOfLine, QTextCursor.KeepAnchor)
         for i in range(len(self.prompt)):
             self.moveCursor(QTextCursor.Right, QTextCursor.KeepAnchor)
         self.textCursor().removeSelectedText()
         self.textCursor().insertText(command)
-        self.moveCursor(QTextCursor.End)
+        self.moveCursor(QTextCursor.MoveOperation.End)
         return
 
     def getConstruct(self, command):
