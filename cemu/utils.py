@@ -2,20 +2,18 @@ import importlib
 import os
 import pathlib
 import random
-import re
 import string
 from types import ModuleType
-from typing import Any, Generator, Iterable, Optional, Tuple
+from typing import Any, Generator, Optional, Tuple
 
 import capstone
 import keystone
 import unicorn
 from PyQt6.QtWidgets import QTextEdit
 
-from build.lib.cemu.arch import Architecture
-from cemu.arch import (Endianness, Syntax, is_aarch64, is_arm, is_arm_thumb,
-                       is_mips, is_mips64, is_sparc, is_sparc64, is_x86_16,
-                       is_x86_32, is_x86_64)
+from cemu.arch import (Architecture, Endianness, is_aarch64, is_arm,
+                       is_arm_thumb, is_mips, is_mips64, is_sparc, is_sparc64,
+                       is_x86_16, is_x86_32, is_x86_64)
 from cemu.const import PLUGINS_PATH
 
 DISASSEMBLY_DEFAULT_BASE_ADDRESS = 0x40000

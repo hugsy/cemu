@@ -1,4 +1,4 @@
-
+import importlib
 import enum
 from typing import Optional
 
@@ -81,20 +81,23 @@ class Architecture:
 Architectures: dict[str, list[Architecture]] = {}
 
 
-def load_architectures() -> None:
+def load_architectures(force_reload: bool = False) -> None:
     """Instanciate all the architecture objects
     """
     global Architectures
 
-    if len(Architectures) > 0:
-        return
+    if len(Architectures) == 0 or force_reload:
+        x86 = importlib.import_module(".x86", package="cemu.arch")
+        arm = importlib.import_module(".arm", package="cemu.arch")
+        mips = importlib.import_module(".mips", package="cemu.arch")
+        sparc = importlib.import_module(".sparc", package="cemu.arch")
 
-    Architectures["x86"] = [x86.X86(), x86.X86_32(), x86.X86_64(), x86.X86(
-        syntax=Syntax.ATT), x86.X86_32(syntax=Syntax.ATT), x86.X86_64(syntax=Syntax.ATT)]
-    Architectures["arm"] = [arm.ARM(), arm.ARM(thumb=True), arm.AARCH64()]
-    Architectures["mips"] = [mips.MIPS(), mips.MIPS(endian=Endianness.BIG_ENDIAN),
-                             mips.MIPS64(), mips.MIPS64(endian=Endianness.BIG_ENDIAN)]
-    Architectures["sparc"] = [sparc.SPARC(), sparc.SPARC64()]
+        Architectures["x86"] = [x86.X86(), x86.X86_32(), x86.X86_64(), x86.X86(
+            syntax=Syntax.ATT), x86.X86_32(syntax=Syntax.ATT), x86.X86_64(syntax=Syntax.ATT)]
+        Architectures["arm"] = [arm.ARM(), arm.ARM(thumb=True), arm.AARCH64()]
+        Architectures["mips"] = [mips.MIPS(), mips.MIPS(endian=Endianness.BIG_ENDIAN),
+                                 mips.MIPS64(), mips.MIPS64(endian=Endianness.BIG_ENDIAN)]
+        Architectures["sparc"] = [sparc.SPARC(), sparc.SPARC64()]
     return
 
 
