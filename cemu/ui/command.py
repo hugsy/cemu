@@ -28,7 +28,6 @@ class CommandWidget(QDockWidget):
         super(CommandWidget, self).__init__("Control Panel", parent)
         self.parent = self.parentWidget()
         self.root = self.parent
-        self.log = self.root.log
         self.emulator = self.root.emulator
         sc = self.root.shortcuts
         layout = QHBoxLayout()
@@ -44,7 +43,7 @@ class CommandWidget(QDockWidget):
 
         self.__stopButton = QPushButton("Stop")
         self.__stopButton.setShortcut(sc.shortcut("emulator_stop"))
-        self.__stopButton.clicked.connect( self.onClickStop )
+        self.__stopButton.clicked.connect(self.onClickStop)
         self.__stopButton.setDisabled(True)
 
         self.__checkAsmButton = QPushButton("Check assembly")
@@ -61,15 +60,16 @@ class CommandWidget(QDockWidget):
         self.setWidget(widget)
 
         self.root.signals["setCommandButtonsRunState"] = self.setCommandButtonsForRunningSignal
-        self.setCommandButtonsForRunningSignal.connect(self.onSignalEmulationRun)
+        self.setCommandButtonsForRunningSignal.connect(
+            self.onSignalEmulationRun)
 
         self.root.signals["setCommandButtonsStepRunState"] = self.setCommandButtonsForStepRunningSignal
-        self.setCommandButtonsForStepRunningSignal.connect(self.onSignalEmulationStepRun)
+        self.setCommandButtonsForStepRunningSignal.connect(
+            self.onSignalEmulationStepRun)
 
         self.root.signals["setCommandButtonStopState"] = self.setCommandButtonsForStopSignal
         self.setCommandButtonsForStopSignal.connect(self.onEmulationStop)
         return
-
 
     def __run(self) -> None:
         """
@@ -84,7 +84,6 @@ class CommandWidget(QDockWidget):
         self.emulator.run()
         return
 
-
     def onClickStepNext(self) -> None:
         """
         Command to step into the next instruction.
@@ -93,7 +92,6 @@ class CommandWidget(QDockWidget):
         self.emulator.stop_now = False
         self.__run()
         return
-
 
     def onClickStop(self):
         """
@@ -108,7 +106,6 @@ class CommandWidget(QDockWidget):
         self.log("Emulation context has stopped")
         return
 
-
     def onClickRunAll(self) -> None:
         """
         Command to run the emulation from $pc until the end of
@@ -118,7 +115,6 @@ class CommandWidget(QDockWidget):
         self.emulator.stop_now = False
         self.__run()
         return
-
 
     def onClickCheckCode(self) -> bool:
         """
@@ -134,9 +130,8 @@ class CommandWidget(QDockWidget):
             popup = QMessageBox.warning
             is_valid = False
 
-        popup(self,"Checking assembly code syntax...", msg)
+        popup(self, "Checking assembly code syntax...", msg)
         return is_valid
-
 
     def onSignalEmulationRun(self) -> None:
         """
@@ -148,7 +143,6 @@ class CommandWidget(QDockWidget):
         self.__stepButton.setDisabled(True)
         return
 
-
     def onSignalEmulationStepRun(self) -> None:
         """
         Signal callback called when notifying the step run of emulation
@@ -158,7 +152,6 @@ class CommandWidget(QDockWidget):
         self.__runButton.setDisabled(False)
         self.__stepButton.setDisabled(False)
         return
-
 
     def onEmulationStop(self) -> None:
         """
@@ -170,7 +163,6 @@ class CommandWidget(QDockWidget):
         self.__runButton.setDisabled(False)
         return
 
-
     def load_emulation_context(self) -> bool:
         """
         Prepare the emulation context based on the current context from the UI
@@ -180,9 +172,7 @@ class CommandWidget(QDockWidget):
         memory_layout = self.root.get_memory_layout()
         regs = self.root.get_registers()
 
-        return  self.emulator.populate_memory(memory_layout) and \
-                self.emulator.compile_code(code) and \
-                self.emulator.populate_registers(regs) and \
-                self.emulator.map_code()
-
-
+        return self.emulator.populate_memory(memory_layout) and \
+            self.emulator.compile_code(code) and \
+            self.emulator.populate_registers(regs) and \
+            self.emulator.map_code()

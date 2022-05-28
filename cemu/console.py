@@ -6,6 +6,8 @@ from PyQt6.QtCore import *
 from PyQt6.QtGui import *
 from PyQt6.QtWidgets import *
 
+CONSOLE_DEFAULT_PROMPT = ">>> "
+
 
 class StdoutRedirector:
     def __init__(self, write_func):
@@ -24,10 +26,10 @@ class StdoutRedirector:
 class PythonConsole(QTextEdit):
     def __init__(self, parent, motd=""):
         super(PythonConsole, self).__init__(parent)
-        self.prompt = ">>> "
+        self.prompt = CONSOLE_DEFAULT_PROMPT
         self.history = []
         self.construct = []
-        self.parent = self.parentWidget()
+        self.parent = self.parentWidget()  # type: ignore
         self.rootWindow = self.parent.parent
         self.startup_message = motd
         self.__locales = locals()
@@ -77,7 +79,7 @@ class PythonConsole(QTextEdit):
             prev_command = self.construct[-1]
             self.construct.append(command)
             if not prev_command and not command:
-                ret_val = '\n'.join(self.construct)
+                ret_val = os.linesep.join(self.construct)
                 self.construct = []
                 return ret_val
             else:
@@ -124,7 +126,7 @@ class PythonConsole(QTextEdit):
         command = self.getConstruct(command)
 
         if command:
-            self.appendPlainText("\n")
+            self.appendPlainText(os.linesep)
             old_stdout = sys.stdout
             old_stderr = sys.stderr
 
@@ -134,19 +136,21 @@ class PythonConsole(QTextEdit):
 
                 result = eval(command, self.__locales, self.__globals)
                 if result is not None:
-                    self.appendPlainText("{}\n".format(result))
+                    self.appendPlainText(
+                        f"{result}{os.linesep}".format(result))
 
             except SyntaxError:
                 exec(command, self.__locales, self.__globals)
 
             except SystemExit:
-                self.setText(self.startup_message+'\n')
+                self.setText(f"{self.startup_message}{os.linesep}")
 
             except Exception:
-                traceback_lines = traceback.format_exc().split('\n')
+                traceback_lines = traceback.format_exc().splitlines()
                 for i in (3, 2, 1, -1):
                     traceback_lines.pop(i)
-                self.appendPlainText('\n'.join(traceback_lines)+'\n')
+                self.appendPlainText(os.linesep.join(
+                    traceback_lines)+os.linesep)
 
             finally:
                 sys.stdout = old_stdout

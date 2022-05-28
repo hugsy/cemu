@@ -31,7 +31,6 @@ class ScratchboardWidget(QDockWidget):
 
 
 def register(parent: CEmuWindow) -> Optional[QDockWidget]:
-    log = parent.log
     try:
         return ScratchboardWidget(parent)
     except Exception as e:

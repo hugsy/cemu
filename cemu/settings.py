@@ -1,28 +1,22 @@
-import os
 import configparser
-
 from typing import Any
-
 
 import cemu.const
 
 
-
 class Settings:
-
 
     def __init__(self, *args, **kwargs):
         self.__config_filename = cemu.const.CONFIG_FILEPATH
 
-        if not os.access(self.__config_filename, os.R_OK):
+        if not self.__config_filename.is_file():
             self.__create_default_config_file()
 
         self.__config = configparser.ConfigParser()
         self.__config.read(self.__config_filename)
         return
 
-
-    def set(self, section, key, value) -> None:
+    def set(self, section: str, key: str, value: Any) -> None:
         """
         Store a setting
         """
@@ -32,27 +26,23 @@ class Settings:
         self.__config.set(section, key, value)
         return
 
-
-    def get(self, section, key, default=None) -> Any:
+    def get(self, section: str, key: str, default=None) -> Any:
         """
         Retrieve a setting
         """
         return self.__config.get(section, key, fallback=default)
 
-
-    def getint(self, section, key, default=0) -> int:
+    def getint(self, section: str, key: str, default=0) -> int:
         """
         Retrieve an integer setting
         """
         return self.__config.getint(section, key, fallback=default)
 
-
-    def getboolean(self, section, key, default=False) -> bool:
+    def getboolean(self, section: str, key: str, default=False) -> bool:
         """
         Retrieve a boolean setting
         """
         return self.__config.getboolean(section, key, fallback=default)
-
 
     def save(self) -> None:
         """
@@ -62,19 +52,16 @@ class Settings:
             self.__config.write(fd)
         return
 
-
     def __create_default_config_file(self) -> None:
         """
         Deploy a new config file as ~/.cemu.ini
         """
-        with open(self.__config_filename, 'w') as configfile:
-            configfile.write(open(cemu.const.TEMPLATE_CONFIG, "r").read())
+        with self.__config_filename.open('w') as cfg:
+            cfg.write(cemu.const.TEMPLATE_CONFIG.open().read())
         return
-
 
     def __contains__(self, key: str) -> bool:
         """
         Check if a config key exists
         """
         return key in self.__config
-

@@ -31,7 +31,6 @@ class RegistersWidget(QDockWidget):
     def __init__(self, parent, *args, **kwargs):
         super(RegistersWidget, self).__init__("Registers", parent)
         self.root = self.parentWidget()
-        self.log = self.root.log
         self.emulator = self.root.emulator
         self.__row_size = 15
         self.__old_register_values = {}
@@ -49,7 +48,6 @@ class RegistersWidget(QDockWidget):
         self.refreshRegisterGridSignal.connect(self.onRefreshRegisterGrid)
         self.root.signals["refreshRegisterGrid"] = self.refreshRegisterGridSignal
         return
-
 
     def updateGrid(self) -> None:
         """
@@ -70,17 +68,17 @@ class RegistersWidget(QDockWidget):
                 value = format_address(val, arch)
             else:
                 value = str(val)
-            value = QTableWidgetItem( value )
+            value = QTableWidgetItem(value)
             if old_val != val:
                 self.__old_register_values[reg] = val
                 value.setForeground(QColor("red"))
-            value.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEditable)
+            value.setFlags(Qt.ItemFlag.ItemIsEnabled |
+                           Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEditable)
             self.__values.setItem(i, 0, name)
             self.__values.setItem(i, 1, value)
         return
 
-
-    def getRegisterValues(self) -> Dict[str,int]:
+    def getRegisterValues(self) -> Dict[str, int]:
         """
         Returns the current values of the registers, as shown by the widget grid
         """
@@ -91,7 +89,6 @@ class RegistersWidget(QDockWidget):
             value = self.__values.item(i, 1).text()
             regs[name] = int(value, 16)
         return regs
-
 
     def onRefreshRegisterGrid(self) -> None:
         self.updateGrid()

@@ -41,10 +41,11 @@ class CodeEdit(QTextEdit):
     def UpdateHighlightedLine(self):
         selection = QTextEdit.ExtraSelection()
         selection.format.setBackground(self.palette().alternateBase())
-        selection.format.setProperty(QTextFormat.Property.FullWidthSelection, QVariant(True))
+        selection.format.setProperty(
+            QTextFormat.Property.FullWidthSelection, QVariant(True))
         selection.cursor = self.textCursor()
         selection.cursor.clearSelection()
-        self.setExtraSelections([selection,])
+        self.setExtraSelections([selection, ])
         return
 
 
@@ -62,11 +63,10 @@ class AssemblyView(QTextEdit):
         self.__editor.textChanged.connect(self.__update_assembly_code)
         return
 
-
     def __update_assembly_code(self):
         lines = self.__editor.toPlainText().split('\n')
         nb_lines = len(lines)
-        bytecode_lines = ["",]*nb_lines
+        bytecode_lines = ["", ]*nb_lines
         old_code = ""
 
         for idx in range(nb_lines):
@@ -126,7 +126,6 @@ class CodeWidget(QDockWidget):
         self.parent = self.parentWidget()
         self.root = self.parent
         self.emulator = self.root.emulator
-        self.log = self.root.log
         self.code_editor_frame = CodeEditorFrame(self)
         self.editor = self.code_editor_frame.editor
         self.editor.cursorPositionChanged.connect(self.onCursorPositionChanged)
@@ -141,11 +140,9 @@ class CodeWidget(QDockWidget):
         self.parser = CodeParser(self)
         return
 
-
     def onCursorPositionChanged(self):
         self.UpdateTitleLabel()
         return
-
 
     def UpdateTitleLabel(self):
         row_num, col_num = get_cursor_position(self.editor)

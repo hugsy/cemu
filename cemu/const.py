@@ -1,5 +1,7 @@
 import pathlib
 
+DEBUG = True
+
 PROGNAME = "cemu"
 AUTHOR = "hugsy"
 EMAIL = "hugsy+github@blah.cat"
@@ -25,7 +27,6 @@ PROPERTY_MARKER = "@@@"
 TEMPLATE_CONFIG = TEMPLATE_PATH / "cemu.ini"
 CONFIG_FILEPATH = HOME / ".cemu.ini"
 DEFAULT_STYLE_PATH = STYLE_PATH / "default.qss"
-
 
 LOG_INSERT_TIMESTAMP = False
 LOG_DEFAULT_TIMESTAMP_FORMAT = "%Y/%m/%d - %H:%M:%S"

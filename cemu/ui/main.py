@@ -28,6 +28,8 @@ from .mapping import MemoryMappingWidget
 from .memory import MemoryWidget
 from .registers import RegistersWidget
 
+from cemu.log import ok, info, warn, error
+
 
 class CEmuWindow(QMainWindow):
 
@@ -44,7 +46,6 @@ class CEmuWindow(QMainWindow):
         self.archActions = {}
         self.signals = {}
         self.current_file = None
-        # self.setAttribute(Qt.WA_DeleteOnClose)
 
         self.shortcuts = Shortcut()
         self.shortcuts.load_from_settings(self.settings)
@@ -103,8 +104,8 @@ class CEmuWindow(QMainWindow):
         Overriding the aboutToSignal handler
         """
         if self.settings.getboolean("Global", "SaveConfigOnExit"):
-            print("Saving settings...")
             self.settings.save()
+            ok("Settings saved...")
         return
 
     def LoadExtraPlugins(self) -> int:
@@ -113,18 +114,18 @@ class CEmuWindow(QMainWindow):
         for p in list_available_plugins():
             module = load_plugin(p.stem)
             if not module or not getattr(module, "register"):
-                print(f"module {p} is invalid")
+                warn(f"module {p} is invalid")
                 continue
 
             m = module.register(self)
             if not m:
-                print(f"missing `register()` in module {p}")
+                warn(f"missing `register()` in module {p}")
                 continue
 
             self.__plugins.append(m)
             nb_added += 1
             self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, m)
-            self.log("Loaded plugin '{}'".format(p))
+            info("Loaded plugin '{}'".format(p))
         return nb_added
 
     def setMainWindowProperty(self) -> None:
@@ -425,7 +426,7 @@ class CEmuWindow(QMainWindow):
         for insn in insns:
             txt, cnt = assemble(insn, self.arch)
             if cnt < 0:
-                self.log("Failed to compile: error at line {:d}".format(-cnt))
+                info("Failed to compile: error at line {:d}".format(-cnt))
                 return
 
             c = b'"' + b''.join([b'\\x%.2x' % txt[i]
@@ -440,7 +441,7 @@ class CEmuWindow(QMainWindow):
         fd, fpath = tempfile.mkstemp(suffix=".c")
         os.write(fd, body)
         os.close(fd)
-        self.log("Saved as '%s'" % fpath)
+        info("Saved as '%s'" % fpath)
         return
 
     def generate_pe(self) -> None:
@@ -453,9 +454,9 @@ class CEmuWindow(QMainWindow):
             try:
                 outfile = build_pe_executable(
                     asm_code, memory_layout, self.arch)
-                self.log("PE file written as '{}'".format(outfile))
+                info("PE file written as '{}'".format(outfile))
             except Exception as e:
-                self.log("PE creation triggered an exception: {}".format(str(e)))
+                info("PE creation triggered an exception: {}".format(str(e)))
         return
 
     def generate_elf(self) -> None:
@@ -468,9 +469,9 @@ class CEmuWindow(QMainWindow):
             try:
                 outfile = build_elf_executable(
                     asm_code, memory_layout, self.arch)
-                self.log(f"ELF file written as '{outfile}'")
+                info(f"ELF file written as '{outfile}'")
             except Exception as e:
-                self.log(f"ELF creation triggered an exception: {e}")
+                info(f"ELF creation triggered an exception: {e}")
         return
 
     def saveAsAsmFile(self) -> None:
@@ -481,7 +482,7 @@ class CEmuWindow(QMainWindow):
             [b"\t%s" % x for x in txt.split(b'\n')]))
         with tempfile.NamedTemporaryFile("wb", suffix=".asm", delete=False) as fd:
             fd.write(asm)
-            self.log(f"Saved as '{fd.name}'")
+            info(f"Saved as '{fd.name}'")
         return
 
     def onUpdateArchitecture(self, arch: Architecture) -> None:
@@ -577,27 +578,6 @@ class CEmuWindow(QMainWindow):
         settings.setValue('recentFileList', [])
         self.updateRecentFileActions()
         return
-
-    def log(self, msg, to_cli=False) -> None:
-        """
-        Log `msg` into the logging window
-        """
-        self.__logWidget.log(msg)
-        if to_cli:
-            print(msg)
-        return
-
-    def ok(self, msg, to_cli=False) -> None:
-        return self.log(f"[SUCCESS] {msg}", to_cli)
-
-    def info(self, msg, to_cli=False) -> None:
-        return self.log(f"[INFO] {msg}", to_cli)
-
-    def warn(self, msg, to_cli=False) -> None:
-        return self.log(f"[WARNING] {msg}", to_cli)
-
-    def err(self, msg, to_cli=False) -> None:
-        return self.log(f"[ERROR] {msg}", to_cli)
 
     def get_code(self, as_string: bool = False) -> bytearray:
         """

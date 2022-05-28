@@ -39,7 +39,6 @@ from typing import List, Tuple, Any
 class MemoryMappingWidget(QDockWidget):
     def __init__(self, parent, *args, **kwargs):
         super(MemoryMappingWidget, self).__init__("Memory map", parent)
-        self.log = self.parentWidget().log
         layout = QVBoxLayout()
         self.__memory_mapping = [
             MemorySection(".text",  0x00004000, 0x1000, "READ|EXEC"),

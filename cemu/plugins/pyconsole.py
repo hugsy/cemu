@@ -28,7 +28,6 @@ class PythonConsoleWidget(QDockWidget):
 
 
 def register(parent) -> Optional[QDockWidget]:
-    log = parent.log
     try:
         return PythonConsoleWidget(parent)
     except Exception as e:

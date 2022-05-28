@@ -4,3 +4,4 @@ keystone-engine==0.9.2
 PyQt6==6.3.0
 Pygments==2.12.0
 lief==0.12.1
+loguru==0.6.0
