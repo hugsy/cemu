@@ -59,7 +59,7 @@ class Architecture:
     @property
     def syscalls(self):
         if not self.__syscalls:
-            fpath = SYSCALLS_PATH / self.syscall_filename
+            fpath = SYSCALLS_PATH / (self.syscall_filename + ".csv")
             self.__syscalls = {}
 
             with fpath.open('r') as fd:
@@ -157,7 +157,7 @@ def get_all_architecture_names():
     return archs
 
 
-def get_architecture_by_name(name):
+def get_architecture_by_name(name: str):
     name = name.lower()
     for abi in Architectures:
         for arch in Architectures[abi]:

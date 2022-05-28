@@ -1,20 +1,21 @@
-import importlib
 import os
 import pathlib
 import random
 import string
-from types import ModuleType
-from typing import Any, Generator, Optional, Tuple
+from typing import Optional, Tuple
 
 import capstone
 import keystone
 import unicorn
 from PyQt6.QtWidgets import QTextEdit
 
-from cemu.arch import (Architecture, Endianness, is_aarch64, is_arm,
+from cemu.arch import (Architecture, Endianness, get_architecture_by_name, is_aarch64, is_arm,
                        is_arm_thumb, is_mips, is_mips64, is_sparc, is_sparc64,
                        is_x86_16, is_x86_32, is_x86_64)
-from cemu.const import PLUGINS_PATH
+from cemu.const import COMMENT_MARKER, PROPERTY_MARKER
+
+from cemu.log import dbg
+
 
 DISASSEMBLY_DEFAULT_BASE_ADDRESS = 0x40000
 
@@ -204,7 +205,7 @@ def disassemble(raw_data: bytes, arch: Architecture, count: int = -1) -> str:
             if idx == count:
                 break
 
-    return os.linesep.join(insns)
+    return '\n'.join(insns)
 
 
 def disassemble_file(fpath: pathlib.Path, arch: Architecture) -> str:
@@ -294,3 +295,57 @@ def generate_random_string(length: int) -> str:
     """
     charset = string.ascii_letters + string.digits
     return "".join(random.choice(charset) for _ in range(length))
+
+
+def get_metadata_from_stream(content: str) -> Optional[Tuple[Architecture, Endianness]]:
+    """Parse a file content to automatically extract metadata. Metadata can only be passed in the file
+    header, and *must* be a commented line (i.e. starting with `;;; `) followed by the property marker (i.e. `@@@`).
+    Both the architecture and endianess *must* be provided
+
+    Example:
+    ;;; @@@architecture x86_64
+    ;;; @@@endianness little
+
+    Args:
+        content (str): _description_
+
+    Returns:
+        Optional[Tuple[str, str]]: _description_
+
+    Raises:
+        KeyError:
+            - if an architecture metadata is found, but invalid
+            - if an endianess metadata is found, but invalid
+    """
+    arch: Optional[Architecture] = None
+    endian: Optional[Endianness] = None
+
+    for line in content.splitlines():
+        part = line.strip().split()
+        if len(part) < 4:
+            return None
+
+        if (part[0] != COMMENT_MARKER) and (arch and endian):
+            return (arch, endian)
+
+        if not part[1].startswith(PROPERTY_MARKER):
+            continue
+
+        metadata_type = part[1].lstrip(PROPERTY_MARKER).lower()
+        metadata_value = part[2].lower()
+
+        if metadata_type == "architecture" and not arch:
+            arch = get_architecture_by_name(metadata_value)
+            dbg(f"Forcing architecture '{arch}'")
+            continue
+
+        if metadata_type == "endianness" and not endian:
+            if metadata_value == "little":
+                endian = Endianness.LITTLE_ENDIAN
+            elif metadata_value == "big":
+                endian = Endianness.BIG_ENDIAN
+            else:
+                continue
+            dbg(f"Forcing endianness '{endian}'")
+
+    return None

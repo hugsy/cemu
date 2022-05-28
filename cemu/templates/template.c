@@ -11,7 +11,9 @@
 
 #define LEN %d
 
-const char sc[LEN] = %s;
+const unsigned char sc[LEN] = {
+%s
+};
 
 void trigger()
 {

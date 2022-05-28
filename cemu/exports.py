@@ -1,4 +1,5 @@
-import tempfile, os
+import tempfile
+import os
 
 from typing import Callable, Dict, List, Tuple, Any
 
@@ -28,25 +29,27 @@ from .utils import (
 )
 
 
-
-def parse_as_lief_pe_permission(perm: MemoryPermission, extra: Any=None) -> int:
+def parse_as_lief_pe_permission(perm: MemoryPermission, extra: Any = None) -> int:
     res = 0
-    if perm.r: res|=PE.SECTION_CHARACTERISTICS.MEM_READ
-    if perm.w: res|=PE.SECTION_CHARACTERISTICS.MEM_WRITE
-    if perm.x: res|=PE.SECTION_CHARACTERISTICS.MEM_EXECUTE
+    if perm.r:
+        res |= PE.SECTION_CHARACTERISTICS.MEM_READ
+    if perm.w:
+        res |= PE.SECTION_CHARACTERISTICS.MEM_WRITE
+    if perm.x:
+        res |= PE.SECTION_CHARACTERISTICS.MEM_EXECUTE
 
     if extra:
-        if extra.lower()=="code":
-            res|=PE.SECTION_CHARACTERISTICS.CNT_CODE
-        if extra.lower()=="idata":
-            res|=PE.SECTION_CHARACTERISTICS.CNT_INITIALIZED_DATA
-        if extra.lower()=="udata":
-            res|=PE.SECTION_CHARACTERISTICS.CNT_UNINITIALIZED_DATA
+        if extra.lower() == "code":
+            res |= PE.SECTION_CHARACTERISTICS.CNT_CODE
+        if extra.lower() == "idata":
+            res |= PE.SECTION_CHARACTERISTICS.CNT_INITIALIZED_DATA
+        if extra.lower() == "udata":
+            res |= PE.SECTION_CHARACTERISTICS.CNT_UNINITIALIZED_DATA
 
     return res
 
 
-def build_pe_executable(asm_code: bytearray, memory_layout: List[MemorySection] , arch: Architecture) -> str:
+def build_pe_executable(text: bytes, memory_layout: List[MemorySection], arch: Architecture) -> str:
     """
     Uses LIEF to build a standalone binary.
 
@@ -65,7 +68,6 @@ def build_pe_executable(asm_code: bytearray, memory_layout: List[MemorySection] 
         basename = "cemu-pe-i386-{:s}".format(generate_random_string(5))
         pe = PE.Binary(basename, PE.PE_TYPE.PE32)
 
-
     # adding sections
     sections = {}
     reladdr = 0x1000
@@ -80,16 +82,18 @@ def build_pe_executable(asm_code: bytearray, memory_layout: List[MemorySection] 
         if name == ".text":
             # .text section: copy our code and set the entrypoint to the
             # beginning VA
-            sect.content = asm_code
+            sect.content = text
             sect.virtual_address = reladdr
-            sect.characteristics = parse_as_lief_pe_permission(permission, "code")
+            sect.characteristics = parse_as_lief_pe_permission(
+                permission, "code")
             sections["text"] = pe.add_section(sect, PE.SECTION_TYPES.TEXT)
 
         elif name == ".data":
             # .data is also sure to exist
             sect.content = b"\x00"
             sect.virtual_address = reladdr
-            sect.characteristics = parse_as_lief_pe_permission(permission, "udata")
+            sect.characteristics = parse_as_lief_pe_permission(
+                permission, "udata")
             sections["data"] = pe.add_section(sect, PE.SECTION_TYPES.DATA)
 
         reladdr += size
@@ -98,9 +102,11 @@ def build_pe_executable(asm_code: bytearray, memory_layout: List[MemorySection] 
     pe.header.add_characteristic(PE.HEADER_CHARACTERISTICS.EXECUTABLE_IMAGE)
     pe.header.add_characteristic(PE.HEADER_CHARACTERISTICS.DEBUG_STRIPPED)
     if is_x64:
-        pe.header.add_characteristic(PE.HEADER_CHARACTERISTICS.LARGE_ADDRESS_AWARE)
+        pe.header.add_characteristic(
+            PE.HEADER_CHARACTERISTICS.LARGE_ADDRESS_AWARE)
     else:
-        pe.header.add_characteristic(PE.HEADER_CHARACTERISTICS.CHARA_32BIT_MACHINE)
+        pe.header.add_characteristic(
+            PE.HEADER_CHARACTERISTICS.CHARA_32BIT_MACHINE)
 
     # fixing pe optional header
     pe.optional_header.addressof_entrypoint = sections["text"].virtual_address
@@ -114,7 +120,7 @@ def build_pe_executable(asm_code: bytearray, memory_layout: List[MemorySection] 
     pe.optional_header.add(PE.DLL_CHARACTERISTICS.NO_SEH)
     # pe.add_library("ntdll.dll")
 
-    #building exe to disk
+    # building exe to disk
     outfile = f"{tempfile.gettempdir()}{os.path.sep:s}{basename:s}.exe"
     builder = PE.Builder(pe)
     builder.build_imports(True)
@@ -123,9 +129,7 @@ def build_pe_executable(asm_code: bytearray, memory_layout: List[MemorySection] 
     return outfile
 
 
-
-def build_elf_executable(asm_code: bytearray, memory_layout: List[MemorySection] , arch: Architecture) -> str:
+def build_elf_executable(asm_code: bytes, memory_layout: List[MemorySection], arch: Architecture) -> str:
     """
     """
     raise NotImplementedError("ELF generation will be implemented soon")
-

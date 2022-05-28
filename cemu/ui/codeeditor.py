@@ -1,31 +1,13 @@
-from PyQt6.QtWidgets import (
-    QVBoxLayout,
-    QHBoxLayout,
-    QLabel,
-    QTextEdit,
-    QFrame,
-    QWidget,
-    QDockWidget,
-)
+from PyQt6.QtCore import Qt, QVariant
+from PyQt6.QtGui import QFont, QTextFormat
+from PyQt6.QtWidgets import (QDockWidget, QFrame, QHBoxLayout, QLabel,
+                             QTextEdit, QVBoxLayout, QWidget)
 
-from PyQt6.QtGui import(
-    QFont,
-    QTextFormat,
-)
+from cemu.const import COMMENT_MARKER
+from cemu.emulator import Emulator
 
-from PyQt6.QtCore import(
-    QVariant,
-    Qt,
-)
 
-from ..parser import CodeParser
-from ..utils import (
-    assemble,
-    get_cursor_position,
-    get_cursor_row_number,
-    get_cursor_column_number,
-)
-
+from ..utils import assemble, get_cursor_position
 from .highlighter import Highlighter
 
 
@@ -124,10 +106,10 @@ class CodeWidget(QDockWidget):
     def __init__(self, parent, *args, **kwargs):
         super(CodeWidget, self).__init__("Code View", parent)
         self.parent = self.parentWidget()
-        self.root = self.parent
-        self.emulator = self.root.emulator
+        self.root: "CEmuWindow" = self.parent
+        self.emulator: Emulator = self.root.emulator
         self.code_editor_frame = CodeEditorFrame(self)
-        self.editor = self.code_editor_frame.editor
+        self.editor: CodeEdit = self.code_editor_frame.editor
         self.editor.cursorPositionChanged.connect(self.onCursorPositionChanged)
         layout = QVBoxLayout()
         layout.setSpacing(0)
@@ -137,7 +119,6 @@ class CodeWidget(QDockWidget):
         widget = QWidget(self)
         widget.setLayout(layout)
         self.setWidget(widget)
-        self.parser = CodeParser(self)
         return
 
     def onCursorPositionChanged(self):
@@ -151,3 +132,45 @@ class CodeWidget(QDockWidget):
             col_num+1
         ))
         return
+
+    def getCleanContent(self) -> str:
+        """
+        Returns the content of the Code widget as a byte array or string.
+        """
+
+        def remove_comments(lines: list[str]) -> list[str]:
+            clean = []
+            for line in lines:
+                line = line.strip()
+                if line.startswith(COMMENT_MARKER):
+                    # ignore line comments
+                    continue
+                if "#" in line:
+                    # strip everything *after* the `#`
+                    line = line[: line.find("#")]
+                clean.append(line)
+            return clean
+
+        def parse_syscalls(lines: list[str]) -> list[str]:
+            parsed = []
+            syscalls = self.root.arch.syscalls
+            syscall_names = syscalls.keys()
+            for line in lines:
+                for sysname in syscall_names:
+                    pattern = f"__NR_SYS_{sysname}"
+                    if pattern in line:
+                        line = line.replace(pattern, str(syscalls[sysname]))
+                parsed.append(line)
+            return parsed
+
+        code: str = self.editor.toPlainText()
+        if not code:
+            return ""
+
+        lines: list[str] = code.splitlines()
+
+        lines = remove_comments(lines)
+
+        lines = parse_syscalls(lines)
+
+        return '\n'.join(lines)
