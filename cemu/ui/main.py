@@ -19,8 +19,7 @@ from ..exports import build_elf_executable, build_pe_executable
 from ..memory import MemorySection
 from ..settings import Settings
 from ..shortcuts import Shortcut
-from ..utils import (assemble, disassemble_file, list_available_plugins,
-                     load_plugin)
+from ..utils import (assemble, disassemble_file)
 from .codeeditor import CodeWidget
 from .command import CommandWidget
 from .log import LogWidget
@@ -29,6 +28,8 @@ from .memory import MemoryWidget
 from .registers import RegistersWidget
 
 from cemu.log import ok, info, warn, error
+
+import cemu.plugins
 
 
 class CEmuWindow(QMainWindow):
@@ -41,7 +42,7 @@ class CEmuWindow(QMainWindow):
         self.arch = get_architecture_by_name(
             self.settings.get("Global", "DefaultArchitecture", "x86_64"))
         self.recentFileActions = []
-        self.__plugins: list[QDockWidget] = []
+        self.__plugins: list[cemu.plugins.CemuPlugin] = []
         self.__dockable_widgets = []
         self.archActions = {}
         self.signals = {}
@@ -77,7 +78,7 @@ class CEmuWindow(QMainWindow):
         self.addDockWidget(
             Qt.DockWidgetArea.RightDockWidgetArea, self.__cmdWidget)
         self.addDockWidget(
-            Qt.DockWidgetArea.RightDockWidgetArea, self.__logWidget)
+            Qt.DockWidgetArea.BottomDockWidgetArea, self.__logWidget)
 
         # ... and the extra plugins too
         self.LoadExtraPlugins()
@@ -111,21 +112,20 @@ class CEmuWindow(QMainWindow):
     def LoadExtraPlugins(self) -> int:
         nb_added = 0
 
-        for p in list_available_plugins():
-            module = load_plugin(p.stem)
-            if not module or not getattr(module, "register"):
-                warn(f"module {p} is invalid")
+        for path in cemu.plugins.list():
+            module = cemu.plugins.load(path)
+            if not module:
                 continue
 
             m = module.register(self)
             if not m:
-                warn(f"missing `register()` in module {p}")
+                error(f"The registration of '{path}' failed")
                 continue
 
             self.__plugins.append(m)
             nb_added += 1
             self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, m)
-            info("Loaded plugin '{}'".format(p))
+            ok(f"Loaded plugin '{path}'")
         return nb_added
 
     def setMainWindowProperty(self) -> None:
@@ -445,11 +445,11 @@ class CEmuWindow(QMainWindow):
         return
 
     def generate_pe(self) -> None:
-        """
-        Uses LIEF to create a valid PE from the current session
+        """Uses LIEF to create a valid PE from the current session
         """
         memory_layout = self.get_memory_layout()
-        asm_code, nb_insns = assemble(self.get_code(as_string=True), self.arch)
+        code = self.get_code(as_string=True)
+        asm_code, nb_insns = assemble(code, self.arch)
         if nb_insns:
             try:
                 outfile = build_pe_executable(
@@ -460,8 +460,7 @@ class CEmuWindow(QMainWindow):
         return
 
     def generate_elf(self) -> None:
-        """
-        Uses LIEF to create a valid ELF from the current session
+        """Uses LIEF to create a valid ELF from the current session
         """
         memory_layout = self.get_memory_layout()
         asm_code, nb_insns = assemble(self.get_code(as_string=True), self.arch)
@@ -475,6 +474,8 @@ class CEmuWindow(QMainWindow):
         return
 
     def saveAsAsmFile(self) -> None:
+        """Write the content of the ASM pane to disk
+        """
         asm_fmt = (TEMPLATE_PATH / "template.asm").open("rb").read()
         txt = self.__codeWidget.parser.getCleanCodeAsByte(as_string=True)
         title = bytes(self.arch.name, encoding="utf-8")
@@ -486,6 +487,11 @@ class CEmuWindow(QMainWindow):
         return
 
     def onUpdateArchitecture(self, arch: Architecture) -> None:
+        """Callback triggered when there's a change of Architecture in the UI
+
+        Args:
+            arch (Architecture): the newly selected architecture
+        """
         self.currentAction.setEnabled(True)
         self.arch = arch
         info(f"Switching to '{self.arch}'")

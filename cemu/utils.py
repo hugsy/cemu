@@ -212,7 +212,7 @@ def disassemble_file(fpath: pathlib.Path, arch: Architecture) -> str:
         return disassemble(f.read(), arch)
 
 
-def assemble(asm_code: str, arch: Architecture) -> Tuple[bytes, int]:
+def assemble(asm_code: str, arch: Architecture, as_bytes: bool = True) -> Tuple[bytes, int]:
     """
     Helper function to assemble code receive in parameter `asm_code` using Keystone.
 
@@ -225,7 +225,7 @@ def assemble(asm_code: str, arch: Architecture) -> Tuple[bytes, int]:
     ks = keystone.Ks(ks_arch, ks_mode | ks_endian)
 
     try:
-        bytecode, cnt = ks.asm(asm_code, as_bytes=True)
+        bytecode, cnt = ks.asm(asm_code, as_bytes=as_bytes)
         if not bytecode or not cnt:
             return (b'', 0)
         bytecode = bytes(bytecode)
@@ -239,35 +239,6 @@ def ishex(x: str) -> bool:
     if x.lower().startswith("0x"):
         x = x[2:]
     return all([c in string.hexdigits for c in x])
-
-
-def list_available_plugins() -> Generator[pathlib.Path, None, None]:
-    """Browse the plugins directory to enumerate valid plugins for cemu
-
-    Yields:
-        Generator[pathlib.Path]: a iterator of `Path` for each valid plugin
-    """
-    for p in PLUGINS_PATH.rglob("*"):
-        if p.name.startswith("__") or p.suffix != ".py":
-            continue
-        yield p
-
-
-def load_plugin(plugin: str) -> Optional[ModuleType]:
-    """Load a specific cemu plugin
-
-    Args:
-        plugin (str): _description_
-
-    Returns:
-        Optional[ModuleType]: _description_
-    """
-    try:
-        mod = importlib.import_module(f"cemu.plugins.{plugin}")
-    except ImportError as ie:
-        print(f"Failed to import '{plugin}' - reason: {str(ie)}")
-        return None
-    return mod
 
 
 def get_cursor_row_number(widget: QTextEdit) -> int:
