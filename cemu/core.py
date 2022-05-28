@@ -9,11 +9,12 @@ from cemu.ui.main import CEmuWindow
 
 
 def Cemu(args):
+    if DEBUG:
+        cemu.log.register_sink(print)
+        cemu.log.dbg("Starting in Debug Mode")
+
     app = QApplication(args)
     app.setStyleSheet(DEFAULT_STYLE_PATH.open().read())
     app.setWindowIcon(QIcon(str(ICON_PATH.absolute())))
-    if DEBUG:
-        cemu.log.register_sink(print)
-
     CEmuWindow(app)
     sys.exit(app.exec())

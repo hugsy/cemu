@@ -7,6 +7,7 @@ from PyQt6.QtWidgets import (
 
 from cemu.ui.highlighter import Highlighter
 from cemu.console import PythonConsole
+from cemu.log import error
 
 
 class PythonConsoleWidget(QDockWidget):
@@ -31,5 +32,5 @@ def register(parent) -> Optional[QDockWidget]:
     try:
         return PythonConsoleWidget(parent)
     except Exception as e:
-        log("Failed to register 'PythonConsoleWidget': {}".format(e))
+        error("Failed to register 'PythonConsoleWidget': {}".format(e))
         return None

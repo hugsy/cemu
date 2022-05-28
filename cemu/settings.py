@@ -1,19 +1,22 @@
 import configparser
-from typing import Any
+from typing import Any, Optional
 
 import cemu.const
+
+from cemu.log import dbg
 
 
 class Settings:
 
     def __init__(self, *args, **kwargs):
+        self.__config: Optional[configparser.ConfigParser] = None
         self.__config_filename = cemu.const.CONFIG_FILEPATH
 
         if not self.__config_filename.is_file():
             self.__create_default_config_file()
+            dbg("Settings file created")
 
-        self.__config = configparser.ConfigParser()
-        self.__config.read(self.__config_filename)
+        self.load()
         return
 
     def set(self, section: str, key: str, value: Any) -> None:
@@ -50,6 +53,19 @@ class Settings:
         """
         with open(self.__config_filename, "w") as fd:
             self.__config.write(fd)
+        dbg(f"Settings saved to '{self.__config_filename}'")
+        return
+
+    def load(self) -> None:
+        """
+        Load the config
+        """
+        if self.__config is not None:
+            del self.__config
+
+        self.__config = configparser.ConfigParser()
+        self.__config.read(self.__config_filename)
+        dbg(f"Settings loaded from '{self.__config_filename}'")
         return
 
     def __create_default_config_file(self) -> None:

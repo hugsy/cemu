@@ -1,7 +1,7 @@
 import functools
 import os
 import tempfile
-from typing import Callable
+from typing import Callable, Optional
 
 from PyQt6.QtCore import QFileInfo, QSettings, Qt
 from PyQt6.QtGui import QAction, QIcon
@@ -296,7 +296,7 @@ class CEmuWindow(QMainWindow):
         helpMenu.addAction(aboutAction)
         return
 
-    def get_widget_by_name(self, name: str) -> QDockWidget:
+    def get_widget_by_name(self, name: str) -> Optional[QDockWidget]:
         """
         Helper function to find a QDockWidget from its title
         """
@@ -334,30 +334,30 @@ class CEmuWindow(QMainWindow):
                     arch = get_architecture_by_name(arch_from_file)
                     self.onUpdateArchitecture(arch)
                 except KeyError:
-                    self.err(
+                    error(
                         f"Unknown architecture '{arch_from_file:s}', discarding...")
                     continue
 
             if part[2].startswith("endian:"):
                 endian_from_file = part[2][7:].lower()
                 if endian_from_file not in ("little", "big"):
-                    self.err(
+                    error(
                         f"Incorrect endianness '{endian_from_file:s}', discarding...")
                     continue
-                self.arch.endianness = Endianness.LITTLE if endian_from_file == "little" else Endianness.BIG
-                self.ok(f"Changed endianness to '{endian_from_file:s}'")
+                self.arch.endianness = Endianness.LITTLE_ENDIAN if endian_from_file == "little" else Endianness.BIG_
+                ok(f"Changed endianness to '{endian_from_file:s}'")
 
             if part[2].startswith("syntax:"):
                 syntax_from_file = part[2][7:].lower()
                 if syntax_from_file not in ("att", "intel"):
-                    self.err(
+                    error(
                         f"Incorrect syntax '{syntax_from_file:s}', discarding...")
                     continue
                 self.arch.syntax = Syntax.ATT if syntax_from_file == "att" else Syntax.INTEL
-                self.ok(f"Changed syntax to '{syntax_from_file:s}'")
+                ok(f"Changed syntax to '{syntax_from_file:s}'")
 
         self.__codeWidget.editor.setPlainText(data)
-        self.ok(f"Loaded '{fname}'")
+        ok(f"Loaded '{fname}'")
         self.updateRecentFileActions(fname)
         self.current_file = fname
         self.updateTitle(self.current_file)
@@ -374,7 +374,7 @@ class CEmuWindow(QMainWindow):
             self, title, str(EXAMPLE_PATH), filter + ";;All files (*.*)")
 
         if not os.access(qFile, os.R_OK):
-            self.err(f"Failed to read '{qFile}'")
+            error(f"Failed to read '{qFile}'")
             return
 
         if run_disassembler or qFile.endswith(".raw"):
@@ -400,7 +400,7 @@ class CEmuWindow(QMainWindow):
             asm = self.get_code(as_string=True)
             txt, cnt = assemble(asm, self.arch)
             if cnt < 0:
-                self.err(f"Failed to compile: error at line {-cnt:d}")
+                error(f"Failed to compile: error at line {-cnt:d}")
                 return
         else:
             txt = self.get_code(as_string=True)
@@ -408,7 +408,7 @@ class CEmuWindow(QMainWindow):
         with open(qFile, "wb") as f:
             f.write(txt)
 
-        self.ok(f"Saved as '{qFile:s}'")
+        ok(f"Saved as '{qFile:s}'")
         return
 
     def saveCodeText(self):
@@ -488,7 +488,7 @@ class CEmuWindow(QMainWindow):
     def onUpdateArchitecture(self, arch: Architecture) -> None:
         self.currentAction.setEnabled(True)
         self.arch = arch
-        self.info(f"Switching to '{self.arch}'", to_cli=True)
+        info(f"Switching to '{self.arch}'")
         self.__regsWidget.updateGrid()
         self.archActions[arch.name].setEnabled(False)
         self.currentAction = self.archActions[arch.name]
@@ -511,7 +511,7 @@ class CEmuWindow(QMainWindow):
         grid = QGridLayout()
         for j, title in enumerate(["Shortcut", "Description"]):
             lbl = QLabel()
-            lbl.setTextFormat(Qt.RichText)
+            lbl.setTextFormat(Qt.TextFormat.RichText)
             lbl.setText(f"<b>{title}</b>")
             grid.addWidget(lbl, 0, j)
 
@@ -533,11 +533,11 @@ class CEmuWindow(QMainWindow):
         desc = templ.format(author=AUTHOR, version=VERSION,
                             project_link=URL, issues_link=ISSUE_LINK)
         msgbox = QMessageBox(self)
-        msgbox.setIcon(QMessageBox.Information)
+        msgbox.setIcon(QMessageBox.Icon.Information)
         msgbox.setWindowTitle("About CEMU")
-        msgbox.setTextFormat(Qt.RichText)
+        msgbox.setTextFormat(Qt.TextFormat.RichText)
         msgbox.setText(desc)
-        msgbox.setStandardButtons(QMessageBox.Ok)
+        msgbox.setStandardButtons(QMessageBox.StandardButton.Ok)
         msgbox.exec()
         return
 

@@ -1,5 +1,7 @@
 from typing import Callable
 
+import cemu.const
+
 loggers = set()
 
 
@@ -32,3 +34,8 @@ def info(msg: str) -> None:
 
 def ok(msg: str) -> None:
     log(f"[SUCCESS] {msg}")
+
+
+def dbg(msg: str) -> None:
+    if cemu.const.DEBUG:
+        log(f"[DEBUG] {msg}")
