@@ -41,9 +41,9 @@ class CEmuWindow(QMainWindow):
         load_architectures()
         self.arch = get_architecture_by_name(
             self.settings.get("Global", "DefaultArchitecture", "x86_64"))
-        self.recentFileActions = []
+        self.recentFileActions: list[QAction] = []
         self.__plugins: list[cemu.plugins.CemuPlugin] = []
-        self.__dockable_widgets = []
+        self.__dockable_widgets: list[QDockWidget] = []
         self.archActions = {}
         self.signals = {}
         self.current_file = None
@@ -145,7 +145,7 @@ class CEmuWindow(QMainWindow):
         self.__app.setStyle(style)
         return
 
-    def add_menu_item(self, title: str, callback: Callable, description: str = "", shortcut: str = "", **kwargs) -> QAction:
+    def addMenuItem(self, title: str, callback: Callable, description: str = "", shortcut: str = "", **kwargs) -> QAction:
         """
         Helper function to create a QAction for the menu bar.
         """
@@ -168,93 +168,101 @@ class CEmuWindow(QMainWindow):
         menubar = self.menuBar()
         maxRecentFiles = self.settings.getint("Global", "MaxRecentFiles")
 
-        # Create "File" menu option
+        # Create "File" menu options
         fileMenu = menubar.addMenu("&File")
 
-        loadAsmAction = self.add_menu_item("Load Assembly", self.loadCodeText,
-                                           self.shortcuts.description(
-                                               "load_assembly"),
-                                           self.shortcuts.shortcut("load_assembly"))
+        # "Open File" submenu
+        openAsmAction = self.addMenuItem("Open Assembly Text", self.loadCodeText,
+                                         self.shortcuts.description(
+                                             "load_assembly"),
+                                         self.shortcuts.shortcut("load_assembly"))
 
-        loadBinAction = self.add_menu_item("Load Binary", self.loadCodeBin,
-                                           self.shortcuts.description(
-                                               "load_binary"),
-                                           self.shortcuts.shortcut("load_binary"))
+        openBinAction = self.addMenuItem("Open Raw Binary", self.loadCodeBin,
+                                         self.shortcuts.description(
+                                             "load_binary"),
+                                         self.shortcuts.shortcut("load_binary"))
 
-        for _ in range(maxRecentFiles):
-            self.recentFileActions.append(
-                QAction(self, visible=False, triggered=self.openRecentFile))
+        openSubMenu = QMenu("Open File", self)
+        openSubMenu.addAction(openAsmAction)
+        openSubMenu.addAction(openBinAction)
 
-        clearRecentFilesAction = self.add_menu_item("Clear Recent Files", self.clearRecentFiles,
-                                                    "Clear Recent Files", "")
+        fileMenu.addMenu(openSubMenu)
 
         # "Save As" sub-menu
-        saveAsSubMenu = QMenu("Save As", self)
+        saveAsSubMenu = QMenu("Save File", self)
 
-        saveAsmAction = self.add_menu_item("Save Assembly", self.saveCodeText,
-                                           self.shortcuts.description(
-                                               "save_as_asm"),
-                                           self.shortcuts.shortcut("save_as_asm"))
+        saveAsmAction = self.addMenuItem("As Assembly", self.saveCodeText,
+                                         self.shortcuts.description(
+                                             "save_as_asm"),
+                                         self.shortcuts.shortcut("save_as_asm"))
 
-        saveBinAction = self.add_menu_item("Save Binary", self.saveCodeBin,
-                                           self.shortcuts.description(
-                                               "save_as_binary"),
-                                           self.shortcuts.shortcut("save_as_binary"))
+        saveBinAction = self.addMenuItem("As Binary", self.saveCodeBin,
+                                         self.shortcuts.description(
+                                             "save_as_binary"),
+                                         self.shortcuts.shortcut("save_as_binary"))
 
         saveAsSubMenu.addAction(saveAsmAction)
         saveAsSubMenu.addAction(saveBinAction)
 
         fileMenu.addMenu(saveAsSubMenu)
 
-        # "Export As" sub-menu
-        exportAsSubMenu = QMenu("Export As", self)
-        saveCAction = self.add_menu_item("Generate C code", self.saveAsCFile,
-                                         self.shortcuts.description(
-                                             "generate_c_file"),
-                                         self.shortcuts.shortcut("generate_c_file"))
+        # "Export" sub-menu
+        exportAsSubMenu = QMenu("Export", self)
+        saveCAction = self.addMenuItem("Generate C code", self.saveAsCFile,
+                                       self.shortcuts.description(
+                                           "generate_c_file"),
+                                       self.shortcuts.shortcut("generate_c_file"))
 
-        saveAsAsmAction = self.add_menu_item("Generate Assembly code", self.saveAsAsmFile,
+        saveAsAsmAction = self.addMenuItem("Generate Assembly code", self.saveAsAsmFile,
+                                           self.shortcuts.description(
+                                               "generate_asm_file"),
+                                           self.shortcuts.shortcut("generate_asm_file"))
+
+        generatePeAction = self.addMenuItem("Generate PE executable", self.generate_pe,
+                                            self.shortcuts.description(
+                                                "generate_pe_exe"),
+                                            self.shortcuts.shortcut("generate_pe_exe"))
+
+        generateElfAction = self.addMenuItem("Generate ELF executable", self.generate_elf,
                                              self.shortcuts.description(
-                                                 "generate_asm_file"),
-                                             self.shortcuts.shortcut("generate_asm_file"))
-
-        generatePeAction = self.add_menu_item("Generate PE executable", self.generate_pe,
-                                              self.shortcuts.description(
-                                                  "generate_pe_exe"),
-                                              self.shortcuts.shortcut("generate_pe_exe"))
-
-        # generateElfAction = self.add_menu_item("Generate ELF executable", self.generate_elf,
-        #                                     self.shortcuts.description("generate_elf_exe"),
-        #                                     self.shortcuts.shortcut("generate_elf_exe"))
+                                                 "generate_elf_exe"),
+                                             self.shortcuts.shortcut("generate_elf_exe"))
 
         exportAsSubMenu.addAction(saveCAction)
         exportAsSubMenu.addAction(saveAsAsmAction)
         exportAsSubMenu.addAction(generatePeAction)
-        # exportAsSubMenu.addAction(generateElfAction)
+        exportAsSubMenu.addAction(generateElfAction)
 
         fileMenu.addMenu(exportAsSubMenu)
+
         fileMenu.addSeparator()
 
-        # "Load" sub-menu
-        loadSubMenu = QMenu("Load", self)
-        loadSubMenu.addAction(loadAsmAction)
-        loadSubMenu.addAction(loadBinAction)
+        # "Open recent files" submenu
+        openRecentFilesSubMenu = QMenu("Open Recent Files", self)
+        for _ in range(maxRecentFiles):
+            action = QAction(self)
+            action.setVisible(False)
+            action.triggered.connect(self.openRecentFile)
+            self.recentFileActions.append(action)
 
-        fileMenu.addMenu(loadSubMenu)
-        fileMenu.addSeparator()
+        clearRecentFilesAction = self.addMenuItem("Clear Recent Files", self.clearRecentFiles,
+                                                  "Clear Recent Files", "")
 
-        for i in range(maxRecentFiles):
-            fileMenu.addAction(self.recentFileActions[i])
+        openRecentFilesSubMenu.addActions(self.recentFileActions)
+        openRecentFilesSubMenu.addSeparator()
+        openRecentFilesSubMenu.addAction(clearRecentFilesAction)
+        fileMenu.addMenu(openRecentFilesSubMenu)
+
         self.updateRecentFileActions()
+
+        # "Quit" action
+
         fileMenu.addSeparator()
 
-        fileMenu.addAction(clearRecentFilesAction)
-        fileMenu.addSeparator()
-
-        quitAction = self.add_menu_item("Quit", QApplication.quit,
-                                        self.shortcuts.shortcut(
-                                            "exit_application"),
-                                        self.shortcuts.description("exit_application"))
+        quitAction = self.addMenuItem("Quit", QApplication.quit,
+                                      self.shortcuts.shortcut(
+                                          "exit_application"),
+                                      self.shortcuts.description("exit_application"))
 
         fileMenu.addAction(quitAction)
 
@@ -278,19 +286,19 @@ class CEmuWindow(QMainWindow):
         viewWindowsMenu = menubar.addMenu("&View")
         for w in self.__dockable_widgets:
             name = w.windowTitle()
-            action = self.add_menu_item(
+            action = self.addMenuItem(
                 name, self.onCheckWindowMenuBarItem, f"Window '{name}'", checkable=True, checked=True)
             viewWindowsMenu.addAction(action)
 
         # Add Help menu bar
         helpMenu = menubar.addMenu("&Help")
-        shortcutAction = self.add_menu_item("Shortcuts", self.showShortcutPopup,
-                                            self.shortcuts.description(
-                                                "shortcut_popup"),
-                                            self.shortcuts.shortcut("shortcut_popup"))
+        shortcutAction = self.addMenuItem("Shortcuts", self.showShortcutPopup,
+                                          self.shortcuts.description(
+                                              "shortcut_popup"),
+                                          self.shortcuts.shortcut("shortcut_popup"))
 
-        aboutAction = self.add_menu_item("About", self.about_popup,
-                                         self.shortcuts.description("about_popup"))
+        aboutAction = self.addMenuItem("About", self.about_popup,
+                                       self.shortcuts.description("about_popup"))
 
         helpMenu.addAction(shortcutAction)
         helpMenu.addAction(aboutAction)
