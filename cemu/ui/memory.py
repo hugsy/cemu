@@ -1,26 +1,17 @@
-from PyQt5.QtWidgets import (
-    QVBoxLayout,
-    QHBoxLayout,
-    QWidget,
-    QDockWidget,
-    QLineEdit,
-    QTextEdit,
-    QFrame,
-    QLabel,
-)
+from __future__ import annotations
 
-from PyQt5.QtGui import(
-    QFont,
-)
-
-from PyQt5.QtCore import(
-    QFileInfo,
-    pyqtSignal,
-    QEvent
-)
+from typing import TYPE_CHECKING
 
 import unicorn
+from PyQt6.QtCore import QEvent, QFileInfo, pyqtSignal
+from PyQt6.QtGui import QFont
+from PyQt6.QtWidgets import (QDockWidget, QFrame, QHBoxLayout, QLabel,
+                             QLineEdit, QTextEdit, QVBoxLayout, QWidget)
 
+import cemu.core
+
+if TYPE_CHECKING:
+    from cemu.ui.main import CEmuWindow
 from cemu.utils import hexdump
 
 
@@ -28,10 +19,8 @@ class MemoryWidget(QDockWidget):
 
     refreshMemoryEditorSignal = pyqtSignal()
 
-    def __init__(self, parent, *args, **kwargs):
+    def __init__(self, parent: CEmuWindow, *args, **kwargs):
         super(MemoryWidget, self).__init__("Memory Viewer", parent)
-        self.parent = self.parentWidget()
-        self.root = self.parent
         title_layout = QHBoxLayout()
         title_layout.addWidget(QLabel("Location"))
         self.address = QLineEdit()
@@ -43,7 +32,7 @@ class MemoryWidget(QDockWidget):
 
         memview_layout = QVBoxLayout()
         self.__editor = QTextEdit()
-        self.__editor.setFrameStyle(QFrame.Panel | QFrame.Plain)
+        self.__editor.setFrameStyle(QFrame.Shape.Panel | QFrame.Shape.NoFrame)
         self.__editor.setFont(QFont('Courier', 10))
         self.__editor.setReadOnly(True)
         memview_layout.addWidget(title_widget)
@@ -55,12 +44,16 @@ class MemoryWidget(QDockWidget):
 
         # define signals
         self.refreshMemoryEditorSignal.connect(self.onRefreshMemoryEditor)
-        self.root.signals["refreshMemoryEditor"] = self.refreshMemoryEditorSignal
+        parent.signals["refreshMemoryEditor"] = self.refreshMemoryEditorSignal
         return
 
-
     def updateEditor(self) -> None:
-        emu = self.root.emulator
+        arch = cemu.core.context.architecture
+        emu = cemu.core.context.emulator
+        if not emu.vm:
+            self.__editor.setText("VM not initialized")
+            return
+
         if not emu.is_running:
             self.__editor.setText("VM not running")
             return
@@ -79,7 +72,7 @@ class MemoryWidget(QDockWidget):
         elif value.startswith("$"):
             # if the value of the "memory viewer" field starts with $<register_name>
             reg_name = value[1:].upper()
-            if reg_name not in emu.arch.registers:
+            if reg_name not in arch.registers:
                 return
             addr = emu.get_register_value(reg_name)
             if addr is None:
@@ -99,7 +92,6 @@ class MemoryWidget(QDockWidget):
             self.__editor.setText("Cannot read at address %x" % addr)
 
         return
-
 
     def onRefreshMemoryEditor(self) -> None:
         self.updateEditor()

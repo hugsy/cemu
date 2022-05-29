@@ -1,11 +1,11 @@
 import os
-from PyQt5.QtCore import (
+from PyQt6.QtCore import (
     Qt,
     QVariant,
     QStringListModel
 )
 
-from PyQt5.QtWidgets import (
+from PyQt6.QtWidgets import (
     QVBoxLayout,
     QTableWidget,
     QHeaderView,
@@ -39,7 +39,6 @@ from typing import List, Tuple, Any
 class MemoryMappingWidget(QDockWidget):
     def __init__(self, parent, *args, **kwargs):
         super(MemoryMappingWidget, self).__init__("Memory map", parent)
-        self.log = self.parentWidget().log
         layout = QVBoxLayout()
         self.__memory_mapping = [
             MemorySection(".text",  0x00004000, 0x1000, "READ|EXEC"),
@@ -66,7 +65,6 @@ class MemoryMappingWidget(QDockWidget):
         self.setWidget(w)
         return
 
-
     @property
     def memory_mapping_str(self) -> None:
         """
@@ -75,14 +73,12 @@ class MemoryMappingWidget(QDockWidget):
         for entry in self.__memory_mapping:
             yield str(entry)
 
-
     def updateView(self) -> bool:
         """
         Refresh the view
         """
         self.model.setStringList(self.memory_mapping_str)
         return True
-
 
     @property
     def maps(self) -> List[MemorySection]:
@@ -92,14 +88,12 @@ class MemoryMappingWidget(QDockWidget):
         self.__maps = self.__memory_mapping[::]
         return self.__maps
 
-
     def onAddSectionButtonClicked(self) -> None:
         """
         Callback associated with the click of the "Add Section" button
         """
         self.add_or_edit_section_popup()
         return
-
 
     def onDeleteSectionButtonClicked(self) -> None:
         """
@@ -110,13 +104,13 @@ class MemoryMappingWidget(QDockWidget):
         for i, sect in enumerate(self.__memory_mapping):
             if line_content == str(sect):
                 if self.__memory_mapping[i].name in (".text", ".data", ".stack"):
-                    print("cannot delete required section '{}'".format(self.__memory_mapping[i].name))
+                    print("cannot delete required section '{}'".format(
+                        self.__memory_mapping[i].name))
                     break
                 del self.__memory_mapping[i]
                 self.updateView()
                 break
         return
-
 
     def add_or_edit_section_popup(self) -> None:
         """
@@ -169,18 +163,23 @@ class MemoryMappingWidget(QDockWidget):
         wid.setMinimumWidth(400)
         layout.addWidget(wid)
 
-        msgbox.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
+        msgbox.setStandardButtons(
+            QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel)
 
         ret = msgbox.exec()
-        if ret == QMessageBox.Ok:
+        if ret == QMessageBox.StandardButton.Ok:
             section_name = nameEdit.text()
             section_address = int(startAddressEdit.text(), 16)
             section_size = int(sizeEdit.text(), 16)
             section_perm = []
-            if perm_read_btn.isChecked(): section_perm.append("READ")
-            if perm_write_btn.isChecked(): section_perm.append("WRITE")
-            if perm_exec_btn.isChecked(): section_perm.append("EXEC")
-            section = MemorySection(section_name, section_address, section_size, "|".join(section_perm))
+            if perm_read_btn.isChecked():
+                section_perm.append("READ")
+            if perm_write_btn.isChecked():
+                section_perm.append("WRITE")
+            if perm_exec_btn.isChecked():
+                section_perm.append("EXEC")
+            section = MemorySection(
+                section_name, section_address, section_size, "|".join(section_perm))
             self.__memory_mapping.append(section)
             self.updateView()
         return

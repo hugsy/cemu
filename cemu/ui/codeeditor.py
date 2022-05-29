@@ -1,31 +1,19 @@
-from PyQt5.QtWidgets import (
-    QVBoxLayout,
-    QHBoxLayout,
-    QLabel,
-    QTextEdit,
-    QFrame,
-    QWidget,
-    QDockWidget,
-)
+from __future__ import annotations
 
-from PyQt5.QtGui import(
-    QFont,
-    QTextFormat,
-)
+import typing
 
-from PyQt5.QtCore import(
-    QVariant,
-    Qt,
-)
+from PyQt6.QtCore import Qt, QVariant
+from PyQt6.QtGui import QFont, QTextFormat
+from PyQt6.QtWidgets import (QDockWidget, QFrame, QHBoxLayout, QLabel,
+                             QTextEdit, QVBoxLayout, QWidget)
 
-from ..parser import CodeParser
-from ..utils import (
-    assemble,
-    get_cursor_position,
-    get_cursor_row_number,
-    get_cursor_column_number,
-)
+import cemu.core
+from cemu.const import COMMENT_MARKER
 
+if typing.TYPE_CHECKING:
+    from cemu.ui.main import CEmuWindow
+
+from ..utils import assemble, get_cursor_position
 from .highlighter import Highlighter
 
 
@@ -34,50 +22,48 @@ class CodeEdit(QTextEdit):
         super(CodeEdit, self).__init__(parent)
         self.cursorPositionChanged.connect(self.UpdateHighlightedLine)
         self.setFont(QFont('Courier', 11))
-        self.setFrameStyle(QFrame.Panel | QFrame.Plain)
-        self.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        self.setFrameStyle(QFrame.Shape.Panel | QFrame.Shape.NoFrame)
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         return
-
 
     def UpdateHighlightedLine(self):
         selection = QTextEdit.ExtraSelection()
         selection.format.setBackground(self.palette().alternateBase())
-        selection.format.setProperty(QTextFormat.FullWidthSelection, QVariant(True))
+        selection.format.setProperty(
+            QTextFormat.Property.FullWidthSelection, QVariant(True))
         selection.cursor = self.textCursor()
         selection.cursor.clearSelection()
-        self.setExtraSelections([selection,])
+        self.setExtraSelections([selection, ])
         return
 
 
 class AssemblyView(QTextEdit):
     def __init__(self, parent, editor):
-        super(AssemblyView, self).__init__(parent)
-        self.parent = self.parentWidget()
-        self.root = self.parent.root
+        super().__init__(parent)
+        self.rootWindow = parent.rootWindow
         self.setReadOnly(True)
         self.setFont(QFont('Courier', 11))
         self.setFixedWidth(140)
-        self.setFrameStyle(QFrame.Panel | QFrame.Plain)
+        self.setFrameStyle(QFrame.Shape.Panel | QFrame.Shape.NoFrame)
         self.setStyleSheet("background-color: rgb(211, 211, 211);")
         self.__editor = editor
         self.__editor.textChanged.connect(self.__update_assembly_code)
         return
 
-
     def __update_assembly_code(self):
-        lines = self.__editor.toPlainText().split('\n')
+        lines = self.__editor.toPlainText().splitlines()
         nb_lines = len(lines)
-        bytecode_lines = ["",]*nb_lines
+        bytecode_lines = ["", ]*nb_lines
         old_code = ""
 
         for idx in range(nb_lines):
             curline = lines[idx].strip()
-            if curline == "" or curline.startswith(";;;") or curline.startswith("#"):
-                bytecode_lines[idx] = ""
+            if not curline or curline.startswith(COMMENT_MARKER):
+                bytecode_lines[idx] = "\n"
                 continue
 
             asm = "\n".join(lines[:idx+1])
-            code, cnt = assemble(asm, self.root.arch)
+            code, _ = assemble(asm)
             if len(code) > len(old_code):
                 new_code = code[len(old_code):]
                 new_line = " ".join(["%.02x" % x for x in new_code])
@@ -89,10 +75,9 @@ class AssemblyView(QTextEdit):
 
 
 class CodeWithAssemblyFrame(QFrame):
-    def __init__(self, parent):
-        super(CodeWithAssemblyFrame, self).__init__(parent)
-        self.parent = self.parentWidget()
-        self.root = self.parent.root
+    def __init__(self, parent: CodeEditorFrame):
+        super().__init__(parent)
+        self.rootWindow = parent.rootWindow
         self.__code_widget = CodeEdit(self)
         self.__asm_widget = AssemblyView(self, self.__code_widget)
         layout = QHBoxLayout(self)
@@ -108,13 +93,12 @@ class CodeWithAssemblyFrame(QFrame):
 
 
 class CodeEditorFrame(QFrame):
-    def __init__(self, parent):
-        super(CodeEditorFrame, self).__init__(parent)
-        self.parent = self.parentWidget()
-        self.root = self.parent.root
+    def __init__(self, parent: CodeWidget):
+        super().__init__(parent)
+        self.rootWindow = parent.rootWindow
         inner_frame = CodeWithAssemblyFrame(self)
         self.editor = inner_frame.code_editor
-        self.__highlighter = Highlighter(self.editor, "asm")
+        self.highlighter = Highlighter(self.editor, "asm")
         layout = QVBoxLayout(self)
         layout.setSpacing(0)
         layout.addWidget(inner_frame)
@@ -124,12 +108,10 @@ class CodeEditorFrame(QFrame):
 class CodeWidget(QDockWidget):
     def __init__(self, parent, *args, **kwargs):
         super(CodeWidget, self).__init__("Code View", parent)
-        self.parent = self.parentWidget()
-        self.root = self.parent
-        self.emulator = self.root.emulator
-        self.log = self.root.log
+        self.parentWindow = parent
+        self.rootWindow: CEmuWindow = parent.rootWindow
         self.code_editor_frame = CodeEditorFrame(self)
-        self.editor = self.code_editor_frame.editor
+        self.editor: CodeEdit = self.code_editor_frame.editor
         self.editor.cursorPositionChanged.connect(self.onCursorPositionChanged)
         layout = QVBoxLayout()
         layout.setSpacing(0)
@@ -139,19 +121,56 @@ class CodeWidget(QDockWidget):
         widget = QWidget(self)
         widget.setLayout(layout)
         self.setWidget(widget)
-        self.parser = CodeParser(self)
         return
-
 
     def onCursorPositionChanged(self):
         self.UpdateTitleLabel()
         return
 
-
     def UpdateTitleLabel(self):
         row_num, col_num = get_cursor_position(self.editor)
-        self.widget_title_label.setText("Code (Line:{:d} Column:{:d})".format(
-            row_num+1,
-            col_num+1
-        ))
+        self.widget_title_label.setText(
+            f"Code (Line:{row_num+1} Column:{col_num+1})")
         return
+
+    def getCleanContent(self) -> str:
+        """
+        Returns the content of the Code widget as a byte array or string.
+        """
+
+        def remove_comments(lines: list[str]) -> list[str]:
+            clean = []
+            for line in lines:
+                line = line.strip()
+                if line.startswith(COMMENT_MARKER):
+                    # ignore line comments
+                    continue
+                if "#" in line:
+                    # strip everything *after* the `#`
+                    line = line[: line.find("#")]
+                clean.append(line)
+            return clean
+
+        def parse_syscalls(lines: list[str]) -> list[str]:
+            parsed = []
+            syscalls = cemu.core.context.architecture.syscalls
+            syscall_names = syscalls.keys()
+            for line in lines:
+                for sysname in syscall_names:
+                    pattern = f"__NR_SYS_{sysname}"
+                    if pattern in line:
+                        line = line.replace(pattern, str(syscalls[sysname]))
+                parsed.append(line)
+            return parsed
+
+        code: str = self.editor.toPlainText()
+        if not code:
+            return ""
+
+        lines: list[str] = code.splitlines()
+
+        lines = remove_comments(lines)
+
+        lines = parse_syscalls(lines)
+
+        return '\n'.join(lines)

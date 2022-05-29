@@ -1,13 +1,14 @@
-# -*- coding: utf-8 -*-
+import cemu.core
 
 SHORTCUT_CONFIG_SECTION_NAME = "Shortcuts"
 
-class Shortcut:
+
+class ShortcutManager:
 
     def __init__(self, *args, **kwargs):
         self._defaults = {
             # menubar
-            "exit_application" :   ["Alt+F4", "Exit the application"],
+            "exit_application":   ["Alt+F4", "Exit the application"],
             "generate_asm_file":   ["", "Save the content as a compilable Assembly file."],
             "generate_c_file":     ["", "Save the content as a compilable C file."],
             "save_as_binary":      ["Ctrl+N", "Save the content of the raw binary pane in a file."],
@@ -19,6 +20,8 @@ class Shortcut:
             "generate_pe_exe":     ["", "Build a valid Windows PE executable"],
             "generate_elf_exe":    ["", "Build a valid Linux ELF executable"],
 
+            "toggle_focus_mode":   ["Ctrl+F", "Toggle focus mode"],
+
             # emulator
             "emulator_check":      ["Alt+C", "Check the assembly code from the assembly pane"],
             "emulator_run_all":    ["Alt+R", "Check and run the assembly code"],
@@ -27,25 +30,25 @@ class Shortcut:
         }
 
         self._config = {}
+        self.load()
         return
-
 
     def shortcut(self, attr):
         return self._config[attr][0]
 
-
     def description(self, attr):
         return self._config[attr][1]
 
-
-    def load_from_settings(self, settings):
+    def load(self):
         """
         Load the shortcuts dict from either the config file if the value exists, or
         the defaults
         """
+        settings = cemu.core.context.settings
         for key in self._defaults:
             default_shortcut, description = self._defaults[key]
-            value = settings.get(SHORTCUT_CONFIG_SECTION_NAME, key, default_shortcut)
+            value = settings.get(
+                SHORTCUT_CONFIG_SECTION_NAME, key, default_shortcut)
             settings.set(SHORTCUT_CONFIG_SECTION_NAME, key, value)
             self._config[key] = [value, description]
 
