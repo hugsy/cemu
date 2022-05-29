@@ -29,7 +29,7 @@ __Notes__
 
 Since version 0.2.2, `cemu` is now Python3 only for simplicity and mostly also due to the fact that Python2 is not developed any longer. If your current installation of `cemu` is <= 0.2.1 and on Python2, please uninstall it and install it using Python3.
 
-In addition, Python >= 3.10 is required, starting `0.6`.
+In addition, Python >= 3.10 is required, starting [0.6](https://github.com/hugsy/cemu/releases/tag/0.6).
 
 
 ### Quick install with PIP ###
