@@ -23,10 +23,10 @@ class BackendContext:
         cemu.arch.load_architectures()
 
         self.settings = cemu.settings.Settings()
+        self.__emulator = cemu.emulator.Emulator()
         default_arch = self.settings.get(
             "Global", "DefaultArchitecture", "x86_64")
         self.__architecture = cemu.arch.get_architecture_by_name(default_arch)
-        self.__emulator = cemu.emulator.Emulator()
         return
 
     @property
@@ -36,9 +36,9 @@ class BackendContext:
     @architecture.setter
     def architecture(self, new_arch: cemu.arch.Architecture):
         cemu.log.dbg(
-            f"Changing architecture {self.architecture} to {new_arch}")
+            f"Changing architecture {self.__architecture} to {new_arch}")
         self.__architecture = new_arch
-        cemu.log.dbg(f"Refreshing emulator for {self.architecture}")
+        cemu.log.dbg(f"Refreshing emulator for {self.__architecture}")
         self.__emulator.create_new_vm()
         return
 

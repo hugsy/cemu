@@ -40,7 +40,6 @@ class CEmuWindow(QMainWindow):
         self.rootWindow = self
         self.__app = app
         self.recentFileActions: list[QAction] = []
-        self.__plugins: list[cemu.plugins.CemuPlugin] = []
         self.__dockable_widgets: list[QDockWidget] = []
         self.archActions = {}
         self.signals = {}
@@ -116,10 +115,10 @@ class CEmuWindow(QMainWindow):
                 error(f"The registration of '{path}' failed")
                 continue
 
-            self.__plugins.append(m)
-            nb_added += 1
+            self.__dockable_widgets.append(m)
             self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, m)
             ok(f"Loaded plugin '{path}'")
+            nb_added += 1
         return nb_added
 
     def setMainWindowProperty(self) -> None:
@@ -381,7 +380,7 @@ class CEmuWindow(QMainWindow):
         if run_disassembler:
             with tempfile.NamedTemporaryFile("w", suffix=".asm", delete=False) as fd:
                 disassembled_content = cemu.utils.disassemble_file(
-                    fpath, cemu.core.context.architecture).values()
+                    fpath).values()
                 fd.write('\n'.join(
                     [f"{mnemo}, {operands}" for mnemo, operands in disassembled_content]))
                 fpath = pathlib.Path(fd.name)
