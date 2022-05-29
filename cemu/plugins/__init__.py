@@ -1,10 +1,15 @@
+from __future__ import annotations
+
 import importlib
 import pathlib
 from types import ModuleType
-from typing import Generator, Optional
+from typing import Generator, Optional, TYPE_CHECKING
 
 from PyQt6.QtWidgets import QDockWidget
 
+import cemu.core
+if TYPE_CHECKING:
+    from cemu.ui.main import CEmuWindow
 from cemu.const import PLUGINS_PATH
 from cemu.log import error
 
@@ -13,11 +18,14 @@ class CemuPlugin(QDockWidget):
     def __init__(self, name: str, parent: QDockWidget):
         super().__init__(name, parent)
         self.name = name
-        self.parent = self.parentWidget()
         return
 
     def __str__(self):
         return self.name
+
+    @property
+    def rootWindow(self) -> CEmuWindow:
+        return cemu.core.context.root
 
 
 def list() -> Generator[pathlib.Path, None, None]:

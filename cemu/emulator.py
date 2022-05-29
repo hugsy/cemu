@@ -3,20 +3,17 @@ import os
 from enum import Enum, unique
 from typing import Any, Callable, Dict, List, Optional
 
-import capstone
 import unicorn
-from PyQt6.QtWidgets import QWidget
 
-from cemu.log import dbg, info, error, log
+import cemu.core
+import cemu.utils
+from cemu.log import dbg, error, info, log
 
 from .arch import (Syntax, is_aarch64, is_arm, is_arm_thumb, is_mips,
                    is_mips64, is_ppc, is_sparc, is_sparc64, is_x86, is_x86_16,
                    is_x86_32, is_x86_64)
 from .memory import MemorySection
 from .utils import assemble, get_arch_mode
-
-import cemu.core
-import cemu.utils
 
 
 @unique
@@ -64,7 +61,7 @@ class Emulator:
         return decorator
 
     def unicorn_register(self, reg):
-        curarch = self.parent.arch
+        curarch = cemu.core.context.architecture
         if is_x86(curarch):
             return getattr(unicorn.x86_const, "UC_X86_REG_%s" % reg.upper())
 
@@ -169,8 +166,10 @@ class Emulator:
         if not self.vm:
             return False
 
+        arch = cemu.core.context.architecture
+
         for r in registers.keys():
-            if is_x86_32(self.arch):
+            if is_x86_32(arch):
                 # temporary hack for x86 segmentation issue
                 if r in ('GS', 'FS', 'SS', 'DS', 'CS', 'ES'):
                     continue
@@ -179,9 +178,9 @@ class Emulator:
             self.vm.reg_write(ur, registers[r])
             dbg(f"[vm::setup] Register '{r}' = {registers[r]:#x}")
 
-        ur = self.unicorn_register(self.arch.pc)
+        ur = self.unicorn_register(arch.pc)
         self.vm.reg_write(ur, self.areas[".text"][0])
-        ur = self.unicorn_register(self.arch.sp)
+        ur = self.unicorn_register(arch.sp)
         self.vm.reg_write(ur, self.areas[".stack"][0])
         return True
 
@@ -194,7 +193,7 @@ class Emulator:
         nb_instructions = len(instructions)
 
         dbg(f"[vm::setup] Assembling {nb_instructions} instructions for {cemu.core.context.architecture.name}")
-        self.code, self.num_insns = assemble(code, self.parent.arch)
+        self.code, self.num_insns = assemble(code)
         if self.num_insns < 0:
             error(f"Failed to compile: error at line {-self.num_insns:d}")
             return False
@@ -233,7 +232,8 @@ class Emulator:
         """
         Returns a string disassembly of the first instruction from `code`.
         """
-        for insn in cemu.utils.disassemble(code, self.arch, 1, addr).values():
+        arch = cemu.core.context.architecture
+        for insn in cemu.utils.disassemble(code, 1, addr).values():
             return f"{insn[0], insn[1]}"
 
         raise Exception("should never be here")
@@ -245,11 +245,12 @@ class Emulator:
         if not self.vm:
             return False
 
+        arch = cemu.core.context.architecture
         code = self.vm.mem_read(address, size)
         insn = self.disassemble_one_instruction(code, address)
 
         if self.stop_now:
-            self.start_addr = self.get_register_value(self.parent.arch.pc)
+            self.start_addr = self.get_register_value(arch.pc)
             emu.emu_stop()
             return
 
@@ -361,19 +362,20 @@ class Emulator:
         self.__vm_state = new_state
 
         if new_state == EmulatorState.NOT_RUNNING:
-            self.rootWindow.signals["refreshRegisterGrid"].emit()
-            self.rootWindow.signals["refreshMemoryEditor"].emit()
-            self.rootWindow.signals["setCommandButtonStopState"].emit()
+            cemu.core.context.root.signals["refreshRegisterGrid"].emit()
+            cemu.core.context.root.signals["refreshMemoryEditor"].emit()
+            cemu.core.context.root.signals["setCommandButtonStopState"].emit()
             return
 
         if new_state == EmulatorState.RUNNING:
-            self.rootWindow.signals["setCommandButtonsRunState"].emit()
+            cemu.core.context.root.signals["setCommandButtonsRunState"].emit()
             return
 
         if new_state == EmulatorState.STEP_RUNNING:
-            self.rootWindow.signals["refreshRegisterGrid"].emit()
-            self.rootWindow.signals["refreshMemoryEditor"].emit()
-            self.rootWindow.signals["setCommandButtonsStepRunState"].emit()
+            cemu.core.context.root.signals["refreshRegisterGrid"].emit()
+            cemu.core.context.root.signals["refreshMemoryEditor"].emit()
+            cemu.core.context.root.signals["setCommandButtonsStepRunState"].emit(
+            )
             return
 
         if new_state == EmulatorState.FINISHED:

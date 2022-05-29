@@ -17,6 +17,7 @@ class BackendContext:
     __emulator: cemu.emulator.Emulator
     __architecture: cemu.arch.Architecture
     # plugins: list[cemu.plugins.CemuPlugin] = []
+    __root: cemu.ui.main.CEmuWindow
 
     def __init__(self):
         cemu.arch.load_architectures()
@@ -45,6 +46,14 @@ class BackendContext:
     def emulator(self) -> cemu.emulator.Emulator:
         return self.__emulator
 
+    @property
+    def root(self) -> cemu.ui.main.CEmuWindow:
+        return self.__root
+
+    @root.setter
+    def root(self, root: cemu.ui.main.CEmuWindow):
+        self.__root = root
+
 
 context = BackendContext()
 
@@ -55,6 +64,8 @@ def Cemu(args: list[str]):
     Args:
         args (list[str]): _description_
     """
+    global context
+
     if cemu.const.DEBUG:
         cemu.log.register_sink(print)
         cemu.log.dbg("Starting in Debug Mode")
@@ -62,5 +73,5 @@ def Cemu(args: list[str]):
     app = QApplication(args)
     app.setStyleSheet(cemu.const.DEFAULT_STYLE_PATH.open().read())
     app.setWindowIcon(QIcon(str(cemu.const.ICON_PATH.absolute())))
-    cemu.ui.main.CEmuWindow(app)
+    context.root = cemu.ui.main.CEmuWindow(app)
     sys.exit(app.exec())

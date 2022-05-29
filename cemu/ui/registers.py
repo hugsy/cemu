@@ -21,7 +21,7 @@ from PyQt6.QtCore import (
     QEvent,
 )
 
-import cemu
+import cemu.core
 
 from ..utils import format_address
 
@@ -47,7 +47,8 @@ class RegistersWidget(QDockWidget):
 
         # define signals
         self.refreshRegisterGridSignal.connect(self.onRefreshRegisterGrid)
-        self.root.signals["refreshRegisterGrid"] = self.refreshRegisterGridSignal
+        self.parent(
+        ).signals["refreshRegisterGrid"] = self.refreshRegisterGridSignal
         return
 
     def updateGrid(self) -> None:

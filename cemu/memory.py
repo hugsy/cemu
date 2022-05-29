@@ -1,7 +1,9 @@
 import pathlib
 import enum
 
-from typing import Optional, Tuple, Any
+from typing import Optional, Tuple
+
+import cemu.core
 
 MemoryLayoutEntryType = Tuple[str, int, int, str, Optional[pathlib.Path]]
 
@@ -82,7 +84,7 @@ class MemorySection:
         return "[0x{:x}-0x{:x}] {:s} ({:s})".format(self.address, self.address+self.size-1, self.name, self.permission.short())
 
     def export(self) -> MemoryLayoutEntryType:
-        return [self.name, self.address, self.size, str(self.permission), self.file_source]
+        return (self.name, self.address, self.size, str(self.permission), self.file_source)
 
     def __contains__(self, addr: int) -> bool:
         return self.address <= addr < self.address + self.size

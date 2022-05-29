@@ -19,11 +19,11 @@ from ..arch import (Architecture, Architectures, Endianness,
                     get_architecture_by_name, load_architectures)
 from ..const import (AUTHOR, CONFIG_FILEPATH, EXAMPLE_PATH, HOME, ISSUE_LINK,
                      TEMPLATE_PATH, TITLE, URL, VERSION)
-from ..emulator import Emulator
+
 from ..exports import build_elf_executable, build_pe_executable
 from ..memory import MemorySection
-from ..settings import Settings
-from ..shortcuts import Shortcut
+
+from ..shortcuts import ShortcutManager
 from ..utils import assemble
 from .codeeditor import CodeWidget
 from .command import CommandWidget
@@ -46,11 +46,7 @@ class CEmuWindow(QMainWindow):
         self.signals = {}
         self.current_file: Optional[pathlib.Path] = None
 
-        self.shortcuts = Shortcut()
-        self.shortcuts.load_from_settings(cemu.core.context.settings)
-
-        # get a reference to the emulator
-        self.emulator = cemu.core.context.emulator
+        self.shortcuts = ShortcutManager()
 
         # set up the dockable items
         self.__regsWidget = RegistersWidget(self)
@@ -420,8 +416,7 @@ class CEmuWindow(QMainWindow):
 
         if run_assembler:
             raw_assembly = self.get_codeview_content()
-            raw_bytecode, cnt = assemble(
-                raw_assembly, cemu.core.context.architecture)
+            raw_bytecode, cnt = assemble(raw_assembly)
             if cnt < 0:
                 error(f"Failed to compile: error at line {-cnt:d}")
                 return
@@ -445,7 +440,7 @@ class CEmuWindow(QMainWindow):
         lines: list[str] = []
         i = 0
         for insn in insns:
-            byte, cnt = assemble(insn, cemu.core.context.architecture)
+            byte, cnt = assemble(insn)
             if cnt < 0:
                 error("Failed to compile: error at line {:d}".format(-cnt))
                 return
@@ -469,7 +464,7 @@ class CEmuWindow(QMainWindow):
         """
         memory_layout = self.get_memory_layout()
         code = self.get_codeview_content()
-        asm_code, nb_insns = assemble(code, cemu.core.context.architecture)
+        asm_code, nb_insns = assemble(code)
         if nb_insns > 0:
             try:
                 pe = build_pe_executable(
@@ -484,7 +479,7 @@ class CEmuWindow(QMainWindow):
         """
         memory_layout = self.get_memory_layout()
         code = self.get_codeview_content()
-        asm_code, nb_insns = assemble(code, cemu.core.context.architecture)
+        asm_code, nb_insns = assemble(code)
         if nb_insns > 0:
             try:
                 outfile = build_elf_executable(

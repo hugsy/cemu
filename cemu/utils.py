@@ -185,7 +185,7 @@ def get_arch_mode(lib: str) -> Tuple[int, int, int]:
     raise ValueError(f"Unknown module '{lib}' for {arch}")
 
 
-def disassemble(raw_data: bytes, arch: Architecture, count: int = -1, base: int = DISASSEMBLY_DEFAULT_BASE_ADDRESS) -> dict[int, Tuple[str, str]]:
+def disassemble(raw_data: bytes, count: int = -1, base: int = DISASSEMBLY_DEFAULT_BASE_ADDRESS) -> dict[int, Tuple[str, str]]:
     """Disassemble the code given as raw data, with the given architecture.
 
     Args:
@@ -197,7 +197,7 @@ def disassemble(raw_data: bytes, arch: Architecture, count: int = -1, base: int 
     Returns:
         str: the text representation of the disassembled code
     """
-    cs_arch, cs_mode, cs_endian = get_arch_mode("capstone", arch)
+    cs_arch, cs_mode, cs_endian = get_arch_mode("capstone")
     cs = capstone.Cs(cs_arch, cs_mode | cs_endian)
     insns: dict[int, Tuple[str, str]] = {}
     for idx, ins in enumerate(cs.disasm(bytes(raw_data), base)):
@@ -208,12 +208,12 @@ def disassemble(raw_data: bytes, arch: Architecture, count: int = -1, base: int 
     return insns
 
 
-def disassemble_file(fpath: pathlib.Path, arch: Architecture) -> dict[int, Tuple[str, str]]:
+def disassemble_file(fpath: pathlib.Path) -> dict[int, Tuple[str, str]]:
     with fpath.open('rb') as f:
-        return disassemble(f.read(), arch)
+        return disassemble(f.read())
 
 
-def assemble(asm_code: str, arch: Architecture, as_bytes: bool = True) -> Tuple[bytes, int]:
+def assemble(asm_code: str, as_bytes: bool = True) -> Tuple[bytes, int]:
     """
     Helper function to assemble code receive in parameter `asm_code` using Keystone.
 
@@ -222,7 +222,8 @@ def assemble(asm_code: str, arch: Architecture, as_bytes: bool = True) -> Tuple[
     @return a tuple of bytecodes as bytearray, along with the number of instruction compiled. If failed, the
     bytearray will be empty, the count of instruction will be the negative number for the faulty line.
     """
-    ks_arch, ks_mode, ks_endian = get_arch_mode("keystone", arch)
+    arch = cemu.core.context.architecture
+    ks_arch, ks_mode, ks_endian = get_arch_mode("keystone")
     ks = keystone.Ks(ks_arch, ks_mode | ks_endian)
 
     try:

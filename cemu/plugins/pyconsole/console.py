@@ -6,6 +6,9 @@ from PyQt6.QtCore import QCoreApplication, Qt
 from PyQt6.QtGui import QFont, QTextCursor, QTextOption
 from PyQt6.QtWidgets import QTextEdit
 
+import cemu.core
+import cemu.emulator
+
 CONSOLE_DEFAULT_PROMPT = ">>> "
 
 
@@ -29,8 +32,6 @@ class PythonConsole(QTextEdit):
         self.prompt = CONSOLE_DEFAULT_PROMPT
         self.history = []
         self.construct = []
-        self.parent = self.parentWidget()  # type: ignore
-        self.rootWindow = self.parent.parent
         self.startup_message = motd
         self.__locales = locals()
         self.__locales["emu"] = self.emu
@@ -203,8 +204,8 @@ class PythonConsole(QTextEdit):
         return
 
     @property
-    def emu(self):
-        return self.rootWindow.emulator
+    def emu(self) -> cemu.emulator.Emulator:
+        return cemu.core.context.emulator
 
     @property
     def vm(self):

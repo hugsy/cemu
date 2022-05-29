@@ -1,5 +1,4 @@
 from __future__ import annotations
-from lib2to3.pgen2.token import COMMENT
 
 import typing
 
@@ -8,8 +7,8 @@ from PyQt6.QtGui import QFont, QTextFormat
 from PyQt6.QtWidgets import (QDockWidget, QFrame, QHBoxLayout, QLabel,
                              QTextEdit, QVBoxLayout, QWidget)
 
+import cemu.core
 from cemu.const import COMMENT_MARKER
-from cemu.emulator import Emulator
 
 if typing.TYPE_CHECKING:
     from cemu.ui.main import CEmuWindow
@@ -64,7 +63,7 @@ class AssemblyView(QTextEdit):
                 continue
 
             asm = "\n".join(lines[:idx+1])
-            code, cnt = assemble(asm, self.rootWindow.arch)
+            code, _ = assemble(asm)
             if len(code) > len(old_code):
                 new_code = code[len(old_code):]
                 new_line = " ".join(["%.02x" % x for x in new_code])
@@ -111,7 +110,6 @@ class CodeWidget(QDockWidget):
         super(CodeWidget, self).__init__("Code View", parent)
         self.parentWindow = parent
         self.rootWindow: CEmuWindow = parent.rootWindow
-        self.emulator: Emulator = self.rootWindow.emulator
         self.code_editor_frame = CodeEditorFrame(self)
         self.editor: CodeEdit = self.code_editor_frame.editor
         self.editor.cursorPositionChanged.connect(self.onCursorPositionChanged)
@@ -155,7 +153,7 @@ class CodeWidget(QDockWidget):
 
         def parse_syscalls(lines: list[str]) -> list[str]:
             parsed = []
-            syscalls = self.root.arch.syscalls
+            syscalls = cemu.core.context.architecture.syscalls
             syscall_names = syscalls.keys()
             for line in lines:
                 for sysname in syscall_names:

@@ -7,6 +7,8 @@ from cemu.log import dbg, error, info
 
 from ..emulator import Emulator, EmulatorState
 
+import cemu.core
+
 
 class CommandWidget(QDockWidget):
 
@@ -17,7 +19,7 @@ class CommandWidget(QDockWidget):
     def __init__(self, parent: "CEmuWindow", *args, **kwargs):
         super().__init__("Control Panel", parent)
         self.rootWindow: "CEmuWindow" = parent.rootWindow
-        self.emulator: Emulator = self.rootWindow.emulator
+        self.emulator: Emulator = cemu.core.context.emulator
         sc = self.rootWindow.shortcuts
         layout = QHBoxLayout()
         layout.addStretch(1)
