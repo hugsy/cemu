@@ -15,6 +15,7 @@ from .arch import (Syntax, is_aarch64, is_arm, is_arm_thumb, is_mips,
 from .memory import MemorySection
 from .utils import assemble, get_arch_mode
 
+import cemu.core
 import cemu.utils
 
 
@@ -31,10 +32,7 @@ class Emulator:
     EMU = 0
     LOG = 1
 
-    def __init__(self, parent: "CEmuWindow", *args, **kwargs):
-        self.parent = parent
-        self.rootWindow = self.parent.rootWindow
-        self.arch = self.rootWindow.arch
+    def __init__(self):
         self.use_step_mode = False
         self.widget = None
         self.reset()
@@ -48,7 +46,6 @@ class Emulator:
         self.num_insns = -1
         self.areas = {}
         self.registers = {}
-        self.create_new_vm()
         return
 
     def __str__(self) -> str:
@@ -105,13 +102,13 @@ class Emulator:
         """
         Returns the current value of $pc
         """
-        return self.get_register_value(self.rootWindow.arch.pc)
+        return self.get_register_value(cemu.core.context.architecture.pc)
 
     def sp(self) -> int:
         """
         Returns the current value of $sp
         """
-        return self.get_register_value(self.rootWindow.arch.sp)
+        return self.get_register_value(cemu.core.context.architecture.sp)
 
     def unicorn_permissions(self, perms: str) -> int:
         """
@@ -126,14 +123,14 @@ class Emulator:
         """
         Create a new VM, and sets up the hooks
         """
-        arch, mode, endian = get_arch_mode("unicorn", self.rootWindow.arch)
+        arch, mode, endian = get_arch_mode("unicorn")
         self.vm = unicorn.Uc(arch, mode | endian)
         self.vm.hook_add(unicorn.UC_HOOK_BLOCK, self.hook_block)
         self.vm.hook_add(unicorn.UC_HOOK_CODE, self.hook_code)
         self.vm.hook_add(unicorn.UC_HOOK_INTR, self.hook_interrupt)
         self.vm.hook_add(unicorn.UC_HOOK_MEM_WRITE, self.hook_mem_access)
         self.vm.hook_add(unicorn.UC_HOOK_MEM_READ, self.hook_mem_access)
-        if is_x86(self.rootWindow.arch):
+        if is_x86(cemu.core.context.architecture):
             self.vm.hook_add(unicorn.UC_HOOK_INSN, self.hook_syscall,
                              None, 1, 0, unicorn.x86_const.UC_X86_INS_SYSCALL)
         return
@@ -196,7 +193,7 @@ class Emulator:
         instructions = code.splitlines()
         nb_instructions = len(instructions)
 
-        dbg(f"[vm::setup] Assembling {nb_instructions} instructions for {self.rootWindow.arch.name}")
+        dbg(f"[vm::setup] Assembling {nb_instructions} instructions for {cemu.core.context.architecture.name}")
         self.code, self.num_insns = assemble(code, self.parent.arch)
         if self.num_insns < 0:
             error(f"Failed to compile: error at line {-self.num_insns:d}")

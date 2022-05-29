@@ -21,6 +21,8 @@ from PyQt6.QtCore import (
     QEvent,
 )
 
+import cemu
+
 from ..utils import format_address
 
 
@@ -31,7 +33,6 @@ class RegistersWidget(QDockWidget):
     def __init__(self, parent, *args, **kwargs):
         super(RegistersWidget, self).__init__("Registers", parent)
         self.root = self.parentWidget()
-        self.emulator = self.root.emulator
         self.__row_size = 15
         self.__old_register_values = {}
         layout = QVBoxLayout()
@@ -54,8 +55,8 @@ class RegistersWidget(QDockWidget):
         Refresh the grid values from the current values of the
         VM CPU registers
         """
-        emu = self.emulator
-        arch = self.root.arch
+        emu = cemu.core.context.emulator
+        arch = cemu.core.context.architecture
         registers = arch.registers
         self.__values.setRowCount(len(registers))
         for i, reg in enumerate(registers):
@@ -83,7 +84,7 @@ class RegistersWidget(QDockWidget):
         Returns the current values of the registers, as shown by the widget grid
         """
         regs = {}
-        arch = self.root.arch
+        arch = cemu.core.context.architecture
         for i in range(len(arch.registers)):
             name = self.__values.item(i, 0).text()
             value = self.__values.item(i, 1).text()

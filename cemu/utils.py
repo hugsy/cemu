@@ -9,6 +9,8 @@ import keystone
 import unicorn
 from PyQt6.QtWidgets import QTextEdit
 
+import cemu.core
+
 from cemu.arch import (Architecture, Endianness, get_architecture_by_name, is_aarch64, is_arm,
                        is_arm_thumb, is_mips, is_mips64, is_sparc, is_sparc64,
                        is_x86_16, is_x86_32, is_x86_64)
@@ -51,7 +53,9 @@ def format_address(addr: int, arch: Architecture) -> str:
         raise ValueError(f"Invalid value for '{arch.ptrsize=}'")
 
 
-def get_arch_mode(lib: str, arch: Architecture) -> Tuple[int, int, int]:
+def get_arch_mode(lib: str) -> Tuple[int, int, int]:
+
+    arch = cemu.core.context.architecture
 
     # x86
     if is_x86_16(arch):
