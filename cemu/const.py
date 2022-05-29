@@ -8,7 +8,7 @@ EMAIL = "hugsy+github@blah.cat"
 VERSION = "0.6"
 URL = f"https://github.com/{AUTHOR}/{PROGNAME}"
 ISSUE_LINK = f"https://github.com/{AUTHOR}/{PROGNAME}/issues"
-RELEASE_LINK = "{URL}/archive/{VERSION}.tar.gz"
+RELEASE_LINK = f"{URL}/archive/{VERSION}.tar.gz"
 LICENSE = "MIT"
 DESCRIPTION = """Cemu is a simple assembly/dissembly/emulation IDE that provides an easy """\
     """Plug-n-Play environment to start playing with many architectures (currently supports """\
