@@ -164,6 +164,7 @@ class CommandWidget(QDockWidget):
         Prepare the emulation context based on the current context from the UI
         """
         self.emulator.reset()
+        self.emulator.create_new_vm()
         code = cemu.core.context.root.get_codeview_content()
         memory_layout = cemu.core.context.root.get_memory_layout()
         regs = cemu.core.context.root.get_registers()

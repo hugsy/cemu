@@ -1,5 +1,5 @@
-import importlib
 import enum
+import importlib
 from typing import Optional
 
 from cemu.const import SYSCALLS_PATH
@@ -78,27 +78,51 @@ class Architecture:
         return self.name == x.name and self.endianness == x.endianness and self.syntax == x.syntax
 
 
-Architectures: dict[str, list[Architecture]] = {}
+class ArchitectureManager(dict):  # -> dict[str, list[Architecture]] = {}
+
+    def __init__(self):
+        super().__init__()
+        self.load(True)
+
+    def load(self, force_reload: bool = False) -> None:
+        """Instanciate all the architecture objects
+        """
+        if force_reload:
+            generic = importlib.import_module(".generic", package="cemu.arch")
+            x86 = importlib.import_module(".x86", package="cemu.arch")
+            arm = importlib.import_module(".arm", package="cemu.arch")
+            mips = importlib.import_module(".mips", package="cemu.arch")
+            sparc = importlib.import_module(".sparc", package="cemu.arch")
+
+            self["generic"] = [generic.Generic(), ]
+            self["x86"] = [x86.X86(), x86.X86_32(), x86.X86_64(), x86.X86(
+                syntax=Syntax.ATT), x86.X86_32(syntax=Syntax.ATT), x86.X86_64(syntax=Syntax.ATT)]
+            self["arm"] = [arm.ARM(), arm.ARM(thumb=True), arm.AARCH64()]
+            self["mips"] = [mips.MIPS(), mips.MIPS(endian=Endianness.BIG_ENDIAN),
+                            mips.MIPS64(), mips.MIPS64(endian=Endianness.BIG_ENDIAN)]
+            self["sparc"] = [sparc.SPARC(), sparc.SPARC64()]
+        return
+
+    def keys(self, full: bool = False) -> list[Architecture]:
+        archs = []
+        for abi in self:
+            if not full:
+                archs.append(abi)
+            else:
+                for arch in self[abi]:
+                    archs.append(arch.__class__.__name__.lower())
+        return archs
+
+    def find(self, name: str) -> Architecture:
+        name = name.lower()
+        for abi in self:
+            for arch in self[abi]:
+                if arch.__class__.__name__.lower() == name:
+                    return arch
+        raise KeyError(f"Cannot find architecture '{name}'")
 
 
-def load_architectures(force_reload: bool = False) -> None:
-    """Instanciate all the architecture objects
-    """
-    global Architectures
-
-    if len(Architectures) == 0 or force_reload:
-        x86 = importlib.import_module(".x86", package="cemu.arch")
-        arm = importlib.import_module(".arm", package="cemu.arch")
-        mips = importlib.import_module(".mips", package="cemu.arch")
-        sparc = importlib.import_module(".sparc", package="cemu.arch")
-
-        Architectures["x86"] = [x86.X86(), x86.X86_32(), x86.X86_64(), x86.X86(
-            syntax=Syntax.ATT), x86.X86_32(syntax=Syntax.ATT), x86.X86_64(syntax=Syntax.ATT)]
-        Architectures["arm"] = [arm.ARM(), arm.ARM(thumb=True), arm.AARCH64()]
-        Architectures["mips"] = [mips.MIPS(), mips.MIPS(endian=Endianness.BIG_ENDIAN),
-                                 mips.MIPS64(), mips.MIPS64(endian=Endianness.BIG_ENDIAN)]
-        Architectures["sparc"] = [sparc.SPARC(), sparc.SPARC64()]
-    return
+Architectures = ArchitectureManager()
 
 
 def is_x86_16(a: Architecture):
@@ -147,20 +171,3 @@ def is_sparc64(a: Architecture):
 
 def is_ppc(a: Architecture):
     return a.name == "PowerPC 32bits"
-
-
-def get_all_architecture_names():
-    archs = []
-    for abi in Architectures:
-        for arch in Architectures[abi]:
-            archs.append(arch.__class__.__name__.lower())
-    return archs
-
-
-def get_architecture_by_name(name: str):
-    name = name.lower()
-    for abi in Architectures:
-        for arch in Architectures[abi]:
-            if arch.__class__.__name__.lower() == name:
-                return arch
-    raise KeyError(f"Cannot find architecture '{name}'")

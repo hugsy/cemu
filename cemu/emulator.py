@@ -48,18 +48,6 @@ class Emulator:
     def __str__(self) -> str:
         return f"Emulator instance {'' if self.is_running else 'not '}running"
 
-    def only_if_vm_initialized(self) -> Callable:
-        def decorator(f: Callable) -> Callable:
-            @functools.wraps(f)
-            def wrapper(*args: Any, **kwargs: Any) -> Any:
-                dbg("fooo")
-                if self.vm:
-                    return f(*args, **kwargs)
-                else:
-                    error("VM is not initialized")
-            return wrapper
-        return decorator
-
     def unicorn_register(self, reg):
         curarch = cemu.core.context.architecture
         if is_x86(curarch):
@@ -294,6 +282,7 @@ class Emulator:
         Runs the emulation
         """
         if not self.vm:
+            error("VM is not ready")
             return
 
         info("Starting emulation context")
@@ -387,4 +376,4 @@ class Emulator:
 
     @property
     def is_running(self) -> bool:
-        return self.__vm_state in (EmulatorState.RUNNING, EmulatorState.STEP_RUNNING)
+        return self.vm is not None and self.__vm_state in (EmulatorState.RUNNING, EmulatorState.STEP_RUNNING)

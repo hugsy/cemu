@@ -9,20 +9,16 @@ from PyQt6.QtWidgets import (QApplication, QDockWidget, QFileDialog,
                              QGridLayout, QLabel, QMainWindow, QMenu,
                              QMessageBox, QWidget)
 
+import cemu.core
 import cemu.plugins
 import cemu.utils
-import cemu.core
-
 from cemu.log import dbg, error, info, ok, warn
 
-from ..arch import (Architecture, Architectures, Endianness,
-                    get_architecture_by_name, load_architectures)
+from ..arch import Architecture, Architectures, Endianness
 from ..const import (AUTHOR, CONFIG_FILEPATH, EXAMPLE_PATH, HOME, ISSUE_LINK,
                      TEMPLATE_PATH, TITLE, URL, VERSION)
-
 from ..exports import build_elf_executable, build_pe_executable
 from ..memory import MemorySection
-
 from ..shortcuts import ShortcutManager
 from ..utils import assemble
 from .codeeditor import CodeWidget
@@ -85,6 +81,7 @@ class CEmuWindow(QMainWindow):
 
         # show everything
         self.show()
+        dbg("Main window initialized")
         return
 
     def __del__(self):

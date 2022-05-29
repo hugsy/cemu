@@ -10,14 +10,11 @@ import unicorn
 from PyQt6.QtWidgets import QTextEdit
 
 import cemu.core
-
-from cemu.arch import (Architecture, Endianness, get_architecture_by_name, is_aarch64, is_arm,
-                       is_arm_thumb, is_mips, is_mips64, is_sparc, is_sparc64,
-                       is_x86_16, is_x86_32, is_x86_64)
+from cemu.arch import (Architecture, Architectures, Endianness, is_aarch64,
+                       is_arm, is_arm_thumb, is_mips, is_mips64, is_sparc,
+                       is_sparc64, is_x86_16, is_x86_32, is_x86_64)
 from cemu.const import COMMENT_MARKER, PROPERTY_MARKER
-
 from cemu.log import dbg
-
 
 DISASSEMBLY_DEFAULT_BASE_ADDRESS = 0x40000
 
@@ -336,7 +333,7 @@ def get_metadata_from_stream(content: str) -> Optional[Tuple[Architecture, Endia
         metadata_value = part[2].lower()
 
         if metadata_type == "architecture" and not arch:
-            arch = get_architecture_by_name(metadata_value)
+            arch = Architectures.find(metadata_value)
             dbg(f"Forcing architecture '{arch}'")
             continue
 
