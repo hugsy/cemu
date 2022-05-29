@@ -1,13 +1,19 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtWidgets import (QDockWidget, QHBoxLayout, QMessageBox,
                              QPushButton, QWidget)
 
 from cemu.log import dbg, error, info
 
-
-from ..emulator import Emulator, EmulatorState
+if TYPE_CHECKING:
+    from cemu.ui.main import CEmuWindow
 
 import cemu.core
+
+from ..emulator import Emulator, EmulatorState
 
 
 class CommandWidget(QDockWidget):
@@ -16,11 +22,10 @@ class CommandWidget(QDockWidget):
     setCommandButtonsForStepRunningSignal = pyqtSignal()
     setCommandButtonsForStopSignal = pyqtSignal()
 
-    def __init__(self, parent: "CEmuWindow", *args, **kwargs):
+    def __init__(self, parent: CEmuWindow, *args, **kwargs):
         super().__init__("Control Panel", parent)
-        self.rootWindow: "CEmuWindow" = parent.rootWindow
         self.emulator: Emulator = cemu.core.context.emulator
-        sc = self.rootWindow.shortcuts
+        sc = parent.shortcuts
         layout = QHBoxLayout()
         layout.addStretch(1)
 
@@ -50,15 +55,15 @@ class CommandWidget(QDockWidget):
         widget.setLayout(layout)
         self.setWidget(widget)
 
-        self.rootWindow.signals["setCommandButtonsRunState"] = self.setCommandButtonsForRunningSignal
+        parent.signals["setCommandButtonsRunState"] = self.setCommandButtonsForRunningSignal
         self.setCommandButtonsForRunningSignal.connect(
             self.onSignalEmulationRun)
 
-        self.rootWindow.signals["setCommandButtonsStepRunState"] = self.setCommandButtonsForStepRunningSignal
+        parent.signals["setCommandButtonsStepRunState"] = self.setCommandButtonsForStepRunningSignal
         self.setCommandButtonsForStepRunningSignal.connect(
             self.onSignalEmulationStepRun)
 
-        self.rootWindow.signals["setCommandButtonStopState"] = self.setCommandButtonsForStopSignal
+        parent.signals["setCommandButtonStopState"] = self.setCommandButtonsForStopSignal
         self.setCommandButtonsForStopSignal.connect(self.onEmulationStop)
         return
 
@@ -111,7 +116,7 @@ class CommandWidget(QDockWidget):
         """
         Callback function for performing a syntaxic check of the code in the code pane.
         """
-        code = self.rootWindow.get_codeview_content()
+        code = cemu.core.context.root.get_codeview_content()
         if self.emulator.assemble_code(code, False):
             msg = "Your code is syntaxically valid."
             popup = QMessageBox.information
@@ -159,9 +164,9 @@ class CommandWidget(QDockWidget):
         Prepare the emulation context based on the current context from the UI
         """
         self.emulator.reset()
-        code = self.rootWindow.get_codeview_content()
-        memory_layout = self.rootWindow.get_memory_layout()
-        regs = self.rootWindow.get_registers()
+        code = cemu.core.context.root.get_codeview_content()
+        memory_layout = cemu.core.context.root.get_memory_layout()
+        regs = cemu.core.context.root.get_registers()
 
         return self.emulator.populate_memory(memory_layout) and \
             self.emulator.assemble_code(code) and \
