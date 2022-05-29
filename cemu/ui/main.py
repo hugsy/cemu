@@ -35,6 +35,7 @@ class CEmuWindow(QMainWindow):
 
     def __init__(self, app: QApplication, *args, **kwargs):
         super(CEmuWindow, self).__init__()
+        self.rootWindow = self
         self.__app = app
         self.settings = Settings()
         load_architectures()

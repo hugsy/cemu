@@ -181,34 +181,30 @@ def get_arch_mode(lib: str, arch: Architecture) -> Tuple[int, int, int]:
     raise ValueError(f"Unknown module '{lib}' for {arch}")
 
 
-def disassemble(raw_data: bytes, arch: Architecture, count: int = -1) -> str:
+def disassemble(raw_data: bytes, arch: Architecture, count: int = -1, base: int = DISASSEMBLY_DEFAULT_BASE_ADDRESS) -> dict[int, Tuple[str, str]]:
     """Disassemble the code given as raw data, with the given architecture.
 
     Args:
         raw_data (bytes): the raw byte code to disassemble
         arch (Architecture): the architecture to use for disassembling
         count (int, optional): the maximum number of instruction to disassemble. Defaults to -1.
+        count (int, optional): the disassembled code base address. Defaults to DISASSEMBLY_DEFAULT_BASE_ADDRESS
 
     Returns:
         str: the text representation of the disassembled code
     """
     cs_arch, cs_mode, cs_endian = get_arch_mode("capstone", arch)
     cs = capstone.Cs(cs_arch, cs_mode | cs_endian)
+    insns: dict[int, Tuple[str, str]] = {}
+    for idx, ins in enumerate(cs.disasm(bytes(raw_data), base)):
+        insns[ins.address] = (ins.mnemonic, ins.op_str)
+        if idx == count:
+            break
 
-    if count == -1:
-        insns = [f"{i.mnemonic} {i.op_str}" for i in cs.disasm(
-            raw_data, DISASSEMBLY_DEFAULT_BASE_ADDRESS)]
-    else:
-        insns = []
-        for idx, ins in enumerate(cs.disasm(bytes(raw_data), DISASSEMBLY_DEFAULT_BASE_ADDRESS)):
-            insns.append("{:s} {:s}".format(ins.mnemonic, ins.op_str))
-            if idx == count:
-                break
-
-    return '\n'.join(insns)
+    return insns
 
 
-def disassemble_file(fpath: pathlib.Path, arch: Architecture) -> str:
+def disassemble_file(fpath: pathlib.Path, arch: Architecture) -> dict[int, Tuple[str, str]]:
     with fpath.open('rb') as f:
         return disassemble(f.read(), arch)
 
