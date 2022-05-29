@@ -281,6 +281,14 @@ class CEmuWindow(QMainWindow):
 
         # Add the View Window menu bar
         viewWindowsMenu = menubar.addMenu("&View")
+        toggleFocusMode = self.addMenuItem("Toggle Focus Mode", self.toggleFocusMode,
+                                           self.shortcuts.description(
+                                               "toggle_focus_mode"),
+                                           self.shortcuts.shortcut("toggle_focus_mode"), checkable=True, checked=True)
+        viewWindowsMenu.addAction(toggleFocusMode)
+
+        viewWindowsMenu.addSeparator()
+
         for w in self.__dockable_widgets:
             name = w.windowTitle()
             action = self.addMenuItem(
@@ -322,6 +330,26 @@ class CEmuWindow(QMainWindow):
             widget.hide()
         else:
             widget.show()
+        return
+
+    def toggleFocusMode(self, checked: bool) -> None:
+        """
+        Toggle the Focus Mode - if enabled, hide all panes except the CodeView
+        """
+        if checked:
+            dbg("Switching to 'Focus Mode'")
+        else:
+            dbg("Switching back from 'Focus Mode'")
+
+        for w in self.__dockable_widgets:
+            if w.windowTitle() == "Code View":
+                w.show()
+                continue
+
+            if checked:
+                w.hide()
+            else:
+                w.show()
         return
 
     def loadFile(self, fpath: pathlib.Path) -> None:

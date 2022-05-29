@@ -20,6 +20,8 @@ class ShortcutManager:
             "generate_pe_exe":     ["", "Build a valid Windows PE executable"],
             "generate_elf_exe":    ["", "Build a valid Linux ELF executable"],
 
+            "toggle_focus_mode":   ["Ctrl+F", "Toggle focus mode"],
+
             # emulator
             "emulator_check":      ["Alt+C", "Check the assembly code from the assembly pane"],
             "emulator_run_all":    ["Alt+R", "Check and run the assembly code"],

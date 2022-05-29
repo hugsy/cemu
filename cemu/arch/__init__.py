@@ -78,7 +78,7 @@ class Architecture:
         return self.name == x.name and self.endianness == x.endianness and self.syntax == x.syntax
 
 
-class ArchitectureManager(dict):  # -> dict[str, list[Architecture]] = {}
+class ArchitectureManager(dict[str, list[Architecture]]):
 
     def __init__(self):
         super().__init__()
@@ -103,7 +103,7 @@ class ArchitectureManager(dict):  # -> dict[str, list[Architecture]] = {}
             self["sparc"] = [sparc.SPARC(), sparc.SPARC64()]
         return
 
-    def keys(self, full: bool = False) -> list[Architecture]:
+    def keys(self, full: bool = False) -> list[str]:
         archs = []
         for abi in self:
             if not full:

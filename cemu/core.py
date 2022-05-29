@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import sys
+from typing import TYPE_CHECKING
 
 from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QApplication
