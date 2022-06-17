@@ -1,22 +1,13 @@
 from setuptools import find_packages, setup
+from pathlib import Path
 
 import cemu.const as const
-
-
-def readme():
-    import io
-    with io.open("README.md", "r", encoding="utf-8") as f:
-        return f.read()
-
-
-def get_required_packages():
-    return [x.strip() for x in open("./requirements.txt", "r").readlines()]
-
 
 setup(
     name=const.PROGNAME,
     description=const.DESCRIPTION,
-    long_description=readme(),
+    long_description=(Path(__file__).parent / "README.md").read_text(),
+    long_description_content_type='text/markdown',    
     url=const.URL,
     download_url=const.RELEASE_LINK,
     classifiers=[
@@ -34,7 +25,7 @@ setup(
     license=const.LICENSE,
     include_package_data=True,
     packages=find_packages(),
-    install_requires=get_required_packages(),
+    install_requires=(Path(__file__).parent / "requirements.txt").open().readlines(),
     entry_points={
         "console_scripts": ["cemu=cemu.__main__:main"],
     },
