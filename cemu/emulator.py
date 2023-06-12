@@ -1,9 +1,9 @@
-import functools
 import os
 from enum import Enum, unique
-from typing import Any, Callable, Dict, List, Optional
+from typing import Optional
 
 import unicorn
+from PyQt6.QtCore import QMutex, QObject, QThread, pyqtSignal
 
 import cemu.core
 import cemu.utils
@@ -14,6 +14,44 @@ from .arch import (Syntax, is_aarch64, is_arm, is_arm_thumb, is_mips,
                    is_x86_32, is_x86_64)
 from .memory import MemorySection
 from .utils import assemble, get_arch_mode
+
+
+class EmulationInstance(QObject):
+    finished = pyqtSignal()
+    progress = pyqtSignal(int)
+
+    def __init__(self, emu):
+        super().__init__()
+        self.emu: Emulator = emu
+
+    def run(self) -> None:
+        """
+        Runs the emulation
+        """
+        if not self.emu.vm:
+            error("VM is not ready")
+            return
+
+        info("Starting emulation context")
+
+        try:
+            if self.emu.use_step_mode:
+                self.emu.set_vm_state(EmulatorState.STEP_RUNNING)
+            else:
+                self.emu.set_vm_state(EmulatorState.RUNNING)
+
+            self.emu.vm.emu_start(self.emu.start_addr, self.emu.end_addr)
+
+            if self.emu.pc() == self.emu.end_addr:
+                self.emu.set_vm_state(EmulatorState.FINISHED)
+
+        except unicorn.unicorn.UcError as e:
+            error(f"An error occured: {str(e)}")
+            log(f"pc={self.emu.pc():  # x} , sp={self.emu.sp():#x}")
+            self.emu.set_vm_state(EmulatorState.FINISHED)
+
+        self.finished.emit()
+        return
 
 
 @unique
@@ -32,13 +70,14 @@ class Emulator:
     def __init__(self):
         self.use_step_mode = False
         self.widget = None
+        self.vm_mutex = QMutex()
         self.reset()
         return
 
     def reset(self):
         self.vm: Optional[unicorn.Uc] = None
         self.code = None
-        self.__vm_state = EmulatorState.NOT_RUNNING
+        self.vm_state = EmulatorState.NOT_RUNNING
         self.stop_now = False
         self.num_insns = -1
         self.areas = {}
@@ -78,8 +117,11 @@ class Emulator:
         if not self.vm:
             return -1
 
+        self.vm_mutex.lock()
         ur = self.unicorn_register(regname)
-        return self.vm.reg_read(ur)
+        val = self.vm.reg_read(ur)
+        self.vm_mutex.unlock()
+        return val
 
     regs = get_register_value
 
@@ -101,7 +143,8 @@ class Emulator:
         """
         p = 0
         for perm in perms.split("|"):
-            p |= getattr(unicorn, "UC_PROT_{}".format(perm.upper(),))
+            perm = perm.strip().upper()
+            p |= getattr(unicorn, f"UC_PROT_{perm}")
         return p
 
     def create_new_vm(self) -> None:
@@ -120,7 +163,7 @@ class Emulator:
                              None, 1, 0, unicorn.x86_const.UC_X86_INS_SYSCALL)
         return
 
-    def populate_memory(self, areas: List[MemorySection]) -> bool:
+    def populate_memory(self, areas: list[MemorySection]) -> bool:
         """
         Populates the VM memory layout according to the values given as parameter.
         """
@@ -147,7 +190,7 @@ class Emulator:
         self.end_addr = -1
         return True
 
-    def populate_registers(self, registers: Dict[str, int]) -> bool:
+    def populate_registers(self, registers: dict[str, int]) -> bool:
         """
         Populates the VM memory layout according to the values given as parameter.
         """
@@ -242,8 +285,7 @@ class Emulator:
             emu.emu_stop()
             return
 
-        dbg(f"[vm::runtime] Executing instruction at {address:#x}")
-        log(f"[vm::runtime] {address:#x}: {insn}")
+        dbg(f"[vm::runtime] Executing @ {address:#x}: {insn}")
 
         if self.use_step_mode:
             self.stop_now = True
@@ -285,24 +327,15 @@ class Emulator:
             error("VM is not ready")
             return
 
-        info("Starting emulation context")
+        self.thread = QThread()
+        self.worker = EmulationInstance(self)
+        self.worker.moveToThread(self.thread)
+        self.thread.started.connect(self.worker.run)
+        self.worker.finished.connect(self.thread.quit)
+        self.worker.finished.connect(self.worker.deleteLater)
+        self.thread.finished.connect(self.thread.deleteLater)
 
-        try:
-            if self.use_step_mode:
-                self.set_vm_state(EmulatorState.STEP_RUNNING)
-            else:
-                self.set_vm_state(EmulatorState.RUNNING)
-
-            self.vm.emu_start(self.start_addr, self.end_addr)
-
-            if self.pc() == self.end_addr:
-                self.set_vm_state(EmulatorState.FINISHED)
-
-        except unicorn.unicorn.UcError as e:
-            error(f"An error occured: {str(e)}")
-            log(f"pc={self.pc():  # x} , sp={self.sp():#x}")
-            self.set_vm_state(EmulatorState.FINISHED)
-
+        self.thread.start()
         return
 
     def __stop(self) -> None:
@@ -347,33 +380,41 @@ class Emulator:
         Updates the internal state of the VM, and propagates the notification
         signals.
         """
-        dbg(f"Switching VM state from {self.__vm_state} to {new_state}")
-        self.__vm_state = new_state
+        self.vm_mutex.lock()
 
-        if new_state == EmulatorState.NOT_RUNNING:
-            cemu.core.context.root.signals["refreshRegisterGrid"].emit()
-            cemu.core.context.root.signals["refreshMemoryEditor"].emit()
-            cemu.core.context.root.signals["setCommandButtonStopState"].emit()
-            return
+        while True:
+            dbg(f"Switching VM state from {self.vm_state} to {new_state}")
+            self.vm_state = new_state
 
-        if new_state == EmulatorState.RUNNING:
-            cemu.core.context.root.signals["setCommandButtonsRunState"].emit()
-            return
+            if new_state == EmulatorState.NOT_RUNNING:
+                cemu.core.context.root.signals["refreshRegisterGrid"].emit()
+                cemu.core.context.root.signals["refreshMemoryEditor"].emit()
+                cemu.core.context.root.signals["setCommandButtonStopState"].emit(
+                )
+                break
 
-        if new_state == EmulatorState.STEP_RUNNING:
-            cemu.core.context.root.signals["refreshRegisterGrid"].emit()
-            cemu.core.context.root.signals["refreshMemoryEditor"].emit()
-            cemu.core.context.root.signals["setCommandButtonsStepRunState"].emit(
-            )
-            return
+            if new_state == EmulatorState.RUNNING:
+                cemu.core.context.root.signals["setCommandButtonsRunState"].emit(
+                )
+                break
+
+            if new_state == EmulatorState.STEP_RUNNING:
+                cemu.core.context.root.signals["refreshRegisterGrid"].emit()
+                cemu.core.context.root.signals["refreshMemoryEditor"].emit()
+                cemu.core.context.root.signals["setCommandButtonsStepRunState"].emit(
+                )
+                break
+
+            break
+
+        info(f"VM state is now {new_state}")
+
+        self.vm_mutex.unlock()
 
         if new_state == EmulatorState.FINISHED:
             self.__finish()
-            return
-
-        info(f"VM state is now {new_state}")
         return
 
     @property
     def is_running(self) -> bool:
-        return self.vm is not None and self.__vm_state in (EmulatorState.RUNNING, EmulatorState.STEP_RUNNING)
+        return self.vm is not None and self.vm_state in (EmulatorState.RUNNING, EmulatorState.STEP_RUNNING)

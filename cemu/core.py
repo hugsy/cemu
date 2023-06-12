@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import sys
-from typing import TYPE_CHECKING
 
 from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QApplication
@@ -24,8 +23,7 @@ class BackendContext:
     def __init__(self):
         self.settings = cemu.settings.Settings()
         self.__emulator = cemu.emulator.Emulator()
-        default_arch = self.settings.get(
-            "Global", "DefaultArchitecture", "x86_64")
+        default_arch = self.settings.get("Global", "DefaultArchitecture", "x86_64")
         self.__architecture = cemu.arch.Architectures.find(default_arch)
         return
 
@@ -35,8 +33,7 @@ class BackendContext:
 
     @architecture.setter
     def architecture(self, new_arch: cemu.arch.Architecture):
-        cemu.log.dbg(
-            f"Changing architecture {self.__architecture} to {new_arch}")
+        cemu.log.dbg(f"Changing architecture {self.__architecture} to {new_arch}")
         self.__architecture = new_arch
         cemu.log.dbg(f"Resetting emulator for {self.__architecture}")
         self.__emulator.reset()

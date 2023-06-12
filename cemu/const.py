@@ -10,9 +10,11 @@ URL = f"https://github.com/{AUTHOR}/{PROGNAME}"
 ISSUE_LINK = f"https://github.com/{AUTHOR}/{PROGNAME}/issues"
 RELEASE_LINK = f"{URL}/archive/{VERSION}.tar.gz"
 LICENSE = "MIT"
-DESCRIPTION = """Cemu is a simple assembly/dissembly/emulation IDE that provides an easy """\
-    """Plug-n-Play environment to start playing with many architectures (currently supports """\
-    """"x86-{32,64}, ARM, AARCH64, MIPS, SPARC)."""
+DESCRIPTION = (
+    """Cemu is a simple assembly/dissembly/emulation IDE that provides an easy """
+    """Plug-n-Play environment to start playing with many architectures (currently """
+    """supports x86-{32,64}, ARM, AARCH64, MIPS, SPARC)."""
+)
 HOME = pathlib.Path("").home()
 PKG_PATH = pathlib.Path(__file__).absolute().parent
 ICON_PATH = pathlib.Path(PKG_PATH) / "img/icon.png"

@@ -469,10 +469,8 @@ class CEmuWindow(QMainWindow):
                 error("Failed to compile: error at line {:d}".format(-cnt))
                 return
 
-            offset = f"/* {i:#08x} */ "
             hexes = ", ".join([f"{b:#02x}" for b in bytearray(byte)])
-            comment = f", // {insn}"
-            line = offset + hexes + comment
+            line = f"/* {i:#08x} */   {hexes}   // {insn}"
             lines.append(line)
             i += cnt
 

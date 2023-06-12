@@ -5,6 +5,7 @@ import cemu.const as const
 
 def readme():
     import io
+
     with io.open("README.md", "r", encoding="utf-8") as f:
         return f.read()
 
@@ -39,7 +40,15 @@ setup(
         "console_scripts": ["cemu=cemu.__main__:main"],
     },
     keywords=[
-        "assembly", "disassembly", "emulation", "x86", "x64", "arm", "aarch64", "mips",
-        "powerpc", "sparc"
+        "assembly",
+        "disassembly",
+        "emulation",
+        "x86",
+        "x64",
+        "arm",
+        "aarch64",
+        "mips",
+        "powerpc",
+        "sparc",
     ],
 )

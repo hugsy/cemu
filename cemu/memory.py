@@ -1,3 +1,4 @@
+from multiprocessing.sharedctypes import Value
 import pathlib
 import enum
 
@@ -54,7 +55,7 @@ class MemoryPermission:
             m.append("WRITE")
         if self.x:
             m.append("EXEC")
-        return "|".join(m)
+        return " | ".join(m)
 
     def short(self) -> str:
         m = []
@@ -69,7 +70,16 @@ class MemoryPermission:
 
 class MemorySection:
     def __init__(self, name: str, addr: int, size: int, perm: str, data_file: Optional[pathlib.Path] = None):
-        self.name = name
+        if addr < 0 or addr >= 2**64:
+            raise ValueError("address")
+
+        if len(name.strip()) == 0:
+            raise ValueError("name")
+
+        if size < 0:
+            raise ValueError("size")
+
+        self.name = name.strip().lower()
         self.address = addr
         self.size = size
         self.permission = MemoryPermission(perm)

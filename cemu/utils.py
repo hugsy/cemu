@@ -1,3 +1,4 @@
+import enum
 import os
 import pathlib
 import random
@@ -7,7 +8,7 @@ from typing import Optional, Tuple
 import capstone
 import keystone
 import unicorn
-from PyQt6.QtWidgets import QTextEdit
+from PyQt6.QtWidgets import QTextEdit, QErrorMessage
 
 import cemu.core
 from cemu.arch import (Architecture, Architectures, Endianness, is_aarch64,
@@ -39,7 +40,10 @@ def hexdump(source: bytearray, length: int = 0x10, separator: str = ".", show_ra
     return '\n'.join(result)
 
 
-def format_address(addr: int, arch: Architecture) -> str:
+def format_address(addr: int, arch: Optional[Architecture] = None) -> str:
+    if arch is None:
+        arch = cemu.core.context.architecture
+
     if arch.ptrsize == 2:
         return f"{addr:#04x}"
     elif arch.ptrsize == 4:
@@ -347,3 +351,17 @@ def get_metadata_from_stream(content: str) -> Optional[Tuple[Architecture, Endia
             dbg(f"Forcing endianness '{endian}'")
 
     return None
+
+
+class PopupType(enum.IntEnum):
+    Information = 0
+    Error = 1
+
+
+def popup(msg: str, type: PopupType = PopupType.Error):
+    if type == PopupType.Error:
+        dialog = QErrorMessage()
+    else:
+        raise ValueError("invalid type")
+
+    dialog.showMessage(msg)

@@ -7,7 +7,6 @@ import cemu.log
 class LogWidget(QDockWidget):
     def __init__(self, parent, *args, **kwargs):
         super(LogWidget, self).__init__("Cemu Logs", parent)
-        self.parent = self.parentWidget()
         self.__editor = QTextEdit()
         self.__editor.setFont(QFont('Courier', 11))
         self.__editor.setFrameStyle(QFrame.Shape.Panel | QFrame.Shape.NoFrame)
