@@ -3,10 +3,16 @@
 import pathlib
 import sys
 
+import cemu.core
+
 
 def main():
-    from cemu.core import Cemu
-    Cemu(sys.argv)
+    if "--cli" in sys.argv:
+        cemu.core.CemuCli(sys.argv)
+        return
+
+    cemu.core.CemuGui(sys.argv)
+    return
 
 
 if __name__ == "__main__":

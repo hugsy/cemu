@@ -2,6 +2,10 @@ import enum
 import importlib
 from typing import Optional
 
+import capstone
+import keystone
+import unicorn
+
 from cemu.const import SYSCALLS_PATH
 
 
@@ -35,6 +39,7 @@ class Syntax(enum.Enum):
 
 class Architecture:
     """Generic metaclass for the architectures."""
+
     name: str
     endianness: Endianness = Endianness.LITTLE_ENDIAN
     syntax: Syntax = Syntax.INTEL
@@ -62,31 +67,83 @@ class Architecture:
             fpath = SYSCALLS_PATH / (self.syscall_filename + ".csv")
             self.__syscalls = {}
 
-            with fpath.open('r') as fd:
+            with fpath.open("r") as fd:
                 for row in fd.readlines():
-                    row = [x.strip() for x in row.strip().split(',')]
+                    row = [x.strip() for x in row.strip().split(",")]
                     syscall_number = int(row[0])
                     syscall_name = row[1].lower()
-                    self.__syscalls[syscall_name] = self.syscall_base + \
-                        syscall_number
+                    self.__syscalls[syscall_name] = self.syscall_base + syscall_number
 
         return self.__syscalls
 
     def __eq__(self, x):
         if not isinstance(x, Architecture):
             return False
-        return self.name == x.name and self.endianness == x.endianness and self.syntax == x.syntax
+        return (
+            self.name == x.name
+            and self.endianness == x.endianness
+            and self.syntax == x.syntax
+        )
+
+    def unicorn(self) -> tuple[int, int, int]:
+        """Returns a tuple with the values of unicorn architecture, mode, endianess
+
+        Raises:
+            KeyError: _description_
+
+        Returns:
+            tuple[int, int, int]: _description_
+        """
+        raise NotImplementedError
+
+    @property
+    def uc(self) -> "unicorn.Uc":
+        arch, mode, endian = self.unicorn()
+        return unicorn.Uc(arch, mode | endian)
+
+    def uc_register(self, name: str) -> int:
+        raise NotImplementedError
+
+    def capstone(self) -> tuple[int, int, int]:
+        """Returns a tuple with the values of unicorn architecture, mode, endianess
+
+        Raises:
+            KeyError: _description_
+
+        Returns:
+            tuple[int, int, int]: _description_
+        """
+        raise NotImplementedError
+
+    @property
+    def cs(self) -> "capstone.Cs":
+        cs_arch, cs_mode, cs_endian = self.capstone()
+        return capstone.Cs(cs_arch, cs_mode | cs_endian)
+
+    def keystone(self) -> tuple[int, int, int]:
+        """Returns a tuple with the values of unicorn architecture, mode, endianess
+
+        Raises:
+            KeyError: _description_
+
+        Returns:
+            tuple[int, int, int]: _description_
+        """
+        raise NotImplementedError
+
+    @property
+    def ks(self) -> "keystone.Ks":
+        ks_arch, ks_mode, ks_endian = self.keystone()
+        return keystone.Ks(ks_arch, ks_mode | ks_endian)
 
 
 class ArchitectureManager(dict[str, list[Architecture]]):
-
     def __init__(self):
         super().__init__()
         self.load(True)
 
     def load(self, force_reload: bool = False) -> None:
-        """Instanciate all the architecture objects
-        """
+        """Instanciate all the architecture objects"""
         if force_reload:
             generic = importlib.import_module(".generic", package="cemu.arch")
             x86 = importlib.import_module(".x86", package="cemu.arch")
@@ -94,12 +151,24 @@ class ArchitectureManager(dict[str, list[Architecture]]):
             mips = importlib.import_module(".mips", package="cemu.arch")
             sparc = importlib.import_module(".sparc", package="cemu.arch")
 
-            self["generic"] = [generic.Generic(), ]
-            self["x86"] = [x86.X86(), x86.X86_32(), x86.X86_64(), x86.X86(
-                syntax=Syntax.ATT), x86.X86_32(syntax=Syntax.ATT), x86.X86_64(syntax=Syntax.ATT)]
+            self["generic"] = [
+                generic.Generic(),
+            ]
+            self["x86"] = [
+                x86.X86(),
+                x86.X86_32(),
+                x86.X86_64(),
+                x86.X86(syntax=Syntax.ATT),
+                x86.X86_32(syntax=Syntax.ATT),
+                x86.X86_64(syntax=Syntax.ATT),
+            ]
             self["arm"] = [arm.ARM(), arm.ARM(thumb=True), arm.AARCH64()]
-            self["mips"] = [mips.MIPS(), mips.MIPS(endian=Endianness.BIG_ENDIAN),
-                            mips.MIPS64(), mips.MIPS64(endian=Endianness.BIG_ENDIAN)]
+            self["mips"] = [
+                mips.MIPS(),
+                mips.MIPS(endian=Endianness.BIG_ENDIAN),
+                mips.MIPS64(),
+                mips.MIPS64(endian=Endianness.BIG_ENDIAN),
+            ]
             self["sparc"] = [sparc.SPARC(), sparc.SPARC64()]
         return
 

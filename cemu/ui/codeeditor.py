@@ -1,27 +1,44 @@
 from __future__ import annotations
 
+import os
 import typing
 
 from PyQt6.QtCore import Qt, QVariant
 from PyQt6.QtGui import QFont, QTextFormat
-from PyQt6.QtWidgets import (QDockWidget, QFrame, QHBoxLayout, QLabel,
-                             QTextEdit, QVBoxLayout, QWidget)
+from PyQt6.QtWidgets import (
+    QDockWidget,
+    QFrame,
+    QHBoxLayout,
+    QLabel,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
+)
 
 import cemu.core
-from cemu.const import COMMENT_MARKER
+from cemu.const import (
+    COMMENT_MARKER,
+    DEFAULT_ASSEMBLY_VIEW_FONT,
+    DEFAULT_ASSEMBLY_VIEW_FONT_SIZE,
+    DEFAULT_CODE_VIEW_FONT,
+    DEFAULT_CODE_VIEW_FONT_SIZE,
+)
 
 if typing.TYPE_CHECKING:
     from cemu.ui.main import CEmuWindow
 
-from ..utils import assemble, get_cursor_position
+from ..utils import assemble
 from .highlighter import Highlighter
+from .utils import get_cursor_position
 
 
 class CodeEdit(QTextEdit):
     def __init__(self, parent):
         super(CodeEdit, self).__init__(parent)
         self.cursorPositionChanged.connect(self.UpdateHighlightedLine)
-        self.setFont(QFont('Courier', 11))
+        self.setFont(
+            QFont(DEFAULT_CODE_VIEW_FONT, pointSize=DEFAULT_CODE_VIEW_FONT_SIZE)
+        )
         self.setFrameStyle(QFrame.Shape.Panel | QFrame.Shape.NoFrame)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         return
@@ -30,10 +47,15 @@ class CodeEdit(QTextEdit):
         selection = QTextEdit.ExtraSelection()
         selection.format.setBackground(self.palette().alternateBase())
         selection.format.setProperty(
-            QTextFormat.Property.FullWidthSelection, QVariant(True))
+            QTextFormat.Property.FullWidthSelection, QVariant(True)
+        )
         selection.cursor = self.textCursor()
         selection.cursor.clearSelection()
-        self.setExtraSelections([selection, ])
+        self.setExtraSelections(
+            [
+                selection,
+            ]
+        )
         return
 
 
@@ -42,7 +64,7 @@ class AssemblyView(QTextEdit):
         super().__init__(parent)
         self.rootWindow = parent.rootWindow
         self.setReadOnly(True)
-        self.setFont(QFont('Courier', 11))
+        self.setFont(QFont(DEFAULT_ASSEMBLY_VIEW_FONT, DEFAULT_ASSEMBLY_VIEW_FONT_SIZE))
         self.setFixedWidth(140)
         self.setFrameStyle(QFrame.Shape.Panel | QFrame.Shape.NoFrame)
         self.setStyleSheet("background-color: rgb(211, 211, 211);")
@@ -53,7 +75,9 @@ class AssemblyView(QTextEdit):
     def __update_assembly_code(self):
         lines = self.__editor.toPlainText().splitlines()
         nb_lines = len(lines)
-        bytecode_lines = ["", ]*nb_lines
+        bytecode_lines = [
+            "",
+        ] * nb_lines
         old_code = ""
 
         for idx in range(nb_lines):
@@ -62,10 +86,10 @@ class AssemblyView(QTextEdit):
                 bytecode_lines[idx] = "\n"
                 continue
 
-            asm = "\n".join(lines[:idx+1])
+            asm = "\n".join(lines[: idx + 1])
             code, _ = assemble(asm)
             if len(code) > len(old_code):
-                new_code = code[len(old_code):]
+                new_code = code[len(old_code) :]
                 new_line = " ".join(["%.02x" % x for x in new_code])
                 old_code = code
                 bytecode_lines[idx] = new_line
@@ -129,8 +153,7 @@ class CodeWidget(QDockWidget):
 
     def UpdateTitleLabel(self):
         row_num, col_num = get_cursor_position(self.editor)
-        self.widget_title_label.setText(
-            f"Code (Line:{row_num+1} Column:{col_num+1})")
+        self.widget_title_label.setText(f"Code (Line:{row_num+1} Column:{col_num+1})")
         return
 
     def getCleanContent(self) -> str:
@@ -173,4 +196,4 @@ class CodeWidget(QDockWidget):
 
         lines = parse_syscalls(lines)
 
-        return '\n'.join(lines)
+        return os.linesep.join(lines)

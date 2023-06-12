@@ -1,32 +1,12 @@
-import tempfile
 import os
+import tempfile
+from typing import Any, List
 
-from typing import Callable, Dict, List, Tuple, Any
+from lief import PE
 
-from lief import (
-    PE,
-    ELF,
-)
-
-from .arch import (
-    Architecture,
-    is_x86_32,
-    is_x86_64,
-    is_arm,
-    is_aarch64,
-    is_mips,
-)
-
-
-from .memory import (
-    MemoryPermission,
-    MemorySection,
-)
-
-
-from .utils import (
-    generate_random_string,
-)
+from .arch import Architecture, is_x86_32, is_x86_64
+from .memory import MemoryPermission, MemorySection
+from .utils import generate_random_string
 
 
 def parse_as_lief_pe_permission(perm: MemoryPermission, extra: Any = None) -> int:
@@ -49,7 +29,9 @@ def parse_as_lief_pe_permission(perm: MemoryPermission, extra: Any = None) -> in
     return res
 
 
-def build_pe_executable(text: bytes, memory_layout: List[MemorySection], arch: Architecture) -> str:
+def build_pe_executable(
+    text: bytes, memory_layout: List[MemorySection], arch: Architecture
+) -> str:
     """
     Uses LIEF to build a standalone binary.
 
@@ -73,8 +55,13 @@ def build_pe_executable(text: bytes, memory_layout: List[MemorySection], arch: A
     reladdr = 0x1000
 
     for mem in memory_layout:
-        name, base_address, size, permission = mem.name, mem.address, mem.size, mem.permission
-        if name in (".stack", ):
+        name, base_address, size, permission = (
+            mem.name,
+            mem.address,
+            mem.size,
+            mem.permission,
+        )
+        if name in (".stack",):
             continue
 
         sect = PE.Section(name)
@@ -84,16 +71,14 @@ def build_pe_executable(text: bytes, memory_layout: List[MemorySection], arch: A
             # beginning VA
             sect.content = text
             sect.virtual_address = reladdr
-            sect.characteristics = parse_as_lief_pe_permission(
-                permission, "code")
+            sect.characteristics = parse_as_lief_pe_permission(permission, "code")
             sections["text"] = pe.add_section(sect, PE.SECTION_TYPES.TEXT)
 
         elif name == ".data":
             # .data is also sure to exist
             sect.content = b"\x00"
             sect.virtual_address = reladdr
-            sect.characteristics = parse_as_lief_pe_permission(
-                permission, "udata")
+            sect.characteristics = parse_as_lief_pe_permission(permission, "udata")
             sections["data"] = pe.add_section(sect, PE.SECTION_TYPES.DATA)
 
         reladdr += size
@@ -102,11 +87,9 @@ def build_pe_executable(text: bytes, memory_layout: List[MemorySection], arch: A
     pe.header.add_characteristic(PE.HEADER_CHARACTERISTICS.EXECUTABLE_IMAGE)
     pe.header.add_characteristic(PE.HEADER_CHARACTERISTICS.DEBUG_STRIPPED)
     if is_x64:
-        pe.header.add_characteristic(
-            PE.HEADER_CHARACTERISTICS.LARGE_ADDRESS_AWARE)
+        pe.header.add_characteristic(PE.HEADER_CHARACTERISTICS.LARGE_ADDRESS_AWARE)
     else:
-        pe.header.add_characteristic(
-            PE.HEADER_CHARACTERISTICS.CHARA_32BIT_MACHINE)
+        pe.header.add_characteristic(PE.HEADER_CHARACTERISTICS.CHARA_32BIT_MACHINE)
 
     # fixing pe optional header
     pe.optional_header.addressof_entrypoint = sections["text"].virtual_address
@@ -115,7 +98,7 @@ def build_pe_executable(text: bytes, memory_layout: List[MemorySection], arch: A
     pe.optional_header.major_subsystem_version = 0x05
     pe.optional_header.minor_subsystem_version = 0x02
     pe.optional_header.major_linker_version = 0x02
-    pe.optional_header.minor_linker_version = 0x1e
+    pe.optional_header.minor_linker_version = 0x1E
     pe.optional_header.remove(PE.DLL_CHARACTERISTICS.NX_COMPAT)
     pe.optional_header.add(PE.DLL_CHARACTERISTICS.NO_SEH)
     # pe.add_library("ntdll.dll")
@@ -129,7 +112,8 @@ def build_pe_executable(text: bytes, memory_layout: List[MemorySection], arch: A
     return outfile
 
 
-def build_elf_executable(asm_code: bytes, memory_layout: List[MemorySection], arch: Architecture) -> str:
-    """
-    """
+def build_elf_executable(
+    asm_code: bytes, memory_layout: List[MemorySection], arch: Architecture
+) -> str:
+    """ """
     raise NotImplementedError("ELF generation will be implemented soon")

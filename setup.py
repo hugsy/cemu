@@ -13,7 +13,7 @@ def readme():
 
 
 def get_required_packages():
-    return [x.strip() for x in open("./requirements.txt", "r").readlines()]
+    return [x.strip() for x in Path("./requirements.txt").open("r").readlines()]
 
 
 setup(

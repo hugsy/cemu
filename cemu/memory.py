@@ -1,75 +1,93 @@
-from multiprocessing.sharedctypes import Value
-import pathlib
 import enum
+import pathlib
+from typing import Optional
 
-from typing import Optional, Tuple
+import unicorn
 
-import cemu.core
+MemoryLayoutEntryType = tuple[str, int, int, str, Optional[pathlib.Path]]
 
-MemoryLayoutEntryType = Tuple[str, int, int, str, Optional[pathlib.Path]]
+MEMORY_FIELD_SEPARATOR = "|"
 
 
-class Permission(enum.Flag):
-    """Representation of Linux permission."""
+class MemoryPermission(enum.IntFlag):
+    """Abstract class for memory permission."""
+
     NONE = 0
     EXECUTE = 1
     WRITE = 2
     READ = 4
     ALL = EXECUTE | READ | WRITE
 
-    def __str__(self) -> str:
-        perm_str = ""
-        perm_str += "r" if self & Permission.READ else "-"
-        perm_str += "w" if self & Permission.WRITE else "-"
-        perm_str += "x" if self & Permission.EXECUTE else "-"
-        return perm_str
+    def to_string(self) -> str:
+        perm = []
+        if self & MemoryPermission.READ:
+            perm.append("read")
+        if self & MemoryPermission.WRITE:
+            perm.append("write")
+        if self & MemoryPermission.EXECUTE:
+            perm.append("exec")
+        return MEMORY_FIELD_SEPARATOR.join(perm)
 
+    __str__ = to_string
 
-class MemoryPermission:
+    @property
+    def readable(self):
+        return self & MemoryPermission.READ
 
-    def __init__(self, perm: str):
-        self.r, self.w, self.x = False, False, False
-        self.parse(perm)
-        return
+    r = readable
 
-    def parse(self, perm: str) -> None:
-        if perm.strip().lower() == "all":
-            self.r = self.w = self.x = True
-            return
+    @property
+    def writable(self):
+        return self & MemoryPermission.WRITE
 
-        for p in perm.split("|"):
-            p = p.strip().lower()
-            if p == "read":
-                self.r = True
-            elif p == "write":
-                self.w = True
-            elif p == "exec":
-                self.x = True
-        return
+    w = writable
 
-    def __str__(self) -> str:
-        m = []
-        if self.r:
-            m.append("READ")
-        if self.w:
-            m.append("WRITE")
-        if self.x:
-            m.append("EXEC")
-        return " | ".join(m)
+    @property
+    def executable(self):
+        return self & MemoryPermission.EXECUTE
 
-    def short(self) -> str:
-        m = []
-        if self.r:
-            m.append("r")
-        if self.w:
-            m.append("w")
-        if self.x:
-            m.append("x")
-        return "".join(m)
+    x = executable
+
+    @staticmethod
+    def from_string(perm: str) -> "MemoryPermission":
+        perm_obj = MemoryPermission.NONE
+
+        for block in map(str.lower, perm.split(MEMORY_FIELD_SEPARATOR)):
+            block = block.strip()
+            if block == "read":
+                perm_obj |= MemoryPermission.READ
+            elif block == "write":
+                perm_obj |= MemoryPermission.WRITE
+            elif block == "exec":
+                perm_obj |= MemoryPermission.EXECUTE
+            else:
+                raise ValueError(f"Unsupported value {block}")
+
+        return perm_obj
+
+    def unicorn(self) -> int:
+        """Get the integer value as used by `unicorn`
+
+        Returns:
+            int: _description_
+        """
+        perm_int = 0
+        if self & MemoryPermission.READ:
+            perm_int += unicorn.UC_PROT_READ
+        return perm_int
 
 
 class MemorySection:
-    def __init__(self, name: str, addr: int, size: int, perm: str, data_file: Optional[pathlib.Path] = None):
+    """Abstraction class for memory section"""
+
+    def __init__(
+        self,
+        name: str,
+        addr: int,
+        size: int,
+        perm: str,
+        data_file: Optional[pathlib.Path] = None,
+    ):
         if addr < 0 or addr >= 2**64:
             raise ValueError("address")
 
@@ -82,7 +100,7 @@ class MemorySection:
         self.name = name.strip().lower()
         self.address = addr
         self.size = size
-        self.permission = MemoryPermission(perm)
+        self.permission = MemoryPermission.from_string(perm)
         self.file_source = None
         self.content = None
         if data_file and data_file.is_file():
@@ -91,10 +109,21 @@ class MemorySection:
         return
 
     def __str__(self) -> str:
-        return "[0x{:x}-0x{:x}] {:s} ({:s})".format(self.address, self.address+self.size-1, self.name, self.permission.short())
+        return "[0x{:x}-0x{:x}] {:s} ({:s})".format(
+            self.address,
+            self.address + self.size - 1,
+            self.name,
+            self.permission.short(),
+        )
 
     def export(self) -> MemoryLayoutEntryType:
-        return (self.name, self.address, self.size, str(self.permission), self.file_source)
+        return (
+            self.name,
+            self.address,
+            self.size,
+            str(self.permission),
+            self.file_source,
+        )
 
     def __contains__(self, addr: int) -> bool:
         return self.address <= addr < self.address + self.size

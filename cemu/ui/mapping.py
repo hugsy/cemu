@@ -19,7 +19,9 @@ from PyQt6.QtWidgets import (
 
 from cemu.log import error
 from cemu.memory import MemorySection
-from cemu.utils import format_address, popup
+from cemu.utils import format_address
+
+from .utils import popup
 
 if TYPE_CHECKING:
     from cemu.ui.main import CEmuWindow
@@ -29,7 +31,7 @@ MEMORY_MAP_DEFAULT_LAYOUT = [
     MemorySection(".text", 0x00004000, 0x1000, "READ|EXEC"),
     MemorySection(".data", 0x00005000, 0x1000, "READ|WRITE"),
     MemorySection(".stack", 0x00006000, 0x4000, "READ|WRITE"),
-    MemorySection(".misc", 0x0000A000, 0x1000, "ALL"),
+    MemorySection(".misc", 0x0000A000, 0x1000, "READ|WRITE|EXEC"),
 ]
 
 
@@ -216,4 +218,5 @@ class MemoryMappingWidget(QDockWidget):
             except ValueError as ve:
                 popup(f"MemorySection is invalid, reason: Invalid {str(ve)}")
 
+        return
         return

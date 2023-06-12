@@ -1,9 +1,7 @@
 from __future__ import annotations
 
 import sys
-
-from PyQt6.QtGui import QIcon
-from PyQt6.QtWidgets import QApplication
+from typing import Optional
 
 import cemu.arch
 import cemu.const
@@ -14,11 +12,10 @@ import cemu.settings
 import cemu.ui.main
 
 
-class BackendContext:
+class GlobalContext:
     settings: cemu.settings.Settings
     __emulator: cemu.emulator.Emulator
     __architecture: cemu.arch.Architecture
-    __root: cemu.ui.main.CEmuWindow
 
     def __init__(self):
         self.settings = cemu.settings.Settings()
@@ -43,6 +40,10 @@ class BackendContext:
     def emulator(self) -> cemu.emulator.Emulator:
         return self.__emulator
 
+
+class GlobalGuiContext(GlobalContext):
+    __root: cemu.ui.main.CEmuWindow
+
     @property
     def root(self) -> cemu.ui.main.CEmuWindow:
         return self.__root
@@ -52,10 +53,10 @@ class BackendContext:
         self.__root = root
 
 
-context = BackendContext()
+context: Optional[GlobalContext] = None
 
 
-def Cemu(args: list[str]):
+def CemuGui(args: list[str]) -> None:
     """Entry point of the GUI
 
     Args:
@@ -67,8 +68,28 @@ def Cemu(args: list[str]):
         cemu.log.register_sink(print)
         cemu.log.dbg("Starting in Debug Mode")
 
+    from PyQt6.QtGui import QIcon
+    from PyQt6.QtWidgets import QApplication
+
+    cemu.log.dbg("Creating GUI context")
+    context = GlobalGuiContext()
+
     app = QApplication(args)
     app.setStyleSheet(cemu.const.DEFAULT_STYLE_PATH.open().read())
     app.setWindowIcon(QIcon(str(cemu.const.ICON_PATH.absolute())))
     context.root = cemu.ui.main.CEmuWindow(app)
     sys.exit(app.exec())
+
+
+def CemuCli(args: list[str]) -> None:
+    """Run cemu from the terminal
+
+    Args:
+        args (list[str]): _description_
+    """
+    global context
+
+    cemu.log.dbg("Creating CLI context")
+    context = GlobalContext()
+    # TODO build a repl like with prompt-toolkit + rich
+    return
