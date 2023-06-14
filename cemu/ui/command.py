@@ -84,9 +84,15 @@ class CommandWidget(QDockWidget):
         # Emulator state callback
         #
         self.emulator: Emulator = cemu.core.context.emulator
-        self.emulator.add_state_change_cb(EmulatorState.NOT_RUNNING, self.onResetState)
-        self.emulator.add_state_change_cb(EmulatorState.RUNNING, self.onRunningState)
-        self.emulator.add_state_change_cb(EmulatorState.IDLE, self.onIdleState)
+        self.emulator.add_state_change_cb(
+            EmulatorState.NOT_RUNNING, self.onResetUpdateCommandButtons
+        )
+        self.emulator.add_state_change_cb(
+            EmulatorState.RUNNING, self.onRunningUpdateCommandButtons
+        )
+        self.emulator.add_state_change_cb(
+            EmulatorState.IDLE, self.onIdleUpdateCommandButtons
+        )
         return
 
     def onClickStepNext(self) -> None:
@@ -142,7 +148,7 @@ class CommandWidget(QDockWidget):
         popup(msg, popup_style, title=title)
         return
 
-    def onRunningState(self) -> None:
+    def onRunningUpdateCommandButtons(self) -> None:
         """
         Signal callback called when notifying the start of emulation
         Enable the "Stop" button, disable the other ones
@@ -152,7 +158,7 @@ class CommandWidget(QDockWidget):
         self.buttons["step"].setDisabled(True)
         return
 
-    def onResetState(self) -> None:
+    def onResetUpdateCommandButtons(self) -> None:
         """
         Signal callback called when notifying the step run of emulation
         Everything is enabled
@@ -162,7 +168,7 @@ class CommandWidget(QDockWidget):
         self.buttons["step"].setDisabled(False)
         return
 
-    def onIdleState(self) -> None:
+    def onIdleUpdateCommandButtons(self) -> None:
         """
         Signal callback called when notifying the end of emulation
         Enable the "Stop" button, disable the other ones

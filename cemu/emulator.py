@@ -15,22 +15,22 @@ from .memory import MemorySection
 
 @unique
 class EmulatorState(IntEnum):
-    NOT_RUNNING = 0
-    SETUP = 1
-    IDLE = 2
-    RUNNING = 3
-    TEARDOWN = 5
-    FINISHED = 6
+    # fmt: off
+    NOT_RUNNING = 0              # Nothing is initialized
+    # SETUP = 1
+    IDLE = 2                     # The VM is running but stopped: used for stepping mode
+    RUNNING = 3                  # The VM is running
+    # TEARDOWN = 5
+    FINISHED = 6                 # The VM has reached the end of the execution
+    # fmt: on
 
 
 class Emulator:
-    EMU = 0
-    LOG = 1
-
     def __init__(self):
         self.use_step_mode = False
         self.widget = None
-        self.lock = Lock()
+        self.lock: Lock = Lock()
+        self.state: EmulatorState = EmulatorState.NOT_RUNNING
         self.__state_change_callbacks: dict[EmulatorState, list[Callable]] = {
             EmulatorState.NOT_RUNNING: [],
             EmulatorState.IDLE: [],
@@ -39,30 +39,30 @@ class Emulator:
         }
         self.threaded_runner: Optional[object] = None
         self.reset()
+        self.set(EmulatorState.NOT_RUNNING)
         return
 
     def reset(self):
         self.vm: Optional[unicorn.Uc] = None
-        self.ip: int = 0
         self.code: bytes = b""
         self.codelines: list[str] = []
-        self.state = EmulatorState.NOT_RUNNING
         self.stop_now = False
-        self.num_insns = -1
         self.sections: list[MemorySection] = []
         self.registers: dict[str, int] = {}
 
         #
         # Callback setup
         #
-        [callbacks.clear() for _, callbacks in self.__state_change_callbacks.items()]
-        self.add_state_change_cb(EmulatorState.RUNNING, self.setup)
-        self.add_state_change_cb(EmulatorState.FINISHED, self.teardown)
-        self.add_state_change_cb(EmulatorState.NOT_RUNNING, self.reset)
+        # [callbacks.clear() for _, callbacks in self.__state_change_callbacks.items()]
+        # self.add_state_change_cb(EmulatorState.RUNNING, self.setup)
+        # self.add_state_change_cb(EmulatorState.FINISHED, self.teardown)
+        # self.add_state_change_cb(EmulatorState.NOT_RUNNING, self.reset)
         return
 
     def __str__(self) -> str:
-        return f"Emulator instance {'' if self.is_running else 'not '}running"
+        if self.is_running:
+            return f"Emulator is running, IP={self.pc()}, SP={self.sp()}"
+        return "Emulator instance is not running"
 
     def get_register_value(self, regname: str) -> int:
         """
@@ -416,33 +416,65 @@ class Emulator:
         Args:
             new_state (EmulatorState): the new state
         """
-        if self.state == new_state:
-            return
 
-        dbg(f"Emulator is now in {new_state.name}")
+        def assign_state(__new_state):
+            if self.state == __new_state:
+                return
 
-        self.state = new_state
-        assert int(self.state) == int(new_state), f"{self.state} != {new_state}"
+            dbg(f"Emulator is now {__new_state.name}")
+
+            self.state = __new_state
+            assert int(self.state) == int(__new_state), f"{self.state} != {__new_state}"
+
+        assign_state(new_state)
+
+        match new_state:
+            case EmulatorState.RUNNING | EmulatorState.IDLE:
+                #
+                # Make sure there's always an emulation environment ready
+                #
+                self.setup()
+
+            case _:
+                pass
 
         dbg(
-            f"Executing {len(self.__state_change_callbacks)} callbacks for state {new_state.name}"
+            f"Executing {len(self.__state_change_callbacks[new_state])} callbacks for state {new_state.name}"
         )
-        for new_state_cb in self.__state_change_callbacks[new_state]:
-            dbg(f"Executing {new_state_cb.__name__}")
-            res = new_state_cb()
-            info(f"{new_state_cb.__name__}() return {res}")
 
-        if new_state == EmulatorState.RUNNING:
-            assert self.threaded_runner, "No threaded runner defined"
-            assert callable(
-                getattr(self.threaded_runner, "run")
-            ), "Threaded runner is not runnable"
-            self.threaded_runner.run()  # type: ignore
+        for new_state_cb in self.__state_change_callbacks[new_state]:
+            function_name = f"{new_state_cb.__module__}.{new_state_cb.__class__.__qualname__}.{new_state_cb.__name__}"
+            dbg(f"Executing {function_name}()")
+            res = new_state_cb()
+            info(f"{function_name}() return {res}")
+
+        match new_state:
+            case EmulatorState.RUNNING:
+                #
+                # This will effectively trigger the execution in unicorn
+                #
+                assert self.threaded_runner, "No threaded runner defined"
+                assert callable(
+                    getattr(self.threaded_runner, "run")
+                ), "Threaded runner is not runnable"
+                self.threaded_runner.run()  # type: ignore
+
+            case EmulatorState.FINISHED:
+                #
+                # When the execution is finished, cleanup and switch back to a "NotRunning" state
+                # This is done to make sure all the callback can still access the VM
+                #
+                self.teardown()
+                self.reset()
+                assign_state(EmulatorState.NOT_RUNNING)
+
+            case _:
+                pass
+
         return
 
     @property
     def is_running(self) -> bool:
-        assert self.vm, "VM is not initialized"
         return self.state in (
             EmulatorState.RUNNING,
             EmulatorState.IDLE,
