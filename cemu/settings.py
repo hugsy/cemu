@@ -7,7 +7,6 @@ from cemu.log import dbg
 
 
 class Settings:
-
     def __init__(self, *args, **kwargs):
         self.__config: Optional[configparser.ConfigParser] = None
         self.__config_filename = cemu.const.CONFIG_FILEPATH
@@ -72,7 +71,7 @@ class Settings:
         """
         Deploy a new config file as ~/.cemu.ini
         """
-        with self.__config_filename.open('w') as cfg:
+        with self.__config_filename.open("w") as cfg:
             cfg.write(cemu.const.TEMPLATE_CONFIG.open().read())
         return
 
