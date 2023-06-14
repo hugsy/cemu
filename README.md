@@ -1,6 +1,18 @@
-# CEMU #
+<p align="center">
+  <img alt="Logo" src="cemu/img/new_logo.png" width=20%>
+</p>
 
-[![MIT](https://img.shields.io/packagist/l/doctrine/orm.svg?maxAge=2592000?style=plastic)](https://github.com/hugsy/cemu/blob/master/LICENSE) ![Python-Version](https://img.shields.io/pypi/pyversions/cemu.svg) [![PyPi-Version](https://img.shields.io/pypi/v/cemu.svg)](https://pypi.python.org/pypi/cemu) ![[Discord](https://discord.gg/qBn9MbG9vp)](https://img.shields.io/badge/Discord-CEmu-green)
+<h2 align="center">CEmu : The Cheap (Assembly) Emulator</h2>
+
+<p align="center">
+  <a href="https://github.com/psf/black"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
+  <a href="https://github.com/hugsy/cemu/blob/master/LICENSE"><img alt="Licence MIT" src="https://img.shields.io/packagist/l/doctrine/orm.svg?maxAge=2592000?style=plastic"></a>
+  <img alt="Python-Version 3.10" src="https://img.shields.io/pypi/pyversions/cemu.svg">
+  <a href="https://pypi.org/project/cemu/"><img alt="CEmu on PyPI" src="https://img.shields.io/pypi/v/cemu.svg"></a>
+  <a href="https://discord.gg/qBn9MbG9vp"><img alt="CEmu on Discord" src="https://img.shields.io/badge/Discord-CEmu-green"></a>
+  <a href="https://pepy.tech/project/cemu"><img alt="Downloads" src="https://pepy.tech/badge/cemu"></a>
+</p>
+
 
 ![cemu-linux](https://i.imgur.com/iHtWvTL.png)
 
