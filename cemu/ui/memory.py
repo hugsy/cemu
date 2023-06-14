@@ -20,6 +20,7 @@ from PyQt6.QtWidgets import (
 import cemu.core
 from cemu import const, utils
 from cemu.emulator import Emulator, EmulatorState
+from cemu.log import dbg
 
 if TYPE_CHECKING:
     from cemu.ui.main import CEmuWindow
@@ -58,10 +59,10 @@ class MemoryWidget(QDockWidget):
         #
         emu: Emulator = cemu.core.context.emulator
         emu.add_state_change_cb(EmulatorState.IDLE, self.onIdleRefreshMemoryEditor)
+        emu.add_state_change_cb(
+            EmulatorState.FINISHED, self.onFinishedClearMemoryEditor
+        )
 
-        # define signals
-        # self.refreshMemoryEditorSignal.connect(self.)
-        # parent.signals["refreshMemoryEditor"] = self.refreshMemoryEditorSignal
         return
 
     def updateEditor(self) -> None:
@@ -75,6 +76,9 @@ class MemoryWidget(QDockWidget):
             self.editor.setText("VM not running")
             return
 
+        addr: int
+        msg = "Displaying "
+
         value = self.address.text()
         if value.lower().startswith("0x"):
             value = value[2:]
@@ -83,7 +87,9 @@ class MemoryWidget(QDockWidget):
             # if the value of the "memory viewer" field starts with @.<section_name>
             section_name = value[1:]
             try:
-                addr = emu.find_section(section_name)
+                section = emu.find_section(section_name)
+                addr = section.address
+                msg += f"from section name {section_name}"
             except KeyError:
                 self.editor.setText(f"No section named '{section_name}'")
                 return
@@ -96,11 +102,17 @@ class MemoryWidget(QDockWidget):
             addr = emu.get_register_value(reg_name)
             if not addr:
                 return
+            msg += f" from register {reg_name}"
 
         else:
             if not value.isdigit():
                 return
             addr = int(value, 16)
+            msg += f" from value {value}"
+
+        dbg(msg + f": {addr:#x}")
+
+        assert isinstance(addr, int)
 
         try:
             data = emu.vm.mem_read(addr, const.DEFAULT_MEMORY_VIEW_CHUNK_SIZE)
@@ -112,4 +124,8 @@ class MemoryWidget(QDockWidget):
 
     def onIdleRefreshMemoryEditor(self) -> None:
         self.updateEditor()
+        return
+
+    def onFinishedClearMemoryEditor(self) -> None:
+        self.editor.setText("")
         return

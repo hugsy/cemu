@@ -18,6 +18,7 @@ from PyQt6.QtWidgets import (
 )
 
 import cemu.core
+from cemu.emulator import Emulator, EmulatorState
 from cemu.log import error
 from cemu.memory import MemorySection
 from cemu.utils import format_address
@@ -72,6 +73,21 @@ class MemoryMappingWidget(QDockWidget):
         widget.setLayout(layout)
         self.setWidget(widget)
         self.updateGrid()
+
+        #
+        # Emulator state callback
+        #
+        self.emulator: Emulator = cemu.core.context.emulator
+        self.emulator.add_state_change_cb(
+            EmulatorState.NOT_RUNNING, self.onNotRunningResetMemoryMap
+        )
+        return
+
+    def onNotRunningResetMemoryMap(self) -> None:
+        #
+        # Propagate the view change to the emulator
+        #
+        cemu.core.context.emulator.sections = self.maps
         return
 
     def updateGrid(self) -> None:
@@ -89,11 +105,7 @@ class MemoryMappingWidget(QDockWidget):
             self.MemoryMapTableWidget.setItem(idx, 3, permission)
 
         self.MemoryMapTableWidget.setRowCount(len(self.__memory_layout))
-
-        #
-        # Propagate the view change to the emulator
-        #
-        cemu.core.context.emulator.sections = self.maps
+        self.onNotRunningResetMemoryMap()
         return
 
     @property
@@ -224,5 +236,4 @@ class MemoryMappingWidget(QDockWidget):
             except ValueError as ve:
                 popup(f"MemorySection is invalid, reason: Invalid {str(ve)}")
 
-        return
         return

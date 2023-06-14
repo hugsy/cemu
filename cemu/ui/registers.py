@@ -11,17 +11,16 @@ from PyQt6.QtWidgets import (
 )
 
 import cemu.core
+from cemu.const import (
+    DEFAULT_REGISTER_VIEW_CHANGED_REGISTER_COLOR,
+    DEFAULT_REGISTER_VIEW_REGISTER_FONT,
+    DEFAULT_REGISTER_VIEW_REGISTER_FONT_SIZE,
+)
 from cemu.emulator import Emulator, EmulatorState
 from cemu.utils import format_address
 
-UI_REGISTERS_CHANGED_VALUE_COLOR = "red"
-UI_REGISTERS_REGISTER_NAME_FONT = ("Courier", 11)
-UI_REGISTERS_REGISTER_VALUE_FONT = ("Courier", 11)
-
 
 class RegistersWidget(QDockWidget):
-    # refreshRegisterGridSignal = pyqtSignal()
-
     def __init__(self, parent, *args, **kwargs):
         super(RegistersWidget, self).__init__("Registers", parent)
         self.root = self.parentWidget()
@@ -48,10 +47,9 @@ class RegistersWidget(QDockWidget):
         #
         emu: Emulator = cemu.core.context.emulator
         emu.add_state_change_cb(EmulatorState.IDLE, self.onIdleRefreshRegisterGrid)
-
-        # # define signals
-        # self.refreshRegisterGridSignal.connect(self.onRefreshRegisterGrid)
-        # parent.signals["refreshRegisterGrid"] = self.refreshRegisterGridSignal
+        emu.add_state_change_cb(
+            EmulatorState.FINISHED, self.onFinishedRefreshRegisterGrid
+        )
         return
 
     def updateGrid(self) -> None:
@@ -67,7 +65,12 @@ class RegistersWidget(QDockWidget):
             self.RegisterTableWidget.setRowHeight(i, self.__row_size)
             name = QTableWidgetItem(reg)
             name.setFlags(Qt.ItemFlag.NoItemFlags)
-            name.setFont(QFont(*UI_REGISTERS_REGISTER_NAME_FONT))
+            name.setFont(
+                QFont(
+                    DEFAULT_REGISTER_VIEW_REGISTER_FONT,
+                    DEFAULT_REGISTER_VIEW_REGISTER_FONT_SIZE,
+                )
+            )
             val = emu.get_register_value(reg) if emu.vm else 0
             old_val = self.__old_register_values.get(reg, 0)
             if type(val) in (int, int):
@@ -75,10 +78,17 @@ class RegistersWidget(QDockWidget):
             else:
                 value = str(val)
             value = QTableWidgetItem(value)
-            value.setFont(QFont(*UI_REGISTERS_REGISTER_VALUE_FONT))
+            value.setFont(
+                QFont(
+                    DEFAULT_REGISTER_VIEW_REGISTER_FONT,
+                    DEFAULT_REGISTER_VIEW_REGISTER_FONT_SIZE,
+                )
+            )
             if old_val != val:
                 self.__old_register_values[reg] = val
-                value.setForeground(QColor(UI_REGISTERS_CHANGED_VALUE_COLOR))
+                value.setForeground(
+                    QColor(DEFAULT_REGISTER_VIEW_CHANGED_REGISTER_COLOR)
+                )
             value.setFlags(
                 Qt.ItemFlag.ItemIsEnabled
                 | Qt.ItemFlag.ItemIsSelectable
@@ -90,10 +100,10 @@ class RegistersWidget(QDockWidget):
         #
         # Propagate the change to the emulator
         #
-        cemu.core.context.emulator.registers = self.getRegisterValues()
+        cemu.core.context.emulator.registers = self.getRegisterValuesFromGrid()
         return
 
-    def getRegisterValues(self) -> dict[str, int]:
+    def getRegisterValuesFromGrid(self) -> dict[str, int]:
         """Returns the current values of the registers, as shown by the widget grid"""
         regs = {}
         arch = cemu.core.context.architecture
@@ -106,3 +116,5 @@ class RegistersWidget(QDockWidget):
     def onIdleRefreshRegisterGrid(self) -> None:
         self.updateGrid()
         return
+
+    onFinishedRefreshRegisterGrid = onIdleRefreshRegisterGrid

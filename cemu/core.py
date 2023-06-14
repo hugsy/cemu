@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import sys
-from typing import Union
+from typing import TYPE_CHECKING, Union
+
+if TYPE_CHECKING:
+    import cemu.ui.main
 
 import cemu.arch
 import cemu.const
@@ -9,7 +12,6 @@ import cemu.emulator
 import cemu.log
 import cemu.plugins
 import cemu.settings
-import cemu.ui.main
 
 
 class GlobalContext:
@@ -64,12 +66,10 @@ def CemuGui(args: list[str]) -> None:
     """
     global context
 
-    if cemu.const.DEBUG:
-        cemu.log.register_sink(print)
-        cemu.log.dbg("Starting in Debug Mode")
-
     from PyQt6.QtGui import QIcon
     from PyQt6.QtWidgets import QApplication
+
+    from cemu.ui.main import CEmuWindow
 
     cemu.log.dbg("Creating GUI context")
     context = GlobalGuiContext()
@@ -77,7 +77,7 @@ def CemuGui(args: list[str]) -> None:
     app = QApplication(args)
     app.setStyleSheet(cemu.const.DEFAULT_STYLE_PATH.open().read())
     app.setWindowIcon(QIcon(str(cemu.const.ICON_PATH.absolute())))
-    context.root = cemu.ui.main.CEmuWindow(app)
+    context.root = CEmuWindow(app)
     sys.exit(app.exec())
 
 
@@ -92,4 +92,5 @@ def CemuCli(args: list[str]) -> None:
     cemu.log.dbg("Creating CLI context")
     context = GlobalContext()
     # TODO build a repl like with prompt-toolkit + rich
+    return
     return

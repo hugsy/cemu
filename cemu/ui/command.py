@@ -3,7 +3,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Callable
 
-# from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtWidgets import QDockWidget, QHBoxLayout, QPushButton, QWidget
 
 import cemu.core
@@ -24,10 +23,6 @@ class CommandButton:
 
 
 class CommandWidget(QDockWidget):
-    # setCommandButtonsForRunningSignal = pyqtSignal()
-    # setCommandButtonsForStepRunningSignal = pyqtSignal()
-    # setCommandButtonsForStopSignal = pyqtSignal()
-
     def __init__(self, parent: CEmuWindow, *args, **kwargs):
         super().__init__("Control Panel", parent)
         self.root = parent
@@ -63,29 +58,12 @@ class CommandWidget(QDockWidget):
         widget.setLayout(layout)
         self.setWidget(widget)
 
-        # parent.signals[
-        #     "setCommandButtonsRunState"
-        # ] = self.setCommandButtonsForRunningSignal
-        # self.setCommandButtonsForRunningSignal.connect(self.onSignalEmulationRun)
-
-        # parent.signals[
-        #     "setCommandButtonsStepRunState"
-        # ] = self.setCommandButtonsForStepRunningSignal
-        # self.setCommandButtonsForStepRunningSignal.connect(
-        #     self.onSignalEmulationStepRun
-        # )
-
-        # parent.signals[
-        #     "setCommandButtonStopState"
-        # ] = self.setCommandButtonsForStopSignal
-        # self.setCommandButtonsForStopSignal.connect(self.onEmulationStop)
-
         #
         # Emulator state callback
         #
         self.emulator: Emulator = cemu.core.context.emulator
         self.emulator.add_state_change_cb(
-            EmulatorState.NOT_RUNNING, self.onResetUpdateCommandButtons
+            EmulatorState.FINISHED, self.onFinishedUpdateCommandButtons
         )
         self.emulator.add_state_change_cb(
             EmulatorState.RUNNING, self.onRunningUpdateCommandButtons
@@ -95,12 +73,22 @@ class CommandWidget(QDockWidget):
         )
         return
 
+    def onClickRunAll(self) -> None:
+        """
+        Command to run the emulation from $pc until the end of
+        the code provided
+        """
+        self.emulator.use_step_mode = False
+        # self.emulator.stop_now = False
+        self.emulator.set(EmulatorState.RUNNING)
+        return
+
     def onClickStepNext(self) -> None:
         """
         Command to step into the next instruction. Enable the stepping mode in the emulator, then run.
         """
         self.emulator.use_step_mode = True
-        self.emulator.stop_now = False
+        # self.emulator.stop_now = False
         self.emulator.set(EmulatorState.RUNNING)
         return
 
@@ -115,16 +103,6 @@ class CommandWidget(QDockWidget):
         dbg("Stopping emulation...")
         self.emulator.set(EmulatorState.FINISHED)
         info("Emulation context has stopped")
-        return
-
-    def onClickRunAll(self) -> None:
-        """
-        Command to run the emulation from $pc until the end of
-        the code provided
-        """
-        self.emulator.use_step_mode = True
-        self.emulator.stop_now = False
-        self.emulator.set(EmulatorState.RUNNING)
         return
 
     def onClickCheckCode(self) -> None:
@@ -163,7 +141,7 @@ class CommandWidget(QDockWidget):
         Signal callback called when notifying the step run of emulation
         Everything is enabled
         """
-        self.buttons["stop"].setDisabled(False)
+        self.buttons["stop"].setDisabled(True)
         self.buttons["run"].setDisabled(False)
         self.buttons["step"].setDisabled(False)
         return
@@ -177,3 +155,5 @@ class CommandWidget(QDockWidget):
         self.buttons["step"].setDisabled(False)
         self.buttons["run"].setDisabled(False)
         return
+
+    onFinishedUpdateCommandButtons = onResetUpdateCommandButtons

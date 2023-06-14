@@ -71,6 +71,7 @@ class AssemblyView(QTextEdit):
         self.setStyleSheet("background-color: rgb(211, 211, 211);")
         self.editor = editor
         self.editor.textChanged.connect(self.update_assembly_code_pane)
+        self.__last_assembly_error_msg = ""
         return
 
     def update_assembly_code_pane(self):
@@ -79,37 +80,47 @@ class AssemblyView(QTextEdit):
         #
         text: str = self.editor.toPlainText()
         cur: int = self.editor.textCursor().position()
-        if text[cur - 1] != os.linesep:
+        if cur < 1 or text[cur - 1] != os.linesep:
             return
 
-        try:
-            lines: list[str] = text.splitlines()
-            bytecode_lines: list[str] = [
-                "",
-            ] * len(lines)
-            old_code = ""
+        #
+        # TODO add switch "Live Preview"
+        #
+        pane_width = self.width() // 10
+        lines: list[str] = text.splitlines()
+        bytecode_lines: list[str] = [
+            "",
+        ] * pane_width
+        assembly_failed_lines: list[int] = []
 
-            for idx in range(len(lines)):
-                curline = lines[idx].strip()
-                if not curline or curline.startswith(COMMENT_MARKER):
-                    bytecode_lines[idx] = "\n"
+        for i in range(len(lines)):
+            try:
+                line = lines[i].strip()
+                if not line:
+                    bytecode_lines[i] = ""
                     continue
 
-                asm = os.linesep.join(lines[: idx + 1])
-                insns = assemble(asm)
+                insns = assemble(line)
                 insn = insns[0]
-                code = insn.bytes
-                if len(code) > len(old_code):
-                    new_code = code[len(old_code) :]
-                    new_line = " ".join(["%.02x" % x for x in new_code])
-                    old_code = code
-                    bytecode_lines[idx] = new_line
+                bytecode = " ".join([f"{b:02x}" for b in insn.bytes])
+                if len(bytecode) > (pane_width - 3):
+                    bytecode_lines[i] = bytecode[: pane_width - 3] + "..."
+                else:
+                    bytecode_lines[i] = bytecode
 
-            # TODO add max char limit
+            except Exception:
+                assembly_failed_lines.append(i)
+                bytecode_lines[i] = ""
 
-            self.setText(os.linesep.join(bytecode_lines))
-        except Exception as e:
-            error(f"update_assembly_code() failed: {str(e)}")
+        if assembly_failed_lines:
+            msg = (
+                f"Failed to assemble lines {', '.join(map(str, assembly_failed_lines))}"
+            )
+            if msg != self.__last_assembly_error_msg:
+                error(msg)
+                self.__last_assembly_error_msg = msg
+
+        self.setText(os.linesep.join(bytecode_lines))
         return
 
 

@@ -5,7 +5,7 @@ import tempfile
 from typing import Callable, Optional
 
 import unicorn
-from PyQt6.QtCore import QFileInfo, QObject, QSettings, Qt, QThread, pyqtSignal
+from PyQt6.QtCore import QFileInfo, QSettings, Qt
 from PyQt6.QtGui import QAction, QIcon
 from PyQt6.QtWidgets import (
     QApplication,
@@ -705,7 +705,7 @@ class CEmuWindow(QMainWindow):
         Returns the register widget values as a Dict
         """
         self.__regsWidget.updateGrid()
-        return self.__regsWidget.getRegisterValues()
+        return self.__regsWidget.getRegisterValuesFromGrid()
 
     def get_memory_layout(self) -> list[MemorySection]:
         """
@@ -739,11 +739,10 @@ class CEmuWindow(QMainWindow):
         return
 
 
-class EmulationInstance(QObject):
-    finished = pyqtSignal()
-    progress = pyqtSignal(int)
+class EmulationRunner:
+    """Rusn an emulation session"""
 
-    def run(self) -> None:
+    def run(self):
         """
         Runs the emulation
         """
@@ -771,8 +770,7 @@ class EmulationInstance(QObject):
                 end_address = emu.start_addr + len(emu.code)
                 info(f"Running all from {start_address:#x} to {end_address:#x}")
 
-            # with emu.lock:
-            if True:
+            with emu.lock:
                 #
                 # Run the emulator, let's go!
                 #
@@ -790,21 +788,4 @@ class EmulationInstance(QObject):
             popup(f"An error occured: {str(e)} at pc={emu.pc():#x}, sp={emu.sp():#x}")
             emu.set(EmulatorState.FINISHED)
 
-        self.finished.emit()
         return
-
-
-class EmulationRunner:
-    """_summary_"""
-
-    def __init__(self):
-        self.thread = QThread()
-        self.worker = EmulationInstance()
-        self.worker.moveToThread(self.thread)
-        self.thread.started.connect(self.worker.run)
-        self.worker.finished.connect(self.thread.quit)
-        self.worker.finished.connect(self.worker.deleteLater)
-        self.thread.finished.connect(self.thread.deleteLater)
-
-    def run(self):
-        self.thread.start()

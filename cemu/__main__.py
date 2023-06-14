@@ -3,10 +3,16 @@
 import pathlib
 import sys
 
+import cemu.const
 import cemu.core
+import cemu.log
 
 
 def main():
+    if cemu.const.DEBUG:
+        cemu.log.register_sink(print)
+        cemu.log.dbg("Starting in Debug Mode")
+
     if "--cli" in sys.argv:
         cemu.core.CemuCli(sys.argv)
         return

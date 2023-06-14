@@ -219,4 +219,4 @@ class PythonConsole(QTextEdit):
 
     @property
     def arch(self):
-        return self.emu.arch
+        return cemu.core.context.architecture

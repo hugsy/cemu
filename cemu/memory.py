@@ -113,7 +113,7 @@ class MemorySection:
         return self.address + self.size - 1
 
     def __str__(self) -> str:
-        return f"MemorySection [{self.address:#x}-{self.end:#x}] {self.name:s} as {str(self.permission)})"
+        return f"MemorySection([{self.address:#x}-{self.end:#x}], name='{self.name:s}', permission={str(self.permission)})"
 
     def __contains__(self, addr: int) -> bool:
         """`in` operator overload

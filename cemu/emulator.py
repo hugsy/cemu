@@ -1,7 +1,7 @@
 import os
 from enum import IntEnum, unique
 from multiprocessing import Lock
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Optional, Union
 
 import unicorn
 
@@ -46,17 +46,9 @@ class Emulator:
         self.vm: Optional[unicorn.Uc] = None
         self.code: bytes = b""
         self.codelines: list[str] = []
-        self.stop_now = False
         self.sections: list[MemorySection] = []
         self.registers: dict[str, int] = {}
-
-        #
-        # Callback setup
-        #
-        # [callbacks.clear() for _, callbacks in self.__state_change_callbacks.items()]
-        # self.add_state_change_cb(EmulatorState.RUNNING, self.setup)
-        # self.add_state_change_cb(EmulatorState.FINISHED, self.teardown)
-        # self.add_state_change_cb(EmulatorState.NOT_RUNNING, self.reset)
+        self.start_addr = 0
         return
 
     def __str__(self) -> str:
@@ -70,14 +62,12 @@ class Emulator:
         """
 
         if not self.vm:
+            error("get_register_value() failed: VM not initialized")
             return -1
 
         arch = cemu.core.context.architecture
-
-        # with self.lock:
-        if True:
-            ur = arch.uc_register(regname)
-            val = self.vm.reg_read(ur)
+        ur = arch.uc_register(regname)
+        val = self.vm.reg_read(ur)
 
         # TODO handle xmmreg later
         assert isinstance(val, int)
@@ -304,18 +294,21 @@ class Emulator:
         if not self.vm:
             return False
 
-        arch = cemu.core.context.architecture
+        # arch = cemu.core.context.architecture
         code = self.vm.mem_read(address, size)
         insn: cemu.utils.Instruction = self.next_instruction(code, address)
-        if self.stop_now:
-            self.start_addr = self.get_register_value(arch.pc)
-            emu.emu_stop()
-            return True
-
-        dbg(f"[vm::runtime] Executing @ {insn}")
+        # if self.stop_now:
+        #     self.start_addr = self.get_register_value(arch.pc)
+        #     emu.emu_stop()
+        #     return True
 
         if self.use_step_mode:
-            self.stop_now = True
+            dbg(f"[vm::runtime] Stepping @ {insn}")
+        else:
+            dbg(f"[vm::runtime] Executing @ {insn}")
+
+        # if self.use_step_mode:
+        #     self.stop_now = True
         return True
 
     def hook_block(self, emu: unicorn.Uc, addr: int, size: int, misc: Any) -> int:
@@ -354,14 +347,6 @@ class Emulator:
             info(f"Read: *{address:#x} (size={size})")
         return
 
-    def run(self) -> None:
-        """
-        Runs the emulation
-        """
-        assert self.vm, "VM is not initialized"
-
-        return
-
     def teardown(self) -> None:
         """
         Stops the unicorn environment
@@ -369,11 +354,13 @@ class Emulator:
         if not self.vm:
             return
 
-        info("Ending emulation context")
+        info(f"Ending emulation context at {self.pc():#x}")
 
         for section in self.sections:
+            dbg(f"[vm::teardown] Unmapping {section}")
             self.vm.mem_unmap(section.address, section.size)
 
+        dbg(f"[vm::teardown] Deleting {self.vm}")
         del self.vm
         self.vm = None
         return
@@ -417,11 +404,11 @@ class Emulator:
             new_state (EmulatorState): the new state
         """
 
-        def assign_state(__new_state):
+        def assign_state(__new_state: EmulatorState):
             if self.state == __new_state:
                 return
 
-            dbg(f"Emulator is now {__new_state.name}")
+            info(f"Emulator is now {__new_state.name}")
 
             self.state = __new_state
             assert int(self.state) == int(__new_state), f"{self.state} != {__new_state}"
@@ -446,7 +433,7 @@ class Emulator:
             function_name = f"{new_state_cb.__module__}.{new_state_cb.__class__.__qualname__}.{new_state_cb.__name__}"
             dbg(f"Executing {function_name}()")
             res = new_state_cb()
-            info(f"{function_name}() return {res}")
+            dbg(f"{function_name}() return {res}")
 
         match new_state:
             case EmulatorState.RUNNING:
@@ -466,7 +453,12 @@ class Emulator:
                 #
                 self.teardown()
                 self.reset()
-                assign_state(EmulatorState.NOT_RUNNING)
+
+                #
+                # Make sure the last step of `FINISHED` is to set the state to NOT_RUNNING in order to
+                # trigger the potential callbacks
+                #
+                self.set(EmulatorState.NOT_RUNNING)
 
             case _:
                 pass
@@ -482,3 +474,14 @@ class Emulator:
 
     def set_threaded_runner(self, runnable_object: object):
         self.threaded_runner = runnable_object
+
+    def context(self) -> dict[str, Union[int, str]]:
+        """Get the current context for the registers as a hash table
+
+        Returns:
+            dict[str, Union[int, str]]: _description_
+        """
+        if not self.vm:
+            return {}
+        # regs = {name: self.get_register_value(name) for name in self.registers}
+        return self.registers
