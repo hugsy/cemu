@@ -17,6 +17,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+import cemu.core
 from cemu.log import error
 from cemu.memory import MemorySection
 from cemu.utils import format_address
@@ -88,6 +89,11 @@ class MemoryMappingWidget(QDockWidget):
             self.MemoryMapTableWidget.setItem(idx, 3, permission)
 
         self.MemoryMapTableWidget.setRowCount(len(self.__memory_layout))
+
+        #
+        # Propagate the view change to the emulator
+        #
+        cemu.core.context.emulator.sections = self.maps
         return
 
     @property

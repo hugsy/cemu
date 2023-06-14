@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import sys
-from typing import Optional
+from typing import Union
 
 import cemu.arch
 import cemu.const
@@ -53,7 +53,7 @@ class GlobalGuiContext(GlobalContext):
         self.__root = root
 
 
-context: Optional[GlobalContext] = None
+context: Union[GlobalContext, GlobalGuiContext]
 
 
 def CemuGui(args: list[str]) -> None:

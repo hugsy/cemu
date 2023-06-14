@@ -1,92 +1,101 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Callable
 
-from PyQt6.QtCore import pyqtSignal
-from PyQt6.QtWidgets import (QDockWidget, QHBoxLayout, QMessageBox,
-                             QPushButton, QWidget)
+# from PyQt6.QtCore import pyqtSignal
+from PyQt6.QtWidgets import QDockWidget, QHBoxLayout, QPushButton, QWidget
 
-from cemu.log import dbg, error, info
+import cemu.core
+from cemu import utils
+from cemu.emulator import Emulator, EmulatorState
+from cemu.log import dbg, info
+from cemu.ui.utils import PopupType, popup
 
 if TYPE_CHECKING:
     from cemu.ui.main import CEmuWindow
 
-import cemu.core
 
-from ..emulator import Emulator, EmulatorState
+@dataclass
+class CommandButton:
+    label: str
+    on_click: Callable
+    shortcut: str
 
 
 class CommandWidget(QDockWidget):
-
-    setCommandButtonsForRunningSignal = pyqtSignal()
-    setCommandButtonsForStepRunningSignal = pyqtSignal()
-    setCommandButtonsForStopSignal = pyqtSignal()
+    # setCommandButtonsForRunningSignal = pyqtSignal()
+    # setCommandButtonsForStepRunningSignal = pyqtSignal()
+    # setCommandButtonsForStopSignal = pyqtSignal()
 
     def __init__(self, parent: CEmuWindow, *args, **kwargs):
         super().__init__("Control Panel", parent)
-        self.emulator: Emulator = cemu.core.context.emulator
+        self.root = parent
         sc = parent.shortcuts
+
+        #
+        # Layout setup
+        #
         layout = QHBoxLayout()
         layout.addStretch(1)
 
-        self.__runButton = QPushButton("Run all code")
-        self.__runButton.clicked.connect(self.onClickRunAll)
-        self.__runButton.setShortcut(sc.shortcut("emulator_run_all"))
+        buttons = {
+            "run": CommandButton(" ▶️▶️ ", self.onClickRunAll, "emulator_run_all"),
+            "step": CommandButton(" ⏯️ ", self.onClickStepNext, "emulator_step"),
+            "stop": CommandButton(" ⏹️ ", self.onClickStop, "emulator_stop"),
+            "check": CommandButton(" ✅ ", self.onClickCheckCode, "emulator_check"),
+        }
 
-        self.__stepButton = QPushButton("Step to Next")
-        self.__stepButton.clicked.connect(self.onClickStepNext)
-        self.__stepButton.setShortcut(sc.shortcut("emulator_step"))
+        self.buttons: dict[str, QPushButton] = {}
+        for name in buttons:
+            button = QPushButton(buttons[name].label)
+            button.clicked.connect(buttons[name].on_click)
+            button.setShortcut(sc.shortcut(buttons[name].shortcut))
+            self.buttons[name] = button
+            layout.addWidget(self.buttons[name])
 
-        self.__stopButton = QPushButton("Stop")
-        self.__stopButton.setShortcut(sc.shortcut("emulator_stop"))
-        self.__stopButton.clicked.connect(self.onClickStop)
-        self.__stopButton.setDisabled(True)
-
-        self.__checkAsmButton = QPushButton("Check assembly")
-        self.__checkAsmButton.setShortcut(sc.shortcut("emulator_check"))
-        self.__checkAsmButton.clicked.connect(self.onClickCheckCode)
-
-        layout.addWidget(self.__runButton)
-        layout.addWidget(self.__stepButton)
-        layout.addWidget(self.__stopButton)
-        layout.addWidget(self.__checkAsmButton)
+        self.buttons["run"].setDisabled(False)
+        self.buttons["step"].setDisabled(False)
+        self.buttons["stop"].setDisabled(True)
+        self.buttons["check"].setDisabled(False)
 
         widget = QWidget(self)
         widget.setLayout(layout)
         self.setWidget(widget)
 
-        parent.signals["setCommandButtonsRunState"] = self.setCommandButtonsForRunningSignal
-        self.setCommandButtonsForRunningSignal.connect(
-            self.onSignalEmulationRun)
+        # parent.signals[
+        #     "setCommandButtonsRunState"
+        # ] = self.setCommandButtonsForRunningSignal
+        # self.setCommandButtonsForRunningSignal.connect(self.onSignalEmulationRun)
 
-        parent.signals["setCommandButtonsStepRunState"] = self.setCommandButtonsForStepRunningSignal
-        self.setCommandButtonsForStepRunningSignal.connect(
-            self.onSignalEmulationStepRun)
+        # parent.signals[
+        #     "setCommandButtonsStepRunState"
+        # ] = self.setCommandButtonsForStepRunningSignal
+        # self.setCommandButtonsForStepRunningSignal.connect(
+        #     self.onSignalEmulationStepRun
+        # )
 
-        parent.signals["setCommandButtonStopState"] = self.setCommandButtonsForStopSignal
-        self.setCommandButtonsForStopSignal.connect(self.onEmulationStop)
-        return
+        # parent.signals[
+        #     "setCommandButtonStopState"
+        # ] = self.setCommandButtonsForStopSignal
+        # self.setCommandButtonsForStopSignal.connect(self.onEmulationStop)
 
-    def __run(self) -> None:
-        """
-        Internal method that starts the emulation
-        """
-
-        if not self.emulator.is_running:
-            if not self.load_emulation_context():
-                error("An error occured when loading context")
-                return
-
-        self.emulator.run()
+        #
+        # Emulator state callback
+        #
+        self.emulator: Emulator = cemu.core.context.emulator
+        self.emulator.add_state_change_cb(EmulatorState.NOT_RUNNING, self.onResetState)
+        self.emulator.add_state_change_cb(EmulatorState.RUNNING, self.onRunningState)
+        self.emulator.add_state_change_cb(EmulatorState.IDLE, self.onIdleState)
         return
 
     def onClickStepNext(self) -> None:
         """
-        Command to step into the next instruction.
+        Command to step into the next instruction. Enable the stepping mode in the emulator, then run.
         """
         self.emulator.use_step_mode = True
         self.emulator.stop_now = False
-        self.__run()
+        self.emulator.set(EmulatorState.RUNNING)
         return
 
     def onClickStop(self):
@@ -94,12 +103,12 @@ class CommandWidget(QDockWidget):
         Callback function for "Stop execution"
         """
         if not self.emulator.is_running:
-            error("Emulator is not running...")
+            popup("Emulator is not running...")
             return
 
-        info("Stopping emulation...")
-        self.emulator.set_vm_state(EmulatorState.FINISHED)
-        ("Emulation context has stopped")
+        dbg("Stopping emulation...")
+        self.emulator.set(EmulatorState.FINISHED)
+        info("Emulation context has stopped")
         return
 
     def onClickRunAll(self) -> None:
@@ -107,69 +116,58 @@ class CommandWidget(QDockWidget):
         Command to run the emulation from $pc until the end of
         the code provided
         """
-        self.emulator.use_step_mode = False
+        self.emulator.use_step_mode = True
         self.emulator.stop_now = False
-        self.__run()
+        self.emulator.set(EmulatorState.RUNNING)
         return
 
-    def onClickCheckCode(self) -> bool:
+    def onClickCheckCode(self) -> None:
         """
         Callback function for performing a syntaxic check of the code in the code pane.
         """
-        code = cemu.core.context.root.get_codeview_content()
-        if self.emulator.assemble_code(code, False):
+        code = self.root.get_codeview_content()
+        try:
+            if not code:
+                raise ValueError("Empty code")
+
+            utils.assemble(code)
+            title = "Success"
             msg = "Your code is syntaxically valid."
-            popup = QMessageBox.information
-            is_valid = True
-        else:
-            msg = "Some errors were found in your code, check the logs..."
-            popup = QMessageBox.warning
-            is_valid = False
+            popup_style = PopupType.Information
+        except Exception as e:
+            title = "Some errors were found in your code."
+            msg = str(e)
+            popup_style = PopupType.Error
 
-        popup(self, "Checking assembly code syntax...", msg)
-        return is_valid
+        popup(msg, popup_style, title=title)
+        return
 
-    def onSignalEmulationRun(self) -> None:
+    def onRunningState(self) -> None:
         """
         Signal callback called when notifying the start of emulation
+        Enable the "Stop" button, disable the other ones
         """
-        # enable the "Stop" button, disable the other ones
-        self.__stopButton.setDisabled(False)
-        self.__runButton.setDisabled(True)
-        self.__stepButton.setDisabled(True)
+        self.buttons["stop"].setDisabled(False)
+        self.buttons["run"].setDisabled(True)
+        self.buttons["step"].setDisabled(True)
         return
 
-    def onSignalEmulationStepRun(self) -> None:
+    def onResetState(self) -> None:
         """
         Signal callback called when notifying the step run of emulation
+        Everything is enabled
         """
-        # everything is enabled
-        self.__stopButton.setDisabled(False)
-        self.__runButton.setDisabled(False)
-        self.__stepButton.setDisabled(False)
+        self.buttons["stop"].setDisabled(False)
+        self.buttons["run"].setDisabled(False)
+        self.buttons["step"].setDisabled(False)
         return
 
-    def onEmulationStop(self) -> None:
+    def onIdleState(self) -> None:
         """
         Signal callback called when notifying the end of emulation
+        Enable the "Stop" button, disable the other ones
         """
-        # enable the "Stop" button, disable the other ones
-        self.__stopButton.setDisabled(True)
-        self.__stepButton.setDisabled(False)
-        self.__runButton.setDisabled(False)
+        self.buttons["stop"].setDisabled(True)
+        self.buttons["step"].setDisabled(False)
+        self.buttons["run"].setDisabled(False)
         return
-
-    def load_emulation_context(self) -> bool:
-        """
-        Prepare the emulation context based on the current context from the UI
-        """
-        self.emulator.reset()
-        self.emulator.create_new_vm()
-        code = cemu.core.context.root.get_codeview_content()
-        memory_layout = cemu.core.context.root.get_memory_layout()
-        regs = cemu.core.context.root.get_registers()
-
-        return self.emulator.populate_memory(memory_layout) and \
-            self.emulator.assemble_code(code) and \
-            self.emulator.populate_registers(regs) and \
-            self.emulator.map_code()

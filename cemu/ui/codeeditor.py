@@ -23,6 +23,7 @@ from cemu.const import (
     DEFAULT_CODE_VIEW_FONT,
     DEFAULT_CODE_VIEW_FONT_SIZE,
 )
+from cemu.log import error
 
 if typing.TYPE_CHECKING:
     from cemu.ui.main import CEmuWindow
@@ -60,7 +61,7 @@ class CodeEdit(QTextEdit):
 
 
 class AssemblyView(QTextEdit):
-    def __init__(self, parent, editor):
+    def __init__(self, parent, editor: CodeEdit):
         super().__init__(parent)
         self.rootWindow = parent.rootWindow
         self.setReadOnly(True)
@@ -68,33 +69,47 @@ class AssemblyView(QTextEdit):
         self.setFixedWidth(140)
         self.setFrameStyle(QFrame.Shape.Panel | QFrame.Shape.NoFrame)
         self.setStyleSheet("background-color: rgb(211, 211, 211);")
-        self.__editor = editor
-        self.__editor.textChanged.connect(self.__update_assembly_code)
+        self.editor = editor
+        self.editor.textChanged.connect(self.update_assembly_code_pane)
         return
 
-    def __update_assembly_code(self):
-        lines = self.__editor.toPlainText().splitlines()
-        nb_lines = len(lines)
-        bytecode_lines = [
-            "",
-        ] * nb_lines
-        old_code = ""
+    def update_assembly_code_pane(self):
+        #
+        # Execute only on line return
+        #
+        text: str = self.editor.toPlainText()
+        cur: int = self.editor.textCursor().position()
+        if text[cur - 1] != os.linesep:
+            return
 
-        for idx in range(nb_lines):
-            curline = lines[idx].strip()
-            if not curline or curline.startswith(COMMENT_MARKER):
-                bytecode_lines[idx] = "\n"
-                continue
+        try:
+            lines: list[str] = text.splitlines()
+            bytecode_lines: list[str] = [
+                "",
+            ] * len(lines)
+            old_code = ""
 
-            asm = "\n".join(lines[: idx + 1])
-            code, _ = assemble(asm)
-            if len(code) > len(old_code):
-                new_code = code[len(old_code) :]
-                new_line = " ".join(["%.02x" % x for x in new_code])
-                old_code = code
-                bytecode_lines[idx] = new_line
+            for idx in range(len(lines)):
+                curline = lines[idx].strip()
+                if not curline or curline.startswith(COMMENT_MARKER):
+                    bytecode_lines[idx] = "\n"
+                    continue
 
-        self.setText("\n".join(bytecode_lines))
+                asm = os.linesep.join(lines[: idx + 1])
+                insns = assemble(asm)
+                insn = insns[0]
+                code = insn.bytes
+                if len(code) > len(old_code):
+                    new_code = code[len(old_code) :]
+                    new_line = " ".join(["%.02x" % x for x in new_code])
+                    old_code = code
+                    bytecode_lines[idx] = new_line
+
+            # TODO add max char limit
+
+            self.setText(os.linesep.join(bytecode_lines))
+        except Exception as e:
+            error(f"update_assembly_code() failed: {str(e)}")
         return
 
 
@@ -137,6 +152,7 @@ class CodeWidget(QDockWidget):
         self.code_editor_frame = CodeEditorFrame(self)
         self.editor: CodeEdit = self.code_editor_frame.editor
         self.editor.cursorPositionChanged.connect(self.onCursorPositionChanged)
+        self.editor.textChanged.connect(self.onUpdateText)
         layout = QVBoxLayout()
         layout.setSpacing(0)
         self.widget_title_label = QLabel("Code (Line:1 Column:1)")
@@ -145,6 +161,10 @@ class CodeWidget(QDockWidget):
         widget = QWidget(self)
         widget.setLayout(layout)
         self.setWidget(widget)
+        return
+
+    def onUpdateText(self):
+        cemu.core.context.emulator.codelines = self.getCleanContent().splitlines()
         return
 
     def onCursorPositionChanged(self):
@@ -191,9 +211,6 @@ class CodeWidget(QDockWidget):
             return ""
 
         lines: list[str] = code.splitlines()
-
         lines = remove_comments(lines)
-
         lines = parse_syscalls(lines)
-
         return os.linesep.join(lines)

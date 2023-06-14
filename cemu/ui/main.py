@@ -1,26 +1,46 @@
 import functools
+import os
 import pathlib
 import tempfile
 from typing import Callable, Optional
 
-from PyQt6.QtCore import QFileInfo, QSettings, Qt
+import unicorn
+from PyQt6.QtCore import QFileInfo, QObject, QSettings, Qt, QThread, pyqtSignal
 from PyQt6.QtGui import QAction, QIcon
-from PyQt6.QtWidgets import (QApplication, QDockWidget, QFileDialog,
-                             QGridLayout, QLabel, QMainWindow, QMenu,
-                             QMessageBox, QWidget)
+from PyQt6.QtWidgets import (
+    QApplication,
+    QDockWidget,
+    QFileDialog,
+    QGridLayout,
+    QLabel,
+    QMainWindow,
+    QMenu,
+    QMessageBox,
+    QWidget,
+)
 
 import cemu.core
+import cemu.exports
 import cemu.plugins
 import cemu.utils
+from cemu.emulator import EmulatorState
 from cemu.log import dbg, error, info, ok, warn
+from cemu.ui.utils import popup
 
 from ..arch import Architecture, Architectures, Endianness
-from ..const import (AUTHOR, CONFIG_FILEPATH, EXAMPLE_PATH, HOME, ISSUE_LINK,
-                     TEMPLATE_PATH, TITLE, URL, VERSION)
-from ..exports import build_elf_executable, build_pe_executable
+from ..const import (
+    AUTHOR,
+    CONFIG_FILEPATH,
+    EXAMPLE_PATH,
+    HOME,
+    ISSUE_LINK,
+    TEMPLATE_PATH,
+    TITLE,
+    URL,
+    VERSION,
+)
 from ..memory import MemorySection
 from ..shortcuts import ShortcutManager
-from ..utils import assemble
 from .codeeditor import CodeWidget
 from .command import CommandWidget
 from .log import LogWidget
@@ -30,9 +50,11 @@ from .registers import RegistersWidget
 
 
 class CEmuWindow(QMainWindow):
-
     def __init__(self, app: QApplication, *args, **kwargs):
         super(CEmuWindow, self).__init__()
+        assert cemu.core.context is not None
+        assert isinstance(cemu.core.context, cemu.core.GlobalGuiContext)
+
         self.rootWindow = self
         self.__app = app
         self.recentFileActions: list[QAction] = []
@@ -40,6 +62,10 @@ class CEmuWindow(QMainWindow):
         self.archActions = {}
         self.signals = {}
         self.current_file: Optional[pathlib.Path] = None
+        self.__background_emulator_thread = EmulationRunner()
+        cemu.core.context.emulator.set_threaded_runner(
+            self.__background_emulator_thread
+        )
 
         self.shortcuts = ShortcutManager()
 
@@ -58,16 +84,11 @@ class CEmuWindow(QMainWindow):
         self.__dockable_widgets.append(self.__codeWidget)
         self.setCentralWidget(self.__codeWidget)
 
-        self.addDockWidget(
-            Qt.DockWidgetArea.LeftDockWidgetArea, self.__regsWidget)
-        self.addDockWidget(
-            Qt.DockWidgetArea.LeftDockWidgetArea, self.__mapWidget)
-        self.addDockWidget(
-            Qt.DockWidgetArea.RightDockWidgetArea, self.__memWidget)
-        self.addDockWidget(
-            Qt.DockWidgetArea.RightDockWidgetArea, self.__cmdWidget)
-        self.addDockWidget(
-            Qt.DockWidgetArea.BottomDockWidgetArea, self.__logWidget)
+        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self.__regsWidget)
+        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self.__mapWidget)
+        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.__memWidget)
+        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, self.__cmdWidget)
+        self.addDockWidget(Qt.DockWidgetArea.BottomDockWidgetArea, self.__logWidget)
 
         # ... and the extra plugins too
         self.LoadExtraPlugins()
@@ -78,6 +99,8 @@ class CEmuWindow(QMainWindow):
 
         # set up on-quit hooks
         self.__app.aboutToQuit.connect(self.onAboutToQuit)
+
+        # register the callbacks for the emulator
 
         # show everything
         self.show()
@@ -119,10 +142,8 @@ class CEmuWindow(QMainWindow):
         return nb_added
 
     def setMainWindowProperty(self) -> None:
-        width = cemu.core.context.settings.getint(
-            "Global", "WindowWidth", 1600)
-        heigth = cemu.core.context.settings.getint(
-            "Global", "WindowHeigth", 800)
+        width = cemu.core.context.settings.getint("Global", "WindowWidth", 1600)
+        heigth = cemu.core.context.settings.getint("Global", "WindowHeigth", 800)
         self.resize(width, heigth)
         self.refreshWindowTitle()
 
@@ -133,12 +154,18 @@ class CEmuWindow(QMainWindow):
         self.move(frame_geometry.topLeft())
 
         # apply the style
-        style = cemu.core.context.settings.get(
-            "Theme", "QtStyle", "Cleanlooks")
+        style = cemu.core.context.settings.get("Theme", "QtStyle", "Cleanlooks")
         self.__app.setStyle(style)
         return
 
-    def addMenuItem(self, title: str, callback: Callable, description: str = "", shortcut: str = "", **kwargs) -> QAction:
+    def addMenuItem(
+        self,
+        title: str,
+        callback: Callable,
+        description: str = "",
+        shortcut: str = "",
+        **kwargs,
+    ) -> QAction:
         """
         Helper function to create a QAction for the menu bar.
         """
@@ -157,24 +184,27 @@ class CEmuWindow(QMainWindow):
         return action
 
     def setMainWindowMenuBar(self):
-        statusBar = self.statusBar()
+        self.statusBar()
         menubar = self.menuBar()
-        maxRecentFiles = cemu.core.context.settings.getint(
-            "Global", "MaxRecentFiles")
+        maxRecentFiles = cemu.core.context.settings.getint("Global", "MaxRecentFiles")
 
         # Create "File" menu options
         fileMenu = menubar.addMenu("&File")
 
         # "Open File" submenu
-        openAsmAction = self.addMenuItem("Open Assembly Text", self.loadCodeText,
-                                         self.shortcuts.description(
-                                             "load_assembly"),
-                                         self.shortcuts.shortcut("load_assembly"))
+        openAsmAction = self.addMenuItem(
+            "Open Assembly Text",
+            self.loadCodeText,
+            self.shortcuts.description("load_assembly"),
+            self.shortcuts.shortcut("load_assembly"),
+        )
 
-        openBinAction = self.addMenuItem("Open Raw Binary", self.loadCodeBin,
-                                         self.shortcuts.description(
-                                             "load_binary"),
-                                         self.shortcuts.shortcut("load_binary"))
+        openBinAction = self.addMenuItem(
+            "Open Raw Binary",
+            self.loadCodeBin,
+            self.shortcuts.description("load_binary"),
+            self.shortcuts.shortcut("load_binary"),
+        )
 
         openDumpAction = self.addMenuItem("Open Dump File", self.loadDumpFile)
 
@@ -188,15 +218,19 @@ class CEmuWindow(QMainWindow):
         # "Save As" sub-menu
         saveAsSubMenu = QMenu("Save File", self)
 
-        saveAsmAction = self.addMenuItem("As Assembly", self.saveCodeText,
-                                         self.shortcuts.description(
-                                             "save_as_asm"),
-                                         self.shortcuts.shortcut("save_as_asm"))
+        saveAsmAction = self.addMenuItem(
+            "As Assembly",
+            self.saveCodeText,
+            self.shortcuts.description("save_as_asm"),
+            self.shortcuts.shortcut("save_as_asm"),
+        )
 
-        saveBinAction = self.addMenuItem("As Binary", self.saveCodeBin,
-                                         self.shortcuts.description(
-                                             "save_as_binary"),
-                                         self.shortcuts.shortcut("save_as_binary"))
+        saveBinAction = self.addMenuItem(
+            "As Binary",
+            self.saveCodeBin,
+            self.shortcuts.description("save_as_binary"),
+            self.shortcuts.shortcut("save_as_binary"),
+        )
 
         saveAsSubMenu.addAction(saveAsmAction)
         saveAsSubMenu.addAction(saveBinAction)
@@ -205,25 +239,33 @@ class CEmuWindow(QMainWindow):
 
         # "Export" sub-menu
         exportAsSubMenu = QMenu("Export", self)
-        saveCAction = self.addMenuItem("Generate C code", self.saveAsCFile,
-                                       self.shortcuts.description(
-                                           "generate_c_file"),
-                                       self.shortcuts.shortcut("generate_c_file"))
+        saveCAction = self.addMenuItem(
+            "Generate C code",
+            self.saveAsCFile,
+            self.shortcuts.description("generate_c_file"),
+            self.shortcuts.shortcut("generate_c_file"),
+        )
 
-        saveAsAsmAction = self.addMenuItem("Generate Assembly code", self.saveAsAsmFile,
-                                           self.shortcuts.description(
-                                               "generate_asm_file"),
-                                           self.shortcuts.shortcut("generate_asm_file"))
+        saveAsAsmAction = self.addMenuItem(
+            "Generate Assembly code",
+            self.saveAsAsmFile,
+            self.shortcuts.description("generate_asm_file"),
+            self.shortcuts.shortcut("generate_asm_file"),
+        )
 
-        generatePeAction = self.addMenuItem("Generate PE executable", self.generate_pe,
-                                            self.shortcuts.description(
-                                                "generate_pe_exe"),
-                                            self.shortcuts.shortcut("generate_pe_exe"))
+        generatePeAction = self.addMenuItem(
+            "Generate PE executable",
+            self.generate_pe,
+            self.shortcuts.description("generate_pe_exe"),
+            self.shortcuts.shortcut("generate_pe_exe"),
+        )
 
-        generateElfAction = self.addMenuItem("Generate ELF executable", self.generate_elf,
-                                             self.shortcuts.description(
-                                                 "generate_elf_exe"),
-                                             self.shortcuts.shortcut("generate_elf_exe"))
+        generateElfAction = self.addMenuItem(
+            "Generate ELF executable",
+            self.generate_elf,
+            self.shortcuts.description("generate_elf_exe"),
+            self.shortcuts.shortcut("generate_elf_exe"),
+        )
 
         exportAsSubMenu.addAction(saveCAction)
         exportAsSubMenu.addAction(saveAsAsmAction)
@@ -242,8 +284,9 @@ class CEmuWindow(QMainWindow):
             action.triggered.connect(self.openRecentFile)
             self.recentFileActions.append(action)
 
-        clearRecentFilesAction = self.addMenuItem("Clear Recent Files", self.clearRecentFiles,
-                                                  "Clear Recent Files", "")
+        clearRecentFilesAction = self.addMenuItem(
+            "Clear Recent Files", self.clearRecentFiles, "Clear Recent Files", ""
+        )
 
         openRecentFilesSubMenu.addActions(self.recentFileActions)
         openRecentFilesSubMenu.addSeparator()
@@ -256,10 +299,12 @@ class CEmuWindow(QMainWindow):
 
         fileMenu.addSeparator()
 
-        quitAction = self.addMenuItem("Quit", QApplication.quit,
-                                      self.shortcuts.shortcut(
-                                          "exit_application"),
-                                      self.shortcuts.description("exit_application"))
+        quitAction = self.addMenuItem(
+            "Quit",
+            QApplication.quit,
+            self.shortcuts.shortcut("exit_application"),
+            self.shortcuts.description("exit_application"),
+        )
 
         fileMenu.addAction(quitAction)
 
@@ -274,17 +319,23 @@ class CEmuWindow(QMainWindow):
                     self.currentAction = self.archActions[arch.name]
 
                 self.archActions[arch.name].setStatusTip(
-                    f"Change the architecture to '{arch.name}'")
+                    f"Change the architecture to '{arch.name}'"
+                )
                 self.archActions[arch.name].triggered.connect(
-                    functools.partial(self.onUpdateArchitecture, arch))
+                    functools.partial(self.onUpdateArchitecture, arch)
+                )
                 archSubMenu.addAction(self.archActions[arch.name])
 
         # Add the View Window menu bar
         viewWindowsMenu = menubar.addMenu("&View")
-        toggleFocusMode = self.addMenuItem("Toggle Focus Mode", self.toggleFocusMode,
-                                           self.shortcuts.description(
-                                               "toggle_focus_mode"),
-                                           self.shortcuts.shortcut("toggle_focus_mode"), checkable=True, checked=True)
+        toggleFocusMode = self.addMenuItem(
+            "Toggle Focus Mode",
+            self.toggleFocusMode,
+            self.shortcuts.description("toggle_focus_mode"),
+            self.shortcuts.shortcut("toggle_focus_mode"),
+            checkable=True,
+            checked=True,
+        )
         viewWindowsMenu.addAction(toggleFocusMode)
 
         viewWindowsMenu.addSeparator()
@@ -292,18 +343,26 @@ class CEmuWindow(QMainWindow):
         for w in self.__dockable_widgets:
             name = w.windowTitle()
             action = self.addMenuItem(
-                name, self.onCheckWindowMenuBarItem, f"Window '{name}'", checkable=True, checked=True)
+                name,
+                self.onCheckWindowMenuBarItem,
+                f"Window '{name}'",
+                checkable=True,
+                checked=True,
+            )
             viewWindowsMenu.addAction(action)
 
         # Add Help menu bar
         helpMenu = menubar.addMenu("&Help")
-        shortcutAction = self.addMenuItem("Shortcuts", self.showShortcutPopup,
-                                          self.shortcuts.description(
-                                              "shortcut_popup"),
-                                          self.shortcuts.shortcut("shortcut_popup"))
+        shortcutAction = self.addMenuItem(
+            "Shortcuts",
+            self.showShortcutPopup,
+            self.shortcuts.description("shortcut_popup"),
+            self.shortcuts.shortcut("shortcut_popup"),
+        )
 
-        aboutAction = self.addMenuItem("About", self.about_popup,
-                                       self.shortcuts.description("about_popup"))
+        aboutAction = self.addMenuItem(
+            "About", self.about_popup, self.shortcuts.description("about_popup")
+        )
 
         helpMenu.addAction(shortcutAction)
         helpMenu.addAction(aboutAction)
@@ -395,7 +454,8 @@ class CEmuWindow(QMainWindow):
 
     def loadCode(self, title, filter, run_disassembler):
         qFile, _ = QFileDialog.getOpenFileName(
-            self, title, str(EXAMPLE_PATH), filter + ";;All files (*.*)")
+            self, title, str(EXAMPLE_PATH), filter + ";;All files (*.*)"
+        )
 
         fpath = pathlib.Path(qFile).resolve().absolute()
         if not fpath.is_file():
@@ -404,10 +464,15 @@ class CEmuWindow(QMainWindow):
 
         if run_disassembler:
             with tempfile.NamedTemporaryFile("w", suffix=".asm", delete=False) as fd:
-                disassembled_content = cemu.utils.disassemble_file(
-                    fpath).values()
-                fd.write('\n'.join(
-                    [f"{mnemo}, {operands}" for mnemo, operands in disassembled_content]))
+                disassembled_instructions = cemu.utils.disassemble_file(fpath)
+                fd.write(
+                    os.linesep.join(
+                        [
+                            f"{insn.mnemonic}, {insn.operands}"
+                            for insn in disassembled_instructions
+                        ]
+                    )
+                )
                 fpath = pathlib.Path(fd.name)
 
         self.loadFile(fpath)
@@ -429,7 +494,8 @@ class CEmuWindow(QMainWindow):
     def saveCode(self, title, filter, run_assembler):
         dbg(f"Saving content of '{title}'")
         qFile, _ = QFileDialog().getSaveFileName(
-            self, title, str(HOME), filter=filter + ";;All files (*.*)")
+            self, title, str(HOME), filter=filter + ";;All files (*.*)"
+        )
 
         if not qFile:
             return
@@ -440,10 +506,8 @@ class CEmuWindow(QMainWindow):
 
         if run_assembler:
             raw_assembly = self.get_codeview_content()
-            raw_bytecode, cnt = assemble(raw_assembly)
-            if cnt < 0:
-                error(f"Failed to compile: error at line {-cnt:d}")
-                return
+            insns: list[cemu.utils.Instruction] = cemu.utils.assemble(raw_assembly)
+            raw_bytecode = b"".join([insn.bytes for insn in insns])
             fpath.open("wb").write(raw_bytecode)
         else:
             raw_bytecode = self.get_codeview_content()
@@ -453,67 +517,69 @@ class CEmuWindow(QMainWindow):
         return
 
     def saveCodeText(self):
-        return self.saveCode("Save Assembly Pane As", "Assembly files (*.asm *.s)", False)
+        return self.saveCode(
+            "Save Assembly Pane As", "Assembly files (*.asm *.s)", False
+        )
 
     def saveCodeBin(self):
-        return self.saveCode("Save Raw Binary Pane As", "Raw binary files (*.raw)", True)
+        return self.saveCode(
+            "Save Raw Binary Pane As", "Raw binary files (*.raw)", True
+        )
 
     def saveAsCFile(self):
         template = (TEMPLATE_PATH / "template.c").open("r").read()
-        insns = self.get_codeview_content().splitlines()
-        lines: list[str] = []
-        i = 0
-        for insn in insns:
-            byte, cnt = assemble(insn)
-            if cnt < 0:
-                error("Failed to compile: error at line {:d}".format(-cnt))
-                return
-
-            hexes = ", ".join([f"{b:#02x}" for b in bytearray(byte)])
-            line = f"/* {i:#08x} */   {hexes}   // {insn}"
-            lines.append(line)
-            i += cnt
+        output: list[str] = []
+        lines = self.get_codeview_content().splitlines()
+        insns = cemu.utils.assemble(self.get_codeview_content())
+        for i, insn in enumerate(insns):
+            hexa = ", ".join([f"{b:#02x}" for b in insn.bytes])
+            line = f"/* {i:#08x} */   {hexa}   // {lines[i]}"
+            output.append(line)
 
         with tempfile.NamedTemporaryFile("w", delete=False, suffix=".c") as fd:
             body = template % (
-                cemu.core.context.architecture.name, i, '\n'.join(lines))
+                cemu.core.context.architecture.name,
+                len(insns),
+                os.linesep.join(output),
+            )
             fd.write(body)
             ok(f"Saved as '{fd.name}'")
         return
 
     def generate_pe(self) -> None:
-        """Uses LIEF to create a valid PE from the current session
-        """
+        """Uses LIEF to create a valid PE from the current session"""
         memory_layout = self.get_memory_layout()
         code = self.get_codeview_content()
-        asm_code, nb_insns = assemble(code)
-        if nb_insns > 0:
-            try:
-                pe = build_pe_executable(
-                    asm_code, memory_layout, cemu.core.context.architecture)
-                info("PE file written as '{}'".format(pe))
-            except Exception as e:
-                error("PE creation triggered an exception: {}".format(str(e)))
+        try:
+            insns = cemu.utils.assemble(code)
+            if len(insns) > 0:
+                asm_code = b"".join([x.bytes for x in insns])
+                pe = cemu.exports.build_pe_executable(
+                    asm_code, memory_layout, cemu.core.context.architecture
+                )
+                info(f"PE file written as '{pe}'")
+        except Exception as e:
+            error(f"PE creation triggered an exception: {e}")
         return
 
     def generate_elf(self) -> None:
-        """Uses LIEF to create a valid ELF from the current session
-        """
+        """Uses LIEF to create a valid ELF from the current session"""
         memory_layout = self.get_memory_layout()
         code = self.get_codeview_content()
-        asm_code, nb_insns = assemble(code)
-        if nb_insns > 0:
-            try:
-                outfile = build_elf_executable(
-                    asm_code, memory_layout, cemu.core.context.architecture)
-                ok(f"ELF file written as '{outfile}'")
-            except Exception as e:
-                error(f"ELF creation triggered an exception: {e}")
+        try:
+            insns = cemu.utils.assemble(code)
+            if len(insns) > 0:
+                asm_code = b"".join([x.bytes for x in insns])
+                elf = cemu.exports.build_pe_executable(
+                    asm_code, memory_layout, cemu.core.context.architecture
+                )
+                info(f"ELF file written as '{elf}'")
+        except Exception as e:
+            error(f"ELF creation triggered an exception: {str(e)}")
         return
 
     def saveAsAsmFile(self) -> None:
-        """Write the content of the ASM pane to disk
-        """
+        """Write the content of the ASM pane to disk"""
         template = (TEMPLATE_PATH / "template.asm").open("r").read()
         code = self.get_codeview_content()
 
@@ -523,7 +589,9 @@ class CEmuWindow(QMainWindow):
             ok(f"Saved as '{fd.name}'")
         return
 
-    def onUpdateArchitecture(self, arch: Architecture, endian: Optional[Endianness] = None) -> None:
+    def onUpdateArchitecture(
+        self, arch: Architecture, endian: Optional[Endianness] = None
+    ) -> None:
         """Callback triggered when there's a change of Architecture in the UI
 
         Args:
@@ -541,8 +609,7 @@ class CEmuWindow(QMainWindow):
         return
 
     def refreshWindowTitle(self) -> None:
-        """Refresh the main window title bar
-        """
+        """Refresh the main window title bar"""
         title = f"{TITLE} ({cemu.core.context.architecture})"
         if self.current_file:
             title += f": {self.current_file.name}"
@@ -550,11 +617,9 @@ class CEmuWindow(QMainWindow):
         return
 
     def showShortcutPopup(self):
-        """Display a popup with all shortcuts currently defined
-        """
+        """Display a popup with all shortcuts currently defined"""
         msgbox = QMessageBox(self)
-        msgbox.setWindowTitle(
-            "CEMU Shortcuts from: {:s}".format(CONFIG_FILEPATH))
+        msgbox.setWindowTitle("CEMU Shortcuts from: {:s}".format(CONFIG_FILEPATH))
 
         wid = QWidget()
         grid = QGridLayout()
@@ -568,8 +633,8 @@ class CEmuWindow(QMainWindow):
             sc, desc = self.shortcuts._config[config_item]
             if not sc:
                 continue
-            grid.addWidget(QLabel(sc), i+1, 0)
-            grid.addWidget(QLabel(desc), i+1, 1)
+            grid.addWidget(QLabel(sc), i + 1, 0)
+            grid.addWidget(QLabel(desc), i + 1, 1)
 
         wid.setMinimumWidth(800)
         wid.setLayout(grid)
@@ -579,8 +644,9 @@ class CEmuWindow(QMainWindow):
 
     def about_popup(self):
         templ = (TEMPLATE_PATH / "about.html").open().read()
-        desc = templ.format(author=AUTHOR, version=VERSION,
-                            project_link=URL, issues_link=ISSUE_LINK)
+        desc = templ.format(
+            author=AUTHOR, version=VERSION, project_link=URL, issues_link=ISSUE_LINK
+        )
         msgbox = QMessageBox(self)
         msgbox.setIcon(QMessageBox.Icon.Information)
         msgbox.setWindowTitle("About CEMU")
@@ -591,15 +657,14 @@ class CEmuWindow(QMainWindow):
         return
 
     def updateRecentFileActions(self, insert_file=None):
-        settings = QSettings('Cemu', 'Recent Files')
-        files = settings.value('recentFileList')
+        settings = QSettings("Cemu", "Recent Files")
+        files = settings.value("recentFileList")
         if files is None:
             # if setting doesn't exist, create it
-            settings.setValue('recentFileList', [])
-            files = settings.value('recentFileList')
+            settings.setValue("recentFileList", [])
+            files = settings.value("recentFileList")
 
-        maxRecentFiles = cemu.core.context.settings.getint(
-            "Default", "MaxRecentFiles")
+        maxRecentFiles = cemu.core.context.settings.getint("Default", "MaxRecentFiles")
 
         if insert_file:
             if insert_file not in files:
@@ -607,7 +672,7 @@ class CEmuWindow(QMainWindow):
             if len(files) > maxRecentFiles:
                 files = files[0:maxRecentFiles]
 
-            settings.setValue('recentFileList', files)
+            settings.setValue("recentFileList", files)
 
         numRecentFiles = min(len(files), maxRecentFiles)
 
@@ -624,8 +689,8 @@ class CEmuWindow(QMainWindow):
         return
 
     def clearRecentFiles(self) -> None:
-        settings = QSettings('Cemu', 'Recent Files')
-        settings.setValue('recentFileList', [])
+        settings = QSettings("Cemu", "Recent Files")
+        settings.setValue("recentFileList", [])
         self.updateRecentFileActions()
         return
 
@@ -647,3 +712,99 @@ class CEmuWindow(QMainWindow):
         Returns the memory layout as defined by the __mapWidget values as a structured list.
         """
         return self.__mapWidget.maps
+
+    def register_emulator_callbacks(self):
+        emu = cemu.core.context.emulator
+
+        # TODO missing QMutex?
+        def update_layout_not_running():
+            self.signals["refreshRegisterGrid"].emit()
+            self.signals["refreshMemoryEditor"].emit()
+            self.signals["setCommandButtonStopState"].emit()
+            return
+
+        def update_layout_running():
+            self.signals["setCommandButtonsRunState"].emit()
+            return
+
+        def update_layout_step_running():
+            self.signals["refreshRegisterGrid"].emit()
+            self.signals["refreshMemoryEditor"].emit()
+            self.signals["setCommandButtonsStepRunState"].emit()
+            return
+
+        emu.add_state_change_cb(EmulatorState.NOT_RUNNING, update_layout_not_running)
+        emu.add_state_change_cb(EmulatorState.RUNNING, update_layout_running)
+        emu.add_state_change_cb(EmulatorState.IDLE, update_layout_step_running)
+        return
+
+
+class EmulationInstance(QObject):
+    finished = pyqtSignal()
+    progress = pyqtSignal(int)
+
+    def run(self) -> None:
+        """
+        Runs the emulation
+        """
+        emu = cemu.core.context.emulator
+        if not emu.vm:
+            error("VM is not ready")
+            return
+
+        if not emu.is_running:
+            error("Emulator is in invalid state")
+            return
+
+        try:
+            start_address = emu.pc() or emu.start_addr
+            start_offset = start_address - emu.start_addr
+
+            #
+            # Determine where to stop
+            #
+            if emu.use_step_mode:
+                insn = emu.next_instruction(emu.code[start_offset:], start_address)
+                end_address = insn.end
+                info(f"Stepping from {start_address:#x} to {end_address:#x}")
+            else:
+                end_address = emu.start_addr + len(emu.code)
+                info(f"Running all from {start_address:#x} to {end_address:#x}")
+
+            # with emu.lock:
+            if True:
+                #
+                # Run the emulator, let's go!
+                #
+                emu.vm.emu_start(start_address, end_address)
+
+            #
+            # If the execution is over, mark the state as finished
+            #
+            if emu.pc() == (emu.start_addr + len(emu.code)):
+                emu.set(EmulatorState.FINISHED)
+            else:
+                emu.set(EmulatorState.IDLE)
+
+        except unicorn.unicorn.UcError as e:
+            popup(f"An error occured: {str(e)} at pc={emu.pc():#x}, sp={emu.sp():#x}")
+            emu.set(EmulatorState.FINISHED)
+
+        self.finished.emit()
+        return
+
+
+class EmulationRunner:
+    """_summary_"""
+
+    def __init__(self):
+        self.thread = QThread()
+        self.worker = EmulationInstance()
+        self.worker.moveToThread(self.thread)
+        self.thread.started.connect(self.worker.run)
+        self.worker.finished.connect(self.thread.quit)
+        self.worker.finished.connect(self.worker.deleteLater)
+        self.thread.finished.connect(self.thread.deleteLater)
+
+    def run(self):
+        self.thread.start()

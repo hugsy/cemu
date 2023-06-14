@@ -3,21 +3,30 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import unicorn
-from PyQt6.QtCore import QEvent, QFileInfo, pyqtSignal
+
+# from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtGui import QFont
-from PyQt6.QtWidgets import (QDockWidget, QFrame, QHBoxLayout, QLabel,
-                             QLineEdit, QTextEdit, QVBoxLayout, QWidget)
+from PyQt6.QtWidgets import (
+    QDockWidget,
+    QFrame,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
+)
 
 import cemu.core
+from cemu import const, utils
+from cemu.emulator import Emulator, EmulatorState
 
 if TYPE_CHECKING:
     from cemu.ui.main import CEmuWindow
-from cemu.utils import hexdump
 
 
 class MemoryWidget(QDockWidget):
-
-    refreshMemoryEditorSignal = pyqtSignal()
+    # refreshMemoryEditorSignal = pyqtSignal()
 
     def __init__(self, parent: CEmuWindow, *args, **kwargs):
         super(MemoryWidget, self).__init__("Memory Viewer", parent)
@@ -31,31 +40,39 @@ class MemoryWidget(QDockWidget):
         title_widget.setMouseTracking(True)
 
         memview_layout = QVBoxLayout()
-        self.__editor = QTextEdit()
-        self.__editor.setFrameStyle(QFrame.Shape.Panel | QFrame.Shape.NoFrame)
-        self.__editor.setFont(QFont('Courier', 10))
-        self.__editor.setReadOnly(True)
+        self.editor = QTextEdit()
+        self.editor.setFrameStyle(QFrame.Shape.Panel | QFrame.Shape.NoFrame)
+        self.editor.setFont(
+            QFont(const.DEFAULT_MEMORY_VIEW_FONT, const.DEFAULT_MEMORY_VIEW_FONT_SIZE)
+        )
+        self.editor.setReadOnly(True)
         memview_layout.addWidget(title_widget)
-        memview_layout.addWidget(self.__editor)
+        memview_layout.addWidget(self.editor)
 
         widget = QWidget(self)
         widget.setLayout(memview_layout)
         self.setWidget(widget)
 
+        #
+        # Emulator state callback
+        #
+        emu: Emulator = cemu.core.context.emulator
+        emu.add_state_change_cb(EmulatorState.IDLE, self.onIdleRefreshMemoryEditor)
+
         # define signals
-        self.refreshMemoryEditorSignal.connect(self.onRefreshMemoryEditor)
-        parent.signals["refreshMemoryEditor"] = self.refreshMemoryEditorSignal
+        # self.refreshMemoryEditorSignal.connect(self.)
+        # parent.signals["refreshMemoryEditor"] = self.refreshMemoryEditorSignal
         return
 
     def updateEditor(self) -> None:
         arch = cemu.core.context.architecture
         emu = cemu.core.context.emulator
         if not emu.vm:
-            self.__editor.setText("VM not initialized")
+            self.editor.setText("VM not initialized")
             return
 
         if not emu.is_running:
-            self.__editor.setText("VM not running")
+            self.editor.setText("VM not running")
             return
 
         value = self.address.text()
@@ -64,9 +81,11 @@ class MemoryWidget(QDockWidget):
 
         if value.startswith("@"):
             # if the value of the "memory viewer" field starts with @.<section_name>
+            section_name = value[1:]
             try:
-                addr = emu.lookup_map(value[1:])
+                addr = emu.find_section(section_name)
             except KeyError:
+                self.editor.setText(f"No section named '{section_name}'")
                 return
 
         elif value.startswith("$"):
@@ -75,7 +94,7 @@ class MemoryWidget(QDockWidget):
             if reg_name not in arch.registers:
                 return
             addr = emu.get_register_value(reg_name)
-            if addr is None:
+            if not addr:
                 return
 
         else:
@@ -84,15 +103,13 @@ class MemoryWidget(QDockWidget):
             addr = int(value, 16)
 
         try:
-            l = 256
-            data = emu.vm.mem_read(addr, l)
-            text = hexdump(data, base=addr)
-            self.__editor.setText(text)
+            data = emu.vm.mem_read(addr, const.DEFAULT_MEMORY_VIEW_CHUNK_SIZE)
+            self.editor.setText(utils.hexdump(data, base=addr))
         except unicorn.unicorn.UcError:
-            self.__editor.setText("Cannot read at address %x" % addr)
+            self.editor.setText("Cannot read at address %x" % addr)
 
         return
 
-    def onRefreshMemoryEditor(self) -> None:
+    def onIdleRefreshMemoryEditor(self) -> None:
         self.updateEditor()
         return

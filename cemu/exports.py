@@ -12,19 +12,19 @@ from .utils import generate_random_string
 def parse_as_lief_pe_permission(perm: MemoryPermission, extra: Any = None) -> int:
     res = 0
     if perm.r:
-        res |= PE.SECTION_CHARACTERISTICS.MEM_READ
+        res |= PE.SECTION_CHARACTERISTICS.MEM_READ.value
     if perm.w:
-        res |= PE.SECTION_CHARACTERISTICS.MEM_WRITE
+        res |= PE.SECTION_CHARACTERISTICS.MEM_WRITE.value
     if perm.x:
-        res |= PE.SECTION_CHARACTERISTICS.MEM_EXECUTE
+        res |= PE.SECTION_CHARACTERISTICS.MEM_EXECUTE.value
 
     if extra:
         if extra.lower() == "code":
-            res |= PE.SECTION_CHARACTERISTICS.CNT_CODE
+            res |= PE.SECTION_CHARACTERISTICS.CNT_CODE.value
         if extra.lower() == "idata":
-            res |= PE.SECTION_CHARACTERISTICS.CNT_INITIALIZED_DATA
+            res |= PE.SECTION_CHARACTERISTICS.CNT_INITIALIZED_DATA.value
         if extra.lower() == "udata":
-            res |= PE.SECTION_CHARACTERISTICS.CNT_UNINITIALIZED_DATA
+            res |= PE.SECTION_CHARACTERISTICS.CNT_UNINITIALIZED_DATA.value
 
     return res
 
@@ -55,7 +55,7 @@ def build_pe_executable(
     reladdr = 0x1000
 
     for mem in memory_layout:
-        name, base_address, size, permission = (
+        name, _, size, permission = (
             mem.name,
             mem.address,
             mem.size,
@@ -69,14 +69,14 @@ def build_pe_executable(
         if name == ".text":
             # .text section: copy our code and set the entrypoint to the
             # beginning VA
-            sect.content = text
+            sect.content = memoryview(text)
             sect.virtual_address = reladdr
             sect.characteristics = parse_as_lief_pe_permission(permission, "code")
             sections["text"] = pe.add_section(sect, PE.SECTION_TYPES.TEXT)
 
         elif name == ".data":
             # .data is also sure to exist
-            sect.content = b"\x00"
+            sect.content = memoryview(b"\x00")
             sect.virtual_address = reladdr
             sect.characteristics = parse_as_lief_pe_permission(permission, "udata")
             sections["data"] = pe.add_section(sect, PE.SECTION_TYPES.DATA)

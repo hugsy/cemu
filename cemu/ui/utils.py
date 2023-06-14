@@ -1,7 +1,9 @@
 import enum
 import os
 
-from PyQt6.QtWidgets import QErrorMessage, QTextEdit
+from PyQt6.QtWidgets import QMessageBox, QTextEdit
+
+from cemu.log import dbg
 
 
 def get_cursor_row_number(widget: QTextEdit) -> int:
@@ -51,10 +53,15 @@ class PopupType(enum.IntEnum):
     Error = 1
 
 
-def popup(msg: str, type: PopupType = PopupType.Error):
-    if type == PopupType.Error:
-        dialog = QErrorMessage()
+def popup(msg: str, type: PopupType = PopupType.Error, title: str = ""):
+    if type == PopupType.Information:
+        icon = QMessageBox.Icon.Information
+        title = f"Info - {title}"
+    elif type == PopupType.Error:
+        icon = QMessageBox.Icon.Critical
+        title = f"Error - {title}"
     else:
         raise ValueError("invalid type")
 
-    dialog.showMessage(msg)
+    QMessageBox(icon, title, msg, buttons=QMessageBox.StandardButton.Discard).exec()
+    dbg(f"{title} - {msg}")

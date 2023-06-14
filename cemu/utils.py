@@ -2,11 +2,13 @@ import os
 import pathlib
 import random
 import string
+from dataclasses import dataclass
 from typing import Optional
 
 import keystone
 
 import cemu.core
+import cemu.errors
 from cemu.arch import Architecture, Architectures, Endianness
 from cemu.const import COMMENT_MARKER, PROPERTY_MARKER
 from cemu.log import dbg
@@ -53,9 +55,28 @@ def format_address(addr: int, arch: Optional[Architecture] = None) -> str:
         raise ValueError(f"Invalid value for '{arch.ptrsize=}'")
 
 
+@dataclass
+class Instruction:
+    address: int
+    mnemonic: str
+    operands: str
+    bytes: bytes
+
+    @property
+    def size(self):
+        return len(self.bytes)
+
+    @property
+    def end(self) -> int:
+        return self.address + self.size
+
+    def __str__(self):
+        return f'Instruction({self.address:#x}, "{self.mnemonic} {self.operands}")'
+
+
 def disassemble(
     raw_data: bytes, count: int = -1, base: int = DISASSEMBLY_DEFAULT_BASE_ADDRESS
-) -> dict[int, tuple[str, str]]:
+) -> list[Instruction]:
     """Disassemble the code given as raw data, with the given architecture.
 
     Args:
@@ -68,40 +89,57 @@ def disassemble(
         str: the text representation of the disassembled code
     """
     arch = cemu.core.context.architecture
-    insns: dict[int, tuple[str, str]] = {}
-    for idx, ins in enumerate(arch.cs.disasm(bytes(raw_data), base)):
-        insns[ins.address] = (ins.mnemonic, ins.op_str)
+    insns: list[Instruction] = []
+    for idx, ins in enumerate(arch.cs.disasm(raw_data, base)):
+        insns.append(Instruction(ins.address, ins.mnemonic, ins.op_str, ins.bytes))
         if idx == count:
             break
 
     return insns
 
 
-def disassemble_file(fpath: pathlib.Path) -> dict[int, tuple[str, str]]:
+def disassemble_file(fpath: pathlib.Path) -> list[Instruction]:
     with fpath.open("rb") as f:
         return disassemble(f.read())
 
 
-def assemble(asm_code: str, as_bytes: bool = True) -> tuple[bytes, int]:
+def assemble(
+    code: str, base_address: int = DISASSEMBLY_DEFAULT_BASE_ADDRESS
+) -> list[Instruction]:
     """
     Helper function to assemble code receive in parameter `asm_code` using Keystone.
 
-    @param asm_code : assembly code in bytes (multiple instructions must be separated by ';')
-    @param mode : defines the mode to use Keystone with
+    @param code : assembly code in bytes (multiple instructions must be separated by ';')
+    @param base_address : (opt) the base address to use
+
     @return a tuple of bytecodes as bytearray, along with the number of instruction compiled. If failed, the
     bytearray will be empty, the count of instruction will be the negative number for the faulty line.
     """
     arch = cemu.core.context.architecture
 
+    #
+    # Compile the entire given code
+    #
     try:
-        bytecode, cnt = arch.ks.asm(asm_code, as_bytes=as_bytes)
-        if not bytecode or not cnt:
-            return (b"", 0)
-        bytecode = bytes(bytecode)
+        bytecode, assembled_insn_count = arch.ks.asm(code, as_bytes=True)
+        if not bytecode or assembled_insn_count == 0:
+            raise cemu.errors.AssemblyException
     except keystone.keystone.KsError as kse:
-        return (b"", kse.get_asm_count())
+        raise cemu.errors.AssemblyException(
+            f"Keystone exception {str(kse)}, asm_count={kse.get_asm_count() or -1}"
+        )
 
-    return (bytecode, cnt)
+    #
+    # Decompile it and return the stuff
+    #
+    disass_insns = disassemble(bytes(bytecode), base=base_address)
+    assert len(disass_insns) == assembled_insn_count
+    return disass_insns
+
+
+def assemble_file(fpath: pathlib.Path) -> list[Instruction]:
+    with fpath.open("r") as f:
+        return assemble(f.read())
 
 
 def ishex(x: str) -> bool:

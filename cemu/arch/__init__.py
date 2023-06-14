@@ -193,17 +193,19 @@ class ArchitectureManager(dict[str, list[Architecture]]):
 
 Architectures = ArchitectureManager()
 
+from .x86 import X86, X86_32, X86_64  # noqa: E402
+
 
 def is_x86_16(a: Architecture):
-    return a.name == "Intel 8086 16bit"
+    return isinstance(a, X86)
 
 
 def is_x86_32(a: Architecture):
-    return a.name == "Intel i386 32bit"
+    return isinstance(a, X86_32)
 
 
 def is_x86_64(a: Architecture):
-    return a.name == "Intel i386 64bit"
+    return isinstance(a, X86_64)
 
 
 def is_x86(a: Architecture):

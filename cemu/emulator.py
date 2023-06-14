@@ -1,65 +1,26 @@
 import os
-from enum import Enum, unique
+from enum import IntEnum, unique
 from multiprocessing import Lock
-from typing import Optional
+from typing import Any, Callable, Optional
 
 import unicorn
-from PyQt6.QtCore import QObject, QThread, pyqtSignal
 
 import cemu.core
 import cemu.utils
-from cemu.log import dbg, error, info, log
+from cemu.log import dbg, error, info
 
-from .arch import is_x86, is_x86_32
-from .memory import MemoryPermission, MemorySection
-from .utils import assemble
-
-
-class EmulationInstance(QObject):
-    finished = pyqtSignal()
-    progress = pyqtSignal(int)
-
-    def __init__(self, emu):
-        super().__init__()
-        self.emu: Emulator = emu
-
-    def run(self) -> None:
-        """
-        Runs the emulation
-        """
-        if not self.emu.vm:
-            error("VM is not ready")
-            return
-
-        info("Starting emulation context")
-
-        try:
-            if self.emu.use_step_mode:
-                self.emu.set_vm_state(EmulatorState.STEP_RUNNING)
-            else:
-                self.emu.set_vm_state(EmulatorState.RUNNING)
-
-            self.emu.vm.emu_start(self.emu.start_addr, self.emu.end_addr)
-
-            if self.emu.pc() == self.emu.end_addr:
-                self.emu.set_vm_state(EmulatorState.FINISHED)
-
-        except unicorn.unicorn.UcError as e:
-            error(f"An error occured: {str(e)}")
-            log(f"pc={self.emu.pc():  # x} , sp={self.emu.sp():#x}")
-            self.emu.set_vm_state(EmulatorState.FINISHED)
-
-        self.finished.emit()
-        return
+from .arch import is_x86, is_x86_32, x86
+from .memory import MemorySection
 
 
 @unique
-class EmulatorState(Enum):
+class EmulatorState(IntEnum):
     NOT_RUNNING = 0
-    IDLE = 1
-    RUNNING = 2
-    STEP_RUNNING = 3
-    FINISHED = 4
+    SETUP = 1
+    IDLE = 2
+    RUNNING = 3
+    TEARDOWN = 5
+    FINISHED = 6
 
 
 class Emulator:
@@ -70,17 +31,34 @@ class Emulator:
         self.use_step_mode = False
         self.widget = None
         self.lock = Lock()
+        self.__state_change_callbacks: dict[EmulatorState, list[Callable]] = {
+            EmulatorState.NOT_RUNNING: [],
+            EmulatorState.IDLE: [],
+            EmulatorState.RUNNING: [],
+            EmulatorState.FINISHED: [],
+        }
+        self.threaded_runner: Optional[object] = None
         self.reset()
         return
 
     def reset(self):
         self.vm: Optional[unicorn.Uc] = None
-        self.code = None
-        self.vm_state = EmulatorState.NOT_RUNNING
+        self.ip: int = 0
+        self.code: bytes = b""
+        self.codelines: list[str] = []
+        self.state = EmulatorState.NOT_RUNNING
         self.stop_now = False
         self.num_insns = -1
-        self.sections = {}
-        self.registers = {}
+        self.sections: list[MemorySection] = []
+        self.registers: dict[str, int] = {}
+
+        #
+        # Callback setup
+        #
+        [callbacks.clear() for _, callbacks in self.__state_change_callbacks.items()]
+        self.add_state_change_cb(EmulatorState.RUNNING, self.setup)
+        self.add_state_change_cb(EmulatorState.FINISHED, self.teardown)
+        self.add_state_change_cb(EmulatorState.NOT_RUNNING, self.reset)
         return
 
     def __str__(self) -> str:
@@ -96,10 +74,13 @@ class Emulator:
 
         arch = cemu.core.context.architecture
 
-        with self.lock:
+        # with self.lock:
+        if True:
             ur = arch.uc_register(regname)
             val = self.vm.reg_read(ur)
 
+        # TODO handle xmmreg later
+        assert isinstance(val, int)
         return val
 
     regs = get_register_value
@@ -116,15 +97,23 @@ class Emulator:
         """
         return self.get_register_value(cemu.core.context.architecture.sp)
 
-    def create_new_vm(self) -> None:
+    def setup(self) -> None:
         """
         Create a new VM, and sets up the hooks
         """
+        if self.vm:
+            #
+            # Environment already setup, just resume
+            #
+            return
+
+        info("Setting up emulation environment...")
+
         arch = cemu.core.context.architecture
         self.vm = arch.uc
         self.vm.hook_add(unicorn.UC_HOOK_BLOCK, self.hook_block)
         self.vm.hook_add(unicorn.UC_HOOK_CODE, self.hook_code)
-        self.vm.hook_add(unicorn.UC_HOOK_INTR, self.hook_interrupt)
+        self.vm.hook_add(unicorn.UC_HOOK_INTR, self.hook_interrupt)  # type: ignore
         self.vm.hook_add(unicorn.UC_HOOK_MEM_WRITE, self.hook_mem_access)
         self.vm.hook_add(unicorn.UC_HOOK_MEM_READ, self.hook_mem_access)
         if is_x86(cemu.core.context.architecture):
@@ -136,39 +125,41 @@ class Emulator:
                 0,
                 unicorn.x86_const.UC_X86_INS_SYSCALL,
             )
+
+        if not self.__populate_memory():
+            raise Exception("populate_memory() failed")
+
+        if not self.__populate_registers():
+            raise Exception("populate_registers() failed")
+
+        if not self.__populate_text_section():
+            raise Exception("populate_text_section() failed")
+
         return
 
-    def populate_memory(self, sections: list[MemorySection]) -> bool:
+    def __populate_memory(self) -> bool:
         """
-        Populates the VM memory layout according to the values given as parameter.
+        Uses the information from `sections` to populate the unicorn VM memory layout
         """
         if not self.vm:
             error("VM is not initalized")
             return False
 
-        for section in sections:
-            name, address, size, permission, input_file = section.export()
-            perm = MemoryPermission.from_string(permission)
-            self.vm.mem_map(address, size, int(perm))
-            self.sections[name] = [
-                address,
-                size,
-                permission,
-            ]
+        for section in self.sections:
+            self.vm.mem_map(section.address, section.size, int(section.permission))
+            msg = f"Mapping {str(section)}"
 
-            msg = "Map %s @%x (size=%d,perm=%s)" % (name, address, size, permission)
-            if input_file is not None and os.access(input_file, os.R_OK):
-                code = open(input_file, "rb").read()
-                self.vm.mem_write(address, bytes(code[:size]))
-                msg += " and content from '%s'" % input_file
+            if section.content:
+                self.vm.mem_write(section.address, section.content)
+                msg += f", imported data '{len(section.content)}'"
 
             info(f"[vm::setup] {msg}")
 
-        self.start_addr = self.sections[".text"][0]
+        self.start_addr = self.sections[0].address
         self.end_addr = -1
         return True
 
-    def populate_registers(self, registers: dict[str, int]) -> bool:
+    def __populate_registers(self) -> bool:
         """
         Populates the VM memory layout according to the values given as parameter.
         """
@@ -176,83 +167,137 @@ class Emulator:
             return False
 
         arch = cemu.core.context.architecture
+        registers: dict[str, int] = self.registers
+
+        #
+        # Set the initial IP if unspecified
+        #
+        if registers[arch.pc] == 0:
+            section_text = self.find_section(".text")
+            registers[arch.pc] = section_text.address
+
+        #
+        # Set the initial SP if unspecified
+        #
+        if registers[arch.sp] == 0:
+            section_stack = self.find_section(".stack")
+            registers[arch.sp] = section_stack.address
+
+        #
+        # Populate all the registers for unicorn
+        #
+        if is_x86_32(arch):
+            # create fake selectors
+            ## required
+            registers["CS"] = int(
+                x86.X86_32.SegmentDescriptor(
+                    0,
+                    x86.X86_32.SegmentType.Code | x86.X86_32.SegmentType.Accessed,
+                    False,
+                    3,
+                    True,
+                )
+            )
+            registers["DS"] = int(
+                x86.X86_32.SegmentDescriptor(
+                    0,
+                    x86.X86_32.SegmentType.Data | x86.X86_32.SegmentType.Accessed,
+                    False,
+                    3,
+                    True,
+                )
+            )
+            registers["SS"] = int(
+                x86.X86_32.SegmentDescriptor(
+                    0,
+                    x86.X86_32.SegmentType.Data
+                    | x86.X86_32.SegmentType.Accessed
+                    | x86.X86_32.SegmentType.ExpandDown,
+                    False,
+                    3,
+                    True,
+                )
+            )
+            ## optional
+            registers["GS"] = 0
+            registers["FS"] = 0
+            registers["ES"] = 0
 
         for r in registers.keys():
-            if is_x86_32(arch):
-                # temporary hack for x86 segmentation issue
-                if r in ("GS", "FS", "SS", "DS", "CS", "ES"):
-                    continue
-
             ur = arch.uc_register(r)
             self.vm.reg_write(ur, registers[r])
-            dbg(f"[vm::setup] Register '{r}' = {registers[r]:#x}")
 
-        ur = arch.uc_register(arch.pc)
-        self.vm.reg_write(ur, self.sections[".text"][0])
-        ur = arch.uc_register(arch.sp)
-        self.vm.reg_write(ur, self.sections[".stack"][0])
+        dbg(f"[vm::setup] Registers {registers}")
         return True
 
-    def assemble_code(self, code: str, update_end_addr: bool = True) -> bool:
+    def __generate_text_bytecode(self) -> bool:
         """
         Compile the assembly code using Keystone. Returns True if all went well,
         False otherwise.
         """
-        instructions = code.splitlines()
-        nb_instructions = len(instructions)
+        nb_instructions = len(self.codelines)
 
         dbg(
-            f"[vm::setup] Assembling {nb_instructions} instructions for {cemu.core.context.architecture.name}"
+            f"[vm::setup] Assembling {nb_instructions} instruction(s) for {cemu.core.context.architecture.name}"
         )
-        self.code, self.num_insns = assemble(code)
-        if self.num_insns < 0:
-            error(f"Failed to compile: error at line {-self.num_insns:d}")
-            return False
 
-        if self.num_insns != nb_instructions:
-            error(
-                f"[vm::setup] Unexpected number of compiled instructions (got {self.num_insns}, compiled {nb_instructions})"
+        try:
+            insns = cemu.utils.assemble(
+                os.linesep.join(self.codelines), base_address=self.start_addr
             )
+            if len(insns) == 0:
+                raise Exception("no instruction")
+        except Exception as e:
+            error(f"Failed to compile: error {str(e)}")
             return False
 
-        dbg(
-            f"[vm::setup] {self.num_insns} instruction{'s' if self.num_insns > 1 else ''} compiled: {len(self.code)} bytes"
-        )
+        self.code = b"".join([insn.bytes for insn in insns])
+        dbg(f"[vm::setup] {len(insns)} instruction(s) compiled: {len(self.code)} bytes")
 
-        # update end_addr since we know the size of the code to execute
-        if update_end_addr:
-            self.end_addr = self.start_addr + len(self.code)
+        self.end_addr = self.start_addr + len(self.code)
         return True
 
-    def map_code(self) -> bool:
+    def __populate_text_section(self) -> bool:
         if not self.vm:
             return False
 
-        if ".text" not in self.sections.keys():
-            error(
-                "[vm::setup] Missing text area (add a .text section in the Mapping tab)"
-            )
+        try:
+            text_section = self.find_section(".text")
+        except KeyError:
+            #
+            # Try to get the 1st executable section. Let the exception propagage if it fails
+            #
+            matches = [
+                section for section in self.sections if section.permission.executable
+            ]
+            text_section = matches[0]
+
+        info(f"Using text section {text_section}")
+
+        if not self.__generate_text_bytecode():
+            error("__generate_text_bytecode() failed")
             return False
 
-        if self.code is None:
-            error("[vm::setup] No code defined yet")
-            return False
+        assert isinstance(self.code, bytes)
 
-        addr = self.sections[".text"][0]
-        info(f"Mapping .text at {addr:#x}")
-        self.vm.mem_write(addr, bytes(self.code))
+        dbg(
+            f"Populated text section {text_section} with {len(self.code)} compiled bytes"
+        )
+        self.vm.mem_write(text_section.address, self.code)
         return True
 
-    def next_instruction(self, code: bytearray, addr: int) -> str:
+    def next_instruction(self, code: bytes, addr: int) -> cemu.utils.Instruction:
         """
         Returns a string disassembly of the first instruction from `code`.
         """
-        for insn in cemu.utils.disassemble(code, 1, addr).values():
-            return f"{insn[0], insn[1]}"
+        for insn in cemu.utils.disassemble(code, 1, addr):
+            return insn
 
         raise Exception("should never be here")
 
-    def hook_code(self, emu, address, size, user_data):
+    def hook_code(
+        self, emu: unicorn.Uc, address: int, size: int, user_data: Any
+    ) -> bool:
         """
         Unicorn instruction hook
         """
@@ -261,41 +306,48 @@ class Emulator:
 
         arch = cemu.core.context.architecture
         code = self.vm.mem_read(address, size)
-        insn = self.next_instruction(code, address)
-        print(insn)
+        insn: cemu.utils.Instruction = self.next_instruction(code, address)
         if self.stop_now:
             self.start_addr = self.get_register_value(arch.pc)
             emu.emu_stop()
-            return
+            return True
 
-        dbg(f"[vm::runtime] Executing @ {address:#x}: {insn}")
+        dbg(f"[vm::runtime] Executing @ {insn}")
 
         if self.use_step_mode:
             self.stop_now = True
-        return
+        return True
 
-    def hook_block(self, emu, addr, size, misc):
+    def hook_block(self, emu: unicorn.Uc, addr: int, size: int, misc: Any) -> int:
         """
         Unicorn block change hook
         """
-        dbg(f"[vm::runtime] Entering block at IP={addr:#x}")
-        return
+        dbg(f"[vm::runtime] Entering block at {addr:#x}")
+        return 0
 
-    def hook_interrupt(self, emu, intno, data):
+    def hook_interrupt(self, emu: unicorn.Uc, intno: int, data: Any) -> None:
         """
         Unicorn interrupt hook
         """
         dbg(f"[vm::runtime] Triggering interrupt #{intno:d}")
         return
 
-    def hook_syscall(self, emu, user_data):
+    def hook_syscall(self, emu: unicorn.Uc, data: Any) -> int:
         """
         Unicorn syscall hook
         """
         dbg("[vm::runtime] Syscall")
-        return
+        return 0
 
-    def hook_mem_access(self, emu, access, address, size, value, _):
+    def hook_mem_access(
+        self,
+        emu: unicorn.Uc,
+        access: int,
+        address: int,
+        size: int,
+        value: int,
+        extra: Any,
+    ) -> None:
         if access == unicorn.UC_MEM_WRITE:
             info(f"Write: *{address:#x} = {value:#x} (size={size})")
         elif access == unicorn.UC_MEM_READ:
@@ -306,96 +358,95 @@ class Emulator:
         """
         Runs the emulation
         """
-        if not self.vm:
-            error("VM is not ready")
-            return
+        assert self.vm, "VM is not initialized"
 
-        self.thread = QThread()
-        self.worker = EmulationInstance(self)
-        self.worker.moveToThread(self.thread)
-        self.thread.started.connect(self.worker.run)
-        self.worker.finished.connect(self.thread.quit)
-        self.worker.finished.connect(self.worker.deleteLater)
-        self.thread.finished.connect(self.thread.deleteLater)
-
-        self.thread.start()
         return
 
-    def __stop(self) -> None:
+    def teardown(self) -> None:
         """
-        Stops the VM, frees the allocations
+        Stops the unicorn environment
         """
         if not self.vm:
             return
 
-        self.set_vm_state(EmulatorState.NOT_RUNNING)
+        info("Ending emulation context")
 
-        for area in self.sections.keys():
-            addr, size = self.sections[area][0:2]
-            self.vm.mem_unmap(addr, size)
+        for section in self.sections:
+            self.vm.mem_unmap(section.address, section.size)
 
         del self.vm
         self.vm = None
         return
 
-    def __finish(self) -> None:
-        """
-        Clean up the emulator execution context.
+    def find_section(self, section_name: str) -> MemorySection:
+        """Lookup a particular section by its name
 
-        This internal function is called when the VM execution has finished, i.e.:
-        1. an exception has occured in unicorn
-        2. the emulator has reached the .text end address
+        Args:
+            section_name (str): the name of the sections to search
+
+        Raises:
+            KeyError: if `section_name` not found
+
+        Returns:
+            MemorySection: _description_
         """
-        info("Ending emulation context")
-        self.__stop()
+        matches = [section for section in self.sections if section.name == section_name]
+        if not matches:
+            raise KeyError(f"Section '{section_name}' not found")
+
+        if len(matches) > 1:
+            raise ValueError(f"Too many sections named {section_name}")
+
+        return matches[0]
+
+    def add_state_change_cb(self, new_state: EmulatorState, cb: Callable) -> None:
+        """Register a callback triggered when the emulator switches to a new state
+
+        Args:
+            new_state (EmulatorState): the new state
+            cb (Callable): the callback to execute when that happens
+        """
+
+        self.__state_change_callbacks[new_state].append(cb)
         return
 
-    def lookup_map(self, mapname: str):
-        """ """
-        for area in self.sections.keys():
-            if area == mapname:
-                return self.sections[area][0]
-        raise KeyError("Section '{}' not found".format(mapname))
+    def set(self, new_state: EmulatorState):
+        """Set the new state of the emulator, and invoke the associated callbacks
 
-    def set_vm_state(self, new_state: EmulatorState) -> None:
+        Args:
+            new_state (EmulatorState): the new state
         """
-        Updates the internal state of the VM, and propagates the notification
-        signals.
-        """
-        with self.lock:
-            while True:
-                dbg(f"Switching VM state from {self.vm_state} to {new_state}")
-                self.vm_state = new_state
+        if self.state == new_state:
+            return
 
-                if new_state == EmulatorState.NOT_RUNNING:
-                    cemu.core.context.root.signals["refreshRegisterGrid"].emit()
-                    cemu.core.context.root.signals["refreshMemoryEditor"].emit()
-                    cemu.core.context.root.signals["setCommandButtonStopState"].emit()
-                    break
+        dbg(f"Emulator is now in {new_state.name}")
 
-                if new_state == EmulatorState.RUNNING:
-                    cemu.core.context.root.signals["setCommandButtonsRunState"].emit()
-                    break
+        self.state = new_state
+        assert int(self.state) == int(new_state), f"{self.state} != {new_state}"
 
-                if new_state == EmulatorState.STEP_RUNNING:
-                    cemu.core.context.root.signals["refreshRegisterGrid"].emit()
-                    cemu.core.context.root.signals["refreshMemoryEditor"].emit()
-                    cemu.core.context.root.signals[
-                        "setCommandButtonsStepRunState"
-                    ].emit()
-                    break
+        dbg(
+            f"Executing {len(self.__state_change_callbacks)} callbacks for state {new_state.name}"
+        )
+        for new_state_cb in self.__state_change_callbacks[new_state]:
+            dbg(f"Executing {new_state_cb.__name__}")
+            res = new_state_cb()
+            info(f"{new_state_cb.__name__}() return {res}")
 
-                break
-
-            info(f"VM state is now {new_state}")
-
-        if new_state == EmulatorState.FINISHED:
-            self.__finish()
+        if new_state == EmulatorState.RUNNING:
+            assert self.threaded_runner, "No threaded runner defined"
+            assert callable(
+                getattr(self.threaded_runner, "run")
+            ), "Threaded runner is not runnable"
+            self.threaded_runner.run()  # type: ignore
         return
 
     @property
     def is_running(self) -> bool:
-        return self.vm is not None and self.vm_state in (
+        assert self.vm, "VM is not initialized"
+        return self.state in (
             EmulatorState.RUNNING,
-            EmulatorState.STEP_RUNNING,
+            EmulatorState.IDLE,
         )
+
+    def set_threaded_runner(self, runnable_object: object):
+        self.threaded_runner = runnable_object

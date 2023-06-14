@@ -108,22 +108,31 @@ class MemorySection:
             self.content = data_file.open("rb").read()
         return
 
-    def __str__(self) -> str:
-        return "[0x{:x}-0x{:x}] {:s} ({:s})".format(
-            self.address,
-            self.address + self.size - 1,
-            self.name,
-            self.permission.short(),
-        )
+    @property
+    def end(self):
+        return self.address + self.size - 1
 
-    def export(self) -> MemoryLayoutEntryType:
-        return (
-            self.name,
-            self.address,
-            self.size,
-            str(self.permission),
-            self.file_source,
-        )
+    def __str__(self) -> str:
+        return f"MemorySection [{self.address:#x}-{self.end:#x}] {self.name:s} as {str(self.permission)})"
 
     def __contains__(self, addr: int) -> bool:
-        return self.address <= addr < self.address + self.size
+        """`in` operator overload
+
+        Args:
+            addr (int): _description_
+
+        Returns:
+            bool: _description_
+        """
+        return self.address <= addr <= self.end
+
+    def overlaps(self, other: "MemorySection") -> bool:
+        """Indicates whether this memory section overlaps another
+
+        Args:
+            other (MemorySection): _description_
+
+        Returns:
+            bool: _description_
+        """
+        return self.address in other or other.address in self

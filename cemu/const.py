@@ -13,7 +13,7 @@ LICENSE = "MIT"
 DESCRIPTION = (
     """Cemu is a simple assembly/dissembly/emulation IDE that provides an easy """
     """Plug-n-Play environment to start playing with many architectures (currently """
-    """supports x86-{32,64}, ARM, AARCH64, MIPS, SPARC)."""
+    """supports x86-{32,64}, ARM, AARCH64, MIPS, MIPS64, SPARC and PPC)."""
 )
 HOME = pathlib.Path("").home()
 PKG_PATH = pathlib.Path(__file__).absolute().parent
@@ -38,3 +38,7 @@ DEFAULT_CODE_VIEW_FONT_SIZE: int = 11
 
 DEFAULT_ASSEMBLY_VIEW_FONT: str = "Courier"
 DEFAULT_ASSEMBLY_VIEW_FONT_SIZE: int = 11
+
+DEFAULT_MEMORY_VIEW_FONT: str = "Courier"
+DEFAULT_MEMORY_VIEW_FONT_SIZE: int = 10
+DEFAULT_MEMORY_VIEW_CHUNK_SIZE: int = 256
