@@ -3,10 +3,9 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import unicorn
-
-# from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtGui import QFont
 from PyQt6.QtWidgets import (
+    QComboBox,
     QDockWidget,
     QFrame,
     QHBoxLayout,
@@ -35,7 +34,12 @@ class MemoryWidget(QDockWidget):
         title_layout.addWidget(QLabel("Location"))
         self.address = QLineEdit()
         self.address.textChanged.connect(self.updateEditor)
+        self.alignement = QComboBox()
+        self.alignement.addItems(["4", "8", "16"])
+        self.alignement.setCurrentIndex(2)
+        self.alignement.currentIndexChanged.connect(self.updateEditor)
         title_layout.addWidget(self.address)
+        title_layout.addWidget(self.alignement)
         title_widget = QWidget()
         title_widget.setLayout(title_layout)
         title_widget.setMouseTracking(True)
@@ -115,8 +119,10 @@ class MemoryWidget(QDockWidget):
         assert isinstance(addr, int)
 
         try:
+            alignment = int(self.alignement.currentText())
+            dbg(f"alignment={alignment}")
             data = emu.vm.mem_read(addr, const.DEFAULT_MEMORY_VIEW_CHUNK_SIZE)
-            self.editor.setText(utils.hexdump(data, base=addr))
+            self.editor.setText(utils.hexdump(data, alignment, base=addr))
         except unicorn.unicorn.UcError:
             self.editor.setText("Cannot read at address %x" % addr)
 

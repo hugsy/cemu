@@ -101,10 +101,24 @@ class CEmuWindow(QMainWindow):
         self.__app.aboutToQuit.connect(self.onAboutToQuit)
 
         # register the callbacks for the emulator
+        emu = cemu.core.context.emulator
+        emu.add_state_change_cb(
+            EmulatorState.NOT_RUNNING, self.update_layout_not_running
+        )
+        emu.add_state_change_cb(EmulatorState.RUNNING, self.update_layout_running)
+        emu.add_state_change_cb(EmulatorState.IDLE, self.update_layout_step_running)
+        emu.add_state_change_cb(
+            EmulatorState.FINISHED, self.update_layout_step_finished
+        )
 
         # show everything
         self.show()
         dbg("Main window initialized")
+
+        #
+        # set the emulator to a new context
+        #
+        emu.reset()
         return
 
     def __del__(self):
@@ -713,29 +727,20 @@ class CEmuWindow(QMainWindow):
         """
         return self.__mapWidget.maps
 
-    def register_emulator_callbacks(self):
-        emu = cemu.core.context.emulator
+    def update_layout_not_running(self):
+        self.statusBar().showMessage("Not running")
+        return
 
-        # TODO missing QMutex?
-        def update_layout_not_running():
-            self.signals["refreshRegisterGrid"].emit()
-            self.signals["refreshMemoryEditor"].emit()
-            self.signals["setCommandButtonStopState"].emit()
-            return
+    def update_layout_running(self):
+        self.statusBar().showMessage("Running")
+        return
 
-        def update_layout_running():
-            self.signals["setCommandButtonsRunState"].emit()
-            return
+    def update_layout_step_running(self):
+        self.statusBar().showMessage("Idle (Step Mode)")
+        return
 
-        def update_layout_step_running():
-            self.signals["refreshRegisterGrid"].emit()
-            self.signals["refreshMemoryEditor"].emit()
-            self.signals["setCommandButtonsStepRunState"].emit()
-            return
-
-        emu.add_state_change_cb(EmulatorState.NOT_RUNNING, update_layout_not_running)
-        emu.add_state_change_cb(EmulatorState.RUNNING, update_layout_running)
-        emu.add_state_change_cb(EmulatorState.IDLE, update_layout_step_running)
+    def update_layout_step_finished(self):
+        self.statusBar().showMessage("Finished")
         return
 
 

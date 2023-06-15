@@ -26,6 +26,7 @@ class ShortcutManager:
             "emulator_run_all":    ("Alt+R", "Check and run the assembly code"),
             "emulator_step":       ("Alt+S", "Starts emulation by stepping into it"),
             "emulator_stop":       ("Alt+X", "Stop emulation"),
+            "emulator_reset":      ("", "Reset emulator"),
             # fmt: on
         }
 

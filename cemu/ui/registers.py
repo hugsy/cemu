@@ -117,4 +117,5 @@ class RegistersWidget(QDockWidget):
         self.updateGrid()
         return
 
+    onNotRunningRefreshRegisterGrid = onIdleRefreshRegisterGrid
     onFinishedRefreshRegisterGrid = onIdleRefreshRegisterGrid

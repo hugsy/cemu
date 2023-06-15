@@ -14,15 +14,15 @@ class X86(Architecture):
     sp: str = "SP"
     flag: str = "EFLAGS"
     registers: list[str] = [
+        pc,
+        sp,
         "AX",
         "BX",
         "CX",
         "DX",
         "SI",
         "DI",
-        "BP",  # GPR
-        pc,
-        sp,
+        "BP",
         flag,
     ]
     ptrsize: int = 2
@@ -98,6 +98,8 @@ class X86_32(X86):
         "SS",
     ]
     registers = [
+        pc,
+        sp,
         "EAX",
         "EBX",
         "ECX",
@@ -105,8 +107,6 @@ class X86_32(X86):
         "ESI",
         "EDI",
         "EBP",  # GPR
-        pc,
-        sp,
         X86.flag,
     ] + selector_registers
     ptrsize = 4
@@ -138,13 +138,15 @@ class X86_64(X86_32):
     pc = "RIP"
     sp = "RSP"
     registers = [
+        pc,
+        sp,
         "RAX",
         "RBX",
         "RCX",
         "RDX",
         "RSI",
         "RDI",
-        "RBP",  # GPR
+        "RBP",
         "R8",
         "R9",
         "R10",
@@ -152,10 +154,7 @@ class X86_64(X86_32):
         "R12",
         "R13",
         "R14",
-        "R14",
         "R15",
-        pc,
-        sp,
         X86_32.flag,
     ] + X86_32.selector_registers
     ptrsize = 8

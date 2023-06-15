@@ -29,7 +29,7 @@ if TYPE_CHECKING:
     from cemu.ui.main import CEmuWindow
 
 
-MEMORY_MAP_DEFAULT_LAYOUT = [
+MEMORY_MAP_DEFAULT_LAYOUT: list[MemorySection] = [
     MemorySection(".text", 0x00004000, 0x1000, "READ|EXEC"),
     MemorySection(".data", 0x00005000, 0x1000, "READ|WRITE"),
     MemorySection(".stack", 0x00006000, 0x4000, "READ|WRITE"),
@@ -38,11 +38,9 @@ MEMORY_MAP_DEFAULT_LAYOUT = [
 
 
 class MemoryMappingWidget(QDockWidget):
-    def __init__(
-        self, parent: CEmuWindow, maps: list[MemorySection] = MEMORY_MAP_DEFAULT_LAYOUT
-    ):
+    def __init__(self, parent: CEmuWindow):
         super().__init__("Memory Map", parent)
-        self.__memory_layout = maps  # todo: replace with context
+        self.memory_sections = MEMORY_MAP_DEFAULT_LAYOUT
 
         layout = QVBoxLayout()
 
@@ -72,49 +70,56 @@ class MemoryMappingWidget(QDockWidget):
         widget = QWidget()
         widget.setLayout(layout)
         self.setWidget(widget)
-        self.updateGrid()
 
         #
         # Emulator state callback
         #
-        self.emulator: Emulator = cemu.core.context.emulator
-        self.emulator.add_state_change_cb(
-            EmulatorState.NOT_RUNNING, self.onNotRunningResetMemoryMap
+        emu: Emulator = cemu.core.context.emulator
+        emu.add_state_change_cb(
+            EmulatorState.NOT_RUNNING, self.onNotRunningUpdateMemoryMap
         )
         return
 
-    def onNotRunningResetMemoryMap(self) -> None:
+    def onNotRunningUpdateMemoryMap(self) -> None:
+        self.SynchronizeMemoryMap()
+        return
+
+    def SynchronizeMemoryMap(self) -> None:
+        #
+        # If unset, use a default layout
+        #
+        if not self.memory_sections:
+            self.memory_sections = MEMORY_MAP_DEFAULT_LAYOUT
+
         #
         # Propagate the view change to the emulator
         #
-        cemu.core.context.emulator.sections = self.maps
+        cemu.core.context.emulator.sections = self.memory_sections
+
+        #
+        # Apply the values to the grid
+        #
+        self.UpdateMemoryMapGrid()
         return
 
-    def updateGrid(self) -> None:
+    def UpdateMemoryMapGrid(self) -> None:
         self.MemoryMapTableWidget.clearContents()
 
-        for idx, map in enumerate(self.__memory_layout):
+        for idx, section in enumerate(self.memory_sections):
             self.MemoryMapTableWidget.insertRow(idx)
-            name = QTableWidgetItem(map.name)
-            start_address = QTableWidgetItem(format_address(map.address))
-            end_address = QTableWidgetItem(format_address(map.address + map.size))
-            permission = QTableWidgetItem(str(map.permission))
+            name = QTableWidgetItem(section.name)
+            start_address = QTableWidgetItem(format_address(section.address))
+            end_address = QTableWidgetItem(
+                format_address(section.address + section.size)
+            )
+            permission = QTableWidgetItem(str(section.permission))
             self.MemoryMapTableWidget.setItem(idx, 0, start_address)
             self.MemoryMapTableWidget.setItem(idx, 1, end_address)
             self.MemoryMapTableWidget.setItem(idx, 2, name)
             self.MemoryMapTableWidget.setItem(idx, 3, permission)
 
-        self.MemoryMapTableWidget.setRowCount(len(self.__memory_layout))
-        self.onNotRunningResetMemoryMap()
+        self.MemoryMapTableWidget.setRowCount(len(self.memory_sections))
         return
-
-    @property
-    def maps(self) -> list[MemorySection]:
-        """
-        Exports the memory mapping to a format usable for Unicorn
-        """
-        self.__maps = self.__memory_layout[::]
-        return self.__maps
 
     def onAddSectionButtonClicked(self) -> None:
         """
@@ -131,11 +136,11 @@ class MemoryMappingWidget(QDockWidget):
         if not selection.hasSelection():
             return
         indexes = [x.row() for x in selection.selectedRows()]
-        print(indexes)
-        for idx in range(len(self.__memory_layout) - 1, 0, -1):
+
+        for idx in range(len(self.memory_sections) - 1, 0, -1):
             if idx in indexes:
-                del self.__memory_layout[idx]
-        self.updateGrid()
+                del self.memory_sections[idx]
+        self.UpdateMemoryMapGrid()
         return
 
     def add_or_edit_section_popup(self) -> None:
@@ -199,12 +204,12 @@ class MemoryMappingWidget(QDockWidget):
             address = int(startAddressEdit.text(), 0)
             size = int(sizeEdit.text(), 0)
 
-            if name in (x.name for x in self.__memory_layout):
+            if name in (x.name for x in self.memory_sections):
                 error("section name already exists")
                 return
 
             memory_set = (
-                set(range(x.address, x.address + x.size)) for x in self.__memory_layout
+                set(range(x.address, x.address + x.size)) for x in self.memory_sections
             )
             current_set = set(range(address, address + size))
             for m in memory_set:
@@ -221,8 +226,8 @@ class MemoryMappingWidget(QDockWidget):
                 section_perm.append("EXEC")
             try:
                 section = MemorySection(name, address, size, "|".join(section_perm))
-                self.__memory_layout.append(section)
-                self.updateGrid()
+                self.memory_sections.append(section)
+                self.UpdateMemoryMapGrid()
             except ValueError as ve:
                 popup(f"MemorySection is invalid, reason: Invalid {str(ve)}")
                 return
@@ -231,8 +236,8 @@ class MemoryMappingWidget(QDockWidget):
                 section_perm.append("EXEC")
             try:
                 section = MemorySection(name, address, size, "|".join(section_perm))
-                self.__memory_layout.append(section)
-                self.updateGrid()
+                self.memory_sections.append(section)
+                self.UpdateMemoryMapGrid()
             except ValueError as ve:
                 popup(f"MemorySection is invalid, reason: Invalid {str(ve)}")
 

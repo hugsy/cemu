@@ -18,7 +18,7 @@ DISASSEMBLY_DEFAULT_BASE_ADDRESS = 0x40000
 
 def hexdump(
     source: bytearray,
-    length: int = 0x10,
+    alignment: int = 0x10,
     separator: str = ".",
     show_raw: bool = False,
     base: int = 0x00,
@@ -27,8 +27,8 @@ def hexdump(
     Produces a `hexdump` command like output version of the bytearray given.
     """
     result: list[str] = []
-    for i in range(0, len(source), length):
-        s = source[i : i + length]
+    for i in range(0, len(source), alignment):
+        s = source[i : i + alignment]
 
         hexa = " ".join(["%02X" % c for c in s])
         text = "".join([chr(c) if 0x20 <= c < 0x7F else separator for c in s])
@@ -36,7 +36,9 @@ def hexdump(
         if show_raw:
             result.append(hexa)
         else:
-            result.append("%#-.*x   %-*s  %s" % (16, base + i, 3 * length, hexa, text))
+            result.append(
+                "%#-.*x   %-*s  %s" % (16, base + i, 3 * alignment, hexa, text)
+            )
 
     return os.linesep.join(result)
 

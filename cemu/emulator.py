@@ -20,7 +20,7 @@ class EmulatorState(IntEnum):
     # SETUP = 1
     IDLE = 2                     # The VM is running but stopped: used for stepping mode
     RUNNING = 3                  # The VM is running
-    # TEARDOWN = 5
+    TEARDOWN = 5
     FINISHED = 6                 # The VM has reached the end of the execution
     # fmt: on
 
@@ -35,20 +35,30 @@ class Emulator:
             EmulatorState.NOT_RUNNING: [],
             EmulatorState.IDLE: [],
             EmulatorState.RUNNING: [],
+            EmulatorState.TEARDOWN: [],
             EmulatorState.FINISHED: [],
         }
         self.threaded_runner: Optional[object] = None
-        self.reset()
-        self.set(EmulatorState.NOT_RUNNING)
-        return
-
-    def reset(self):
         self.vm: Optional[unicorn.Uc] = None
         self.code: bytes = b""
         self.codelines: list[str] = []
         self.sections: list[MemorySection] = []
         self.registers: dict[str, int] = {}
+        self.start_addr: int = 0
+
+        #
+        # A call to `reset` **MUST** be done once the program is fully loaded
+        #
+        return
+
+    def reset(self):
+        self.vm = None
+        self.code = b""
+        self.codelines = []
+        self.sections = []
+        self.registers = {name: 0 for name in cemu.core.context.architecture.registers}
         self.start_addr = 0
+        self.set(EmulatorState.NOT_RUNNING)
         return
 
     def __str__(self) -> str:
@@ -431,7 +441,6 @@ class Emulator:
 
         for new_state_cb in self.__state_change_callbacks[new_state]:
             function_name = f"{new_state_cb.__module__}.{new_state_cb.__class__.__qualname__}.{new_state_cb.__name__}"
-            dbg(f"Executing {function_name}()")
             res = new_state_cb()
             dbg(f"{function_name}() return {res}")
 
@@ -446,19 +455,17 @@ class Emulator:
                 ), "Threaded runner is not runnable"
                 self.threaded_runner.run()  # type: ignore
 
-            case EmulatorState.FINISHED:
+            case EmulatorState.TEARDOWN:
                 #
                 # When the execution is finished, cleanup and switch back to a "NotRunning" state
                 # This is done to make sure all the callback can still access the VM
                 #
                 self.teardown()
-                self.reset()
 
                 #
-                # Make sure the last step of `FINISHED` is to set the state to NOT_RUNNING in order to
-                # trigger the potential callbacks
+                # Completely reset the emulation envionment, and set the status to NOT_RUNNING
                 #
-                self.set(EmulatorState.NOT_RUNNING)
+                self.reset()
 
             case _:
                 pass
