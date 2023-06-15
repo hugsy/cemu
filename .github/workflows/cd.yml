@@ -68,7 +68,7 @@ jobs:
 
     - name: Publish artifact
       id: publish_artifact
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: ${{ env.NAME }}_${{ matrix.os }}_py${{ matrix.python }}_${{ env.GITHUB_REF_SLUG }}_${{ env.GITHUB_SHA_SHORT }}
         path: build/
@@ -80,8 +80,9 @@ jobs:
         nodetail: true
         title: Failed to build
         description: |
+          Failed to build
           ```
-          ${{ failure.message }}
+          ${{ env.NAME }}_${{ matrix.os }}_py${{ matrix.python }}_${{ env.GITHUB_REF_SLUG }}_${{ env.GITHUB_SHA_SHORT }}
           ```
         color: 0xff0000
         username: ${{ github.actor }} via GithubBot
@@ -94,8 +95,9 @@ jobs:
         nodetail: true
         title: Successful Build
         description: |
+          Successful build:
           ```
-          ${{ success.message }}
+          ${{ env.NAME }}_${{ matrix.os }}_py${{ matrix.python }}_${{ env.GITHUB_REF_SLUG }}_${{ env.GITHUB_SHA_SHORT }}
           ```
         color: 0x00ff00
         username: ${{ github.actor }} via GithubBot
