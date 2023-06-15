@@ -120,7 +120,6 @@ class MemoryWidget(QDockWidget):
 
         try:
             alignment = int(self.alignement.currentText())
-            dbg(f"alignment={alignment}")
             data = emu.vm.mem_read(addr, const.DEFAULT_MEMORY_VIEW_CHUNK_SIZE)
             self.editor.setText(utils.hexdump(data, alignment, base=addr))
         except unicorn.unicorn.UcError:

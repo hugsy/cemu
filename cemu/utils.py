@@ -17,33 +17,51 @@ DISASSEMBLY_DEFAULT_BASE_ADDRESS = 0x40000
 
 
 def hexdump(
-    source: bytearray,
+    source: bytes,
     alignment: int = 0x10,
     separator: str = ".",
     show_raw: bool = False,
     base: int = 0x00,
 ) -> str:
-    """
-    Produces a `hexdump` command like output version of the bytearray given.
+    """Produces a `hexdump` command like output version of the bytearray given.
+
+    Args:
+        source (bytes): _description_
+        alignment (int, optional): _description_. Defaults to 0x10.
+        separator (str, optional): _description_. Defaults to ".".
+        show_raw (bool, optional): _description_. Defaults to False.
+        base (int, optional): _description_. Defaults to 0x00.
+
+    Returns:
+        str: _description_
     """
     result: list[str] = []
     for i in range(0, len(source), alignment):
-        s = source[i : i + alignment]
-
-        hexa = " ".join(["%02X" % c for c in s])
-        text = "".join([chr(c) if 0x20 <= c < 0x7F else separator for c in s])
+        chunk = source[i : i + alignment]
+        hexa = " ".join([f"{c:02X}" for c in chunk])
+        text = "".join([chr(c) if 0x20 <= c < 0x7F else separator for c in chunk])
 
         if show_raw:
             result.append(hexa)
         else:
-            result.append(
-                "%#-.*x   %-*s  %s" % (16, base + i, 3 * alignment, hexa, text)
-            )
+            result.append(f"{format_address(base)}  {hexa}  {text}")
 
     return os.linesep.join(result)
 
 
 def format_address(addr: int, arch: Optional[Architecture] = None) -> str:
+    """Format an address to string, aligned to the given architecture
+
+    Args:
+        addr (int): _description_
+        arch (Optional[Architecture], optional): _description_. Defaults to None.
+
+    Raises:
+        ValueError: _description_
+
+    Returns:
+        str: _description_
+    """
     if arch is None:
         arch = cemu.core.context.architecture
 
