@@ -67,7 +67,7 @@ jobs:
       if: startsWith(matrix.os, 'macos')
       shell: bash
       run: |
-        cp -v ~/.local/bin/cemu build/bin/ || cp -v /Users/runner/Library/Python/${{ matrix.python-version }}/bin/ build/bin/
+        cp -v ~/.local/bin/cemu/* build/bin/ || cp -v /Users/runner/Library/Python/${{ matrix.python-version }}/bin/* build/bin/
         
     - name: Publish artifact
       id: publish_artifact
