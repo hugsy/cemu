@@ -63,5 +63,5 @@ def popup(msg: str, type: PopupType = PopupType.Error, title: str = ""):
     else:
         raise ValueError("invalid type")
 
-    QMessageBox(icon, title, msg, buttons=QMessageBox.StandardButton.Discard).exec()
     dbg(f"{title} - {msg}")
+    QMessageBox(icon, title, msg, buttons=QMessageBox.StandardButton.Discard).exec()

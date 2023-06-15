@@ -175,7 +175,7 @@ class CodeWidget(QDockWidget):
         return
 
     def onUpdateText(self):
-        cemu.core.context.emulator.codelines = self.getCleanContent().splitlines()
+        cemu.core.context.emulator.codelines = self.getCleanContent()
         return
 
     def onCursorPositionChanged(self):
@@ -217,6 +217,19 @@ class CodeWidget(QDockWidget):
                 parsed.append(line)
             return parsed
 
+        def remove_empty_lines(lines: list[str]) -> list[str]:
+            #
+            # Bug in keystone: miscount of number of assembled insn
+            #
+            # Repro:
+            # >>> ks = keystone.Ks(keystone.KS_ARCH_X86, keystone.KS_MODE_64)
+            # >>> ks.asm("inc rax\n\n\ndec rbx", as_bytes=True)
+            # (b'H\xff\xc0H\xff\xcb', 4)
+            #
+            # TODO report
+            #
+            return [x for x in lines if x]
+
         code: str = self.editor.toPlainText()
         if not code:
             return ""
@@ -224,4 +237,5 @@ class CodeWidget(QDockWidget):
         lines: list[str] = code.splitlines()
         lines = remove_comments(lines)
         lines = parse_syscalls(lines)
+        lines = remove_empty_lines(lines)
         return os.linesep.join(lines)

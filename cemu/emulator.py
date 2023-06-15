@@ -1,4 +1,3 @@
-import os
 from enum import IntEnum, unique
 from multiprocessing import Lock
 from typing import Any, Callable, Optional, Union
@@ -41,7 +40,7 @@ class Emulator:
         self.threaded_runner: Optional[object] = None
         self.vm: Optional[unicorn.Uc] = None
         self.code: bytes = b""
-        self.codelines: list[str] = []
+        self.codelines: str = ""
         self.sections: list[MemorySection] = []
         self.registers: dict[str, int] = {}
         self.start_addr: int = 0
@@ -54,7 +53,7 @@ class Emulator:
     def reset(self):
         self.vm = None
         self.code = b""
-        self.codelines = []
+        self.codelines = ""
         self.sections = []
         self.registers = {name: 0 for name in cemu.core.context.architecture.registers}
         self.start_addr = 0
@@ -235,20 +234,16 @@ class Emulator:
         Compile the assembly code using Keystone. Returns True if all went well,
         False otherwise.
         """
-        nb_instructions = len(self.codelines)
-
         dbg(
-            f"[vm::setup] Assembling {nb_instructions} instruction(s) for {cemu.core.context.architecture.name}"
+            f"[vm::setup] Generating assembly code for {cemu.core.context.architecture.name}"
         )
 
         try:
-            insns = cemu.utils.assemble(
-                os.linesep.join(self.codelines), base_address=self.start_addr
-            )
+            insns = cemu.utils.assemble(self.codelines, base_address=self.start_addr)
             if len(insns) == 0:
                 raise Exception("no instruction")
         except Exception as e:
-            error(f"Failed to compile: error {str(e)}")
+            error(f"Failed to compile: exception {e.__class__.__name__}: {str(e)}")
             return False
 
         self.code = b"".join([insn.bytes for insn in insns])

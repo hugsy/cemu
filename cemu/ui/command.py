@@ -35,7 +35,7 @@ class CommandWidget(QDockWidget):
         layout.addStretch(1)
 
         buttons = {
-            "run": CommandButton(" ▶️▶️ ", self.onClickRunAll, "emulator_run_all"),
+            "run": CommandButton(" ⏩ ", self.onClickRunAll, "emulator_run_all"),
             "step": CommandButton(" ⏯️ ", self.onClickStepNext, "emulator_step"),
             "stop": CommandButton(" ⏹️ ", self.onClickStop, "emulator_stop"),
             "reset": CommandButton(" 🔄️ ", self.onClickReset, "emulator_reset"),
@@ -126,13 +126,13 @@ class CommandWidget(QDockWidget):
             if not code:
                 raise ValueError("Empty code")
 
-            utils.assemble(code)
+            insns = utils.assemble(code)
             title = "Success"
-            msg = "Your code is syntaxically valid."
+            msg = f"Your code is syntaxically valid, {len(insns)} instructions compiled"
             popup_style = PopupType.Information
         except Exception as e:
             title = "Some errors were found in your code."
-            msg = str(e)
+            msg = f"{e.__class__.__name__}: {str(e)}"
             popup_style = PopupType.Error
 
         popup(msg, popup_style, title=title)
