@@ -91,7 +91,7 @@ jobs:
       shell: pwsh
       run: |
         $pyVersion = "${{ matrix.python-version }}" -replace "\.", "-"
-        echo "${{ matrix.os }}-$pyVersion='✅ ${{ matrix.os }} ${{ matrix.python-version }}'" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+        echo "${{ matrix.os }}-$pyVersion=✅ ${{ matrix.os }} ${{ matrix.python-version }}" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
   
     - name: Populate the successful output (Other)
       id: output_success_other
@@ -99,7 +99,7 @@ jobs:
       shell: bash
       run: |
         pyVersion="$(echo -n ${{ matrix.python-version }} | tr . -)"
-        echo "${{ matrix.os }}-${pyVersion}='✅ ${{ matrix.os }} ${{ matrix.python-version }}'" >> $env:GITHUB_OUTPUT
+        echo "${{ matrix.os }}-${pyVersion}='✅ ${{ matrix.os }} ${{ matrix.python-version }}'" >> $GITHUB_OUTPUT
   
     - name: Populate the failure output (Windows)
       id: output_failure_windows
@@ -107,7 +107,7 @@ jobs:
       shell: pwsh
       run: |
         $pyVersion = "${{ matrix.python-version }}" -replace "\.", "-"
-        echo "${{ matrix.os }}-${pyVersion}='❌ ${{ matrix.os }} ${{ matrix.python-version }}'" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+        echo "${{ matrix.os }}-${pyVersion}=❌ ${{ matrix.os }} ${{ matrix.python-version }}" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
  
     - name: Populate the failure output (Other)
       id: output_failure_other
@@ -115,7 +115,7 @@ jobs:
       shell: bash
       run: |
         pyVersion="$(echo -n ${{ matrix.python-version }} | tr . -)"
-        echo "${{ matrix.os }}-$pyVersion='❌ ${{ matrix.os }} ${{ matrix.python-version }}'" >> $env:GITHUB_OUTPUT
+        echo "${{ matrix.os }}-$pyVersion='❌ ${{ matrix.os }} ${{ matrix.python-version }}'" >> $GITHUB_OUTPUT
 
   notify:
     runs-on: 'ubuntu-latest'
