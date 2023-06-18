@@ -78,11 +78,28 @@ class MemoryMappingWidget(QDockWidget):
         emu.add_state_change_cb(
             EmulatorState.NOT_RUNNING, self.onNotRunningUpdateMemoryMap
         )
+        emu.add_state_change_cb(
+            EmulatorState.RUNNING, self.onRunningDisableMemoryMapGrid
+        )
+        emu.add_state_change_cb(EmulatorState.IDLE, self.onIdleEnableMemoryMapGrid)
+        emu.add_state_change_cb(
+            EmulatorState.FINISHED, self.onFinishedEnableMemoryMapGrid
+        )
         return
 
     def onNotRunningUpdateMemoryMap(self) -> None:
         self.SynchronizeMemoryMap()
         return
+
+    def onRunningDisableMemoryMapGrid(self) -> None:
+        self.MemoryMapTableWidget.setDisabled(True)
+        return
+
+    def onIdleEnableMemoryMapGrid(self) -> None:
+        self.MemoryMapTableWidget.setDisabled(False)
+        return
+
+    onFinishedEnableMemoryMapGrid = onIdleEnableMemoryMapGrid
 
     def SynchronizeMemoryMap(self) -> None:
         #
