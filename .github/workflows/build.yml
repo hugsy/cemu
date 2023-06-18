@@ -99,7 +99,7 @@ jobs:
       shell: bash
       run: |
         pyVersion="$(echo -n ${{ matrix.python-version }} | tr . -)"
-        echo "${{ matrix.os }}-${pyVersion}='✅ ${{ matrix.os }} ${{ matrix.python-version }}'" >> $GITHUB_OUTPUT
+        echo "${{ matrix.os }}-${pyVersion}=✅ ${{ matrix.os }} ${{ matrix.python-version }}" >> $GITHUB_OUTPUT
   
     - name: Populate the failure output (Windows)
       id: output_failure_windows
@@ -115,7 +115,7 @@ jobs:
       shell: bash
       run: |
         pyVersion="$(echo -n ${{ matrix.python-version }} | tr . -)"
-        echo "${{ matrix.os }}-$pyVersion='❌ ${{ matrix.os }} ${{ matrix.python-version }}'" >> $GITHUB_OUTPUT
+        echo "${{ matrix.os }}-$pyVersion=❌ ${{ matrix.os }} ${{ matrix.python-version }}" >> $GITHUB_OUTPUT
 
   notify:
     runs-on: 'ubuntu-latest'
