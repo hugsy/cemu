@@ -1,6 +1,7 @@
 name: "Continuous Delivery"
 on:
   workflow_dispatch:
+  push:
 
 env:
   NAME: cemu
@@ -56,17 +57,23 @@ jobs:
       run: |
         Copy-Item $env:APPDATA\Python\Python*\Scripts\cemu.exe build\bin\
 
-    - name: "Post build actions for Linux/MacOS"
-      if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
+    - name: "Post build actions for Linux"
+      if: startsWith(matrix.os, 'ubuntu')
       shell: bash
       run: |
         cp -v ~/.local/bin/cemu build/bin/
 
+    - name: "Post build actions for MacOS"
+      if: startsWith(matrix.os, 'macos')
+      shell: bash
+      run: |
+        cp -v ~/.local/bin/cemu build/bin/ || cp -v /Users/runner/Library/Python/${{ matrix.python-version }}/bin/cemu build/bin/
+        
     - name: Publish artifact
       id: publish_artifact
       uses: actions/upload-artifact@v3
       with:
-        name: ${{ env.NAME }}_${{ matrix.os }}_py${{ matrix.python }}_${{ env.GITHUB_REF_SLUG }}_${{ env.GITHUB_SHA_SHORT }}
+        name: ${{ env.NAME }}_${{ matrix.os }}_py${{ matrix.python-version }}_${{ env.GITHUB_REF_SLUG }}_${{ env.GITHUB_SHA_SHORT }}
         path: build/
 
     - name: Failure notification
@@ -78,7 +85,7 @@ jobs:
         description: |
           Failed to build
           ```
-          ${{ env.NAME }}_${{ matrix.os }}_py${{ matrix.python }}_${{ env.GITHUB_REF_SLUG }}_${{ env.GITHUB_SHA_SHORT }}
+          ${{ env.NAME }}_${{ matrix.os }}_py${{ matrix.python-version }}_${{ env.GITHUB_REF_SLUG }}_${{ env.GITHUB_SHA_SHORT }}
           ```
         color: 0xff0000
         username: ${{ github.actor }} via GithubBot
@@ -93,7 +100,7 @@ jobs:
         description: |
           Successful build:
           ```
-          ${{ env.NAME }}_${{ matrix.os }}_py${{ matrix.python }}_${{ env.GITHUB_REF_SLUG }}_${{ env.GITHUB_SHA_SHORT }}
+          ${{ env.NAME }}_${{ matrix.os }}_py${{ matrix.python-version }}_${{ env.GITHUB_REF_SLUG }}_${{ env.GITHUB_SHA_SHORT }}
           ```
         color: 0x00ff00
         username: ${{ github.actor }} via GithubBot
