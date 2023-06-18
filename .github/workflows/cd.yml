@@ -11,12 +11,12 @@ env:
 
 jobs:
   build:
-    name: "Building cemu"
     strategy:
       fail-fast: false
       matrix:
         os: [windows-latest, ubuntu-latest, macos-latest]
         python-version: [3.9, 3.11]
+    name: ${{ matrix.os }} / ${{ matrix.python-version }}
     runs-on: ${{ matrix.os }}
     outputs:
       windows-latest-3-9: ${{ join(steps.*.outputs.windows-latest-3-9,'') }}
@@ -86,25 +86,25 @@ jobs:
         path: build/
 
     - name: Populate the successful output (Windows)
-      if: ${{ success() }} && matrix.os == 'windows'
+      if: ${{ success() }} && matrix.os == 'windows-latest'
       run: |
         $pyVersion = "${{ matrix.python-version }}" -replace ".", "-"
         echo "${{ matrix.os }}-$pyVersion=✅ ${{ matrix.os }} ${{ matrix.python-version }}" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
   
     - name: Populate the successful output (Other)
-      if: ${{ success() }} && matrix.os != 'windows'
+      if: ${{ success() }} && matrix.os != 'windows-latest'
       run: |
         pyVersion="$(echo -n ${{ matrix.python-version }} | tr . -)"
         echo "${{ matrix.os }}-$pyVersion=✅ ${{ matrix.os }} ${{ matrix.python-version }}" >> $env:GITHUB_OUTPUT
   
     - name: Populate the failure output (Windows)
-      if: ${{ failure() }} && matrix.os == 'windows'
+      if: ${{ failure() }} && matrix.os == 'windows-latest'
       run: |
         $pyVersion = "${{ matrix.python-version }}" -replace ".", "-"
         echo "${{ matrix.os }}-$pyVersion=❌ ${{ matrix.os }} ${{ matrix.python-version }}" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
  
     - name: Populate the successful output (Other)
-      if: ${{ success() }} && matrix.os != 'windows'
+      if: ${{ success() }} && matrix.os != 'windows-latest'
       run: |
         pyVersion="$(echo -n ${{ matrix.python-version }} | tr . -)"
         echo "${{ matrix.os }}-$pyVersion=❌ ${{ matrix.os }} ${{ matrix.python-version }}" >> $env:GITHUB_OUTPUT
