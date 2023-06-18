@@ -87,6 +87,7 @@ jobs:
 
     - name: Populate the successful output (Windows)
       if: ${{ matrix.os == 'windows-latest' &&  success() }}
+      id: output_success_windows
       shell: pwsh
       run: |
         $pyVersion = "${{ matrix.python-version }}" -replace ".", "-"
@@ -94,6 +95,7 @@ jobs:
   
     - name: Populate the successful output (Other)
       if: ${{matrix.os != 'windows-latest' && success() }} 
+      id: output_success_other
       shell: bash
       run: |
         pyVersion="$(echo -n ${{ matrix.python-version }} | tr . -)"
@@ -102,12 +104,14 @@ jobs:
     - name: Populate the failure output (Windows)
       if: ${{matrix.os == 'windows-latest' && failure() }}
       shell: pwsh
+      id: output_failure_windows
       run: |
         $pyVersion = "${{ matrix.python-version }}" -replace ".", "-"
         echo "${{ matrix.os }}-${pyVersion}='❌ ${{ matrix.os }} ${{ matrix.python-version }}'" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
  
     - name: Populate the failure output (Other)
       if: ${{matrix.os != 'windows-latest' && failure() }}
+      id: output_failure_other
       shell: bash
       run: |
         pyVersion="$(echo -n ${{ matrix.python-version }} | tr . -)"
