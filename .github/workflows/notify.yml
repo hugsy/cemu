@@ -1,5 +1,5 @@
 name: "Discord Notification"
-on: [push, pull_request, issues]
+on: [pull_request, issues]
 env:
   DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
 
@@ -7,7 +7,7 @@ jobs:
   notify:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
