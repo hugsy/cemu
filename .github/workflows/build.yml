@@ -29,8 +29,8 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
-    - uses: rlespinasse/github-slug-action@v3.x
-
+    - uses: rlespinasse/github-slug-action@v4
+    
     - uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
