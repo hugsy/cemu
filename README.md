@@ -68,3 +68,8 @@ For 99% of cases, that's all you need to do. `cemu` will be installed in the ass
 ## Contribution ##
 
 `cemu` was created and maintained by myself, [`@_hugsy_`](https://twitter.com/_hugsy_), but kept fresh thanks to [all the contributors](https://github.com/hugsy/cemu/graphs/contributors).
+
+[ ![contributors-img](https://contrib.rocks/image?repo=hugsy/cemu) ](https://github.com/hugsy/cemu/graphs/contributors)
+
+If you just like the tool, consider dropping on Discord (or Twitter or other) a simple *"thanks"*, it is always very appreciated.
+And if you can, consider [sponsoring me](https://github.com/hugsy/sponsors) - it really helps dedicating time and resources to the projects!
