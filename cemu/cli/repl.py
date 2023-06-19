@@ -1,4 +1,6 @@
+import pathlib
 import unicorn
+
 from prompt_toolkit import prompt
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 from prompt_toolkit.completion import NestedCompleter
@@ -7,8 +9,11 @@ from prompt_toolkit.key_binding import KeyBindings
 
 import cemu
 import cemu.core
+import cemu.arch
+import cemu.memory
+from cemu.utils import hexdump
 from cemu.emulator import EmulatorState
-from cemu.log import dbg, error, info
+from cemu.log import dbg, error, info, warn
 
 bindings = KeyBindings()
 
@@ -26,7 +31,7 @@ class CEmuRepl:
         assert cemu.core.context
         assert isinstance(cemu.core.context, cemu.core.GlobalContext)
 
-        self.history = FileHistory(".cemu_history")
+        self.history_filepath = pathlib.Path().home() / ".cemu_history"
 
         self.keep_running = False
         self.prompt = "(cemu)> "
@@ -55,25 +60,45 @@ class CEmuRepl:
         return
 
     def run_forever(self):
-        completer = NestedCompleter.from_nested_dict(
-            {
-                "regs": {
-                    "set": None,
-                    "get": None,
-                },
-                "memory": {
-                    "add": None,
-                    "del": None,
-                    "view": None,
-                },
-                "arch": None,
-                "code": None,
-                "quit": None,
-            }
-        )
-
         self.keep_running = True
+        emu = cemu.core.context.emulator
         while self.keep_running:
+            #
+            # Refresh the completer values
+            #
+            completer = NestedCompleter.from_nested_dict(
+                {
+                    "arch": {
+                        "get": None,
+                        "set": {x: None for x in cemu.arch.Architectures.keys()},
+                    },
+                    "regs": {
+                        "set": {x: None for x, _ in emu.registers.items()},
+                        "get": {x: None for x, _ in emu.registers.items()},
+                    },
+                    "memory": {
+                        "list": None,
+                        "add": None,
+                        "del": None,
+                        "view": None,
+                        # TODO everything below
+                        "edit": None,
+                    },
+                    "check": None,
+                    "reset": None,
+                    "run": None,
+                    "code": None,
+                    "load": None,
+                    "save": {
+                        "asm": None,
+                        "bin": None,
+                        "pe": None,
+                        "elf": None,
+                    },
+                    "quit": None,
+                }
+            )
+
             #
             # Prompt
             #
@@ -81,7 +106,7 @@ class CEmuRepl:
                 parts = (
                     prompt(
                         self.prompt,
-                        history=self.history,
+                        history=FileHistory(str(self.history_filepath)),
                         completer=completer,
                         auto_suggest=AutoSuggestFromHistory(),
                         bottom_toolbar=self.bottom_toolbar,
@@ -91,9 +116,9 @@ class CEmuRepl:
                 )
 
                 command, args = (
-                    parts[0].lower(),
-                    parts[1:] if len(parts) else parts[0].lower(),
-                    [],
+                    (parts[0].lower(), parts[1:])
+                    if len(parts) >= 2
+                    else (parts[0].lower(), [])
                 )
 
             except (KeyboardInterrupt, EOFError):
@@ -107,8 +132,60 @@ class CEmuRepl:
                 case "quit":
                     self.keep_running = False
 
+                case "arch":
+                    match args[0]:
+                        case "get":
+                            print(
+                                f"Current architecture {cemu.core.context.architecture}"
+                            )
+                        case "set":
+                            cemu.core.context.architecture = (
+                                cemu.arch.Architectures.find(args[1])
+                            )
+
                 case "regs":
+                    match args[0]:
+                        case "get":
+                            print(f"{emu.registers[args[1]]=:#x}")
+                        case "set":
+                            emu.registers[args[1]] = int(args[2])
+
+                case "mem":
+                    match args[0]:
+                        case "list":
+                            for idx, section in enumerate(emu.sections):
+                                print(f"{idx:#04x}\t{section}")
+                        case "add":
+                            section = cemu.memory.MemorySection(
+                                args[1], int(args[2], 0), int(args[3], 0), args[4]
+                            )
+                            emu.sections.append(section)
+                            dbg(f"Section {section} added")
+                        case "del":
+                            section = emu.sections[int(args[1])]
+                            emu.sections.remove(section)
+                            dbg(f"Section {section} deleted")
+                        case "view":
+                            if not emu.is_running:
+                                warn("Emulator not running")
+                            else:
+                                assert emu.vm
+                                address = int(args[1])
+                                size = int(args[2])
+                                data = emu.vm.mem_read(address, size)
+                                print(hexdump(data))
+
+                case "check":
                     pass
+
+                case "run":
+                    emu.set(EmulatorState.RUNNING)
+
+                case "step":
+                    pass
+
+                case "reset":
+                    emu.set(EmulatorState.FINISHED)
 
                 case _:
                     dbg(f"Executing {command=}")

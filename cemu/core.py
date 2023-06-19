@@ -12,7 +12,6 @@ import cemu.cli.repl
 import cemu.const
 import cemu.emulator
 import cemu.log
-import cemu.plugins
 import cemu.settings
 
 

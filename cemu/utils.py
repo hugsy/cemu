@@ -144,6 +144,8 @@ def assemble(
     if not bytecode or assembled_insn_count == 0:
         raise cemu.errors.AssemblyException("Not instruction compiled")
 
+    assert isinstance(bytecode, bytes)
+
     #
     # Decompile it and return the stuff
     #
