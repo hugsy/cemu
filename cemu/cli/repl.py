@@ -1,5 +1,8 @@
+import subprocess
 import pathlib
+import tempfile
 import unicorn
+import os
 
 from prompt_toolkit import prompt
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
@@ -13,9 +16,11 @@ import cemu.arch
 import cemu.memory
 from cemu.utils import hexdump
 from cemu.emulator import EmulatorState
-from cemu.log import dbg, error, info, warn
+from cemu.log import dbg, error, info, ok, warn
 
 bindings = KeyBindings()
+
+TEXT_EDITOR = os.getenv("EDITOR") or "nano -c"
 
 
 @bindings.add("c-c")
@@ -68,34 +73,37 @@ class CEmuRepl:
             #
             completer = NestedCompleter.from_nested_dict(
                 {
-                    "arch": {
+                    ".quit": None,
+                    ".arch": {
                         "get": None,
                         "set": {x: None for x in cemu.arch.Architectures.keys()},
                     },
-                    "regs": {
+                    ".regs": {
                         "set": {x: None for x, _ in emu.registers.items()},
                         "get": {x: None for x, _ in emu.registers.items()},
                     },
-                    "memory": {
+                    ".mem": {
                         "list": None,
                         "add": None,
                         "del": None,
                         "view": None,
-                        # TODO everything below
                         "edit": None,
                     },
-                    "check": None,
-                    "reset": None,
-                    "run": None,
-                    "code": None,
-                    "load": None,
-                    "save": {
+                    ".reset": None,
+                    ".run": None,
+                    ".code": {
+                        "show": None,
+                        "check": None,
+                        "edit": None,
+                    },
+                    # TODO everything below
+                    ".load": None,
+                    ".save": {
                         "asm": None,
                         "bin": None,
                         "pe": None,
                         "elf": None,
                     },
-                    "quit": None,
                 }
             )
 
@@ -103,23 +111,31 @@ class CEmuRepl:
             # Prompt
             #
             try:
-                parts = (
-                    prompt(
-                        self.prompt,
-                        history=FileHistory(str(self.history_filepath)),
-                        completer=completer,
-                        auto_suggest=AutoSuggestFromHistory(),
-                        bottom_toolbar=self.bottom_toolbar,
-                    )
-                    .strip()
-                    .split()
-                )
+                line = prompt(
+                    self.prompt,
+                    history=FileHistory(str(self.history_filepath)),
+                    completer=completer,
+                    auto_suggest=AutoSuggestFromHistory(),
+                    bottom_toolbar=self.bottom_toolbar,
+                ).strip()
 
-                command, args = (
-                    (parts[0].lower(), parts[1:])
-                    if len(parts) >= 2
-                    else (parts[0].lower(), [])
-                )
+                if line.startswith("."):
+                    #
+                    # Entering a command ?
+                    #
+                    line = line[1:]
+                    parts = line.split()
+                    command, args = (
+                        (parts[0].lower(), parts[1:])
+                        if len(parts) >= 2
+                        else (parts[0].lower(), [])
+                    )
+                else:
+                    #
+                    # It's assembly, happen and keep looping
+                    #
+                    emu.codelines += line + os.linesep
+                    continue
 
             except (KeyboardInterrupt, EOFError):
                 self.keep_running = False
@@ -146,7 +162,7 @@ class CEmuRepl:
                 case "regs":
                     match args[0]:
                         case "get":
-                            print(f"{emu.registers[args[1]]=:#x}")
+                            print(f"{args[1]}={emu.registers[args[1]]:#x}")
                         case "set":
                             emu.registers[args[1]] = int(args[2])
 
@@ -175,8 +191,31 @@ class CEmuRepl:
                                 data = emu.vm.mem_read(address, size)
                                 print(hexdump(data))
 
-                case "check":
-                    pass
+                case "code":
+                    match args[0]:
+                        case "show":
+                            info(f"{emu.codelines}")
+
+                        case "check":
+                            if emu.validate_assembly_code():
+                                ok("Assembly code is valid")
+                                print(hexdump(emu.code))
+                            else:
+                                error("Assembly code is invalid")
+
+                        case "edit":
+                            with tempfile.NamedTemporaryFile(
+                                suffix=".asm", mode="w+"
+                            ) as f:
+                                filepath = pathlib.Path(f.name)
+                                f.write(emu.codelines)
+                                f.flush()
+                                if subprocess.call([TEXT_EDITOR, filepath]) == 0:
+                                    f.seek(0)
+                                    emu.codelines = f.read()
+
+                case "reset":
+                    emu.reset()
 
                 case "run":
                     emu.set(EmulatorState.RUNNING)
@@ -192,7 +231,9 @@ class CEmuRepl:
         return
 
     def bottom_toolbar(self) -> str:
-        return f"{str(cemu.core.context.emulator)}"
+        return (
+            f"{str(cemu.core.context.emulator)} [{str(cemu.core.context.architecture)}]"
+        )
 
 
 class EmulationRunner:

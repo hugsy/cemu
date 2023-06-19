@@ -252,6 +252,9 @@ class Emulator:
         self.end_addr = self.start_addr + len(self.code)
         return True
 
+    def validate_assembly_code(self) -> bool:
+        return self.__generate_text_bytecode()
+
     def __populate_text_section(self) -> bool:
         if not self.vm:
             return False
