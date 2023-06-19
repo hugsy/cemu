@@ -13,8 +13,8 @@ def main():
         cemu.log.register_sink(print)
         cemu.log.dbg("Starting in Debug Mode")
 
-    if "--cli" in sys.argv:
-        cemu.core.CemuCli(sys.argv)
+    if sys.argv[1] == "cli":
+        cemu.core.CemuCli(sys.argv[2:])
         return
 
     cemu.core.CemuGui(sys.argv)

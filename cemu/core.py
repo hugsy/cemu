@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import sys
 from typing import TYPE_CHECKING, Union
 
@@ -7,6 +8,7 @@ if TYPE_CHECKING:
     import cemu.ui.main
 
 import cemu.arch
+import cemu.cli.repl
 import cemu.const
 import cemu.emulator
 import cemu.log
@@ -81,7 +83,7 @@ def CemuGui(args: list[str]) -> None:
     sys.exit(app.exec())
 
 
-def CemuCli(args: list[str]) -> None:
+def CemuCli(argv: list[str]) -> None:
     """Run cemu from the terminal
 
     Args:
@@ -90,7 +92,20 @@ def CemuCli(args: list[str]) -> None:
     global context
 
     cemu.log.dbg("Creating CLI context")
+
+    #
+    # Initialize the context
+    #
     context = GlobalContext()
-    # TODO build a repl like with prompt-toolkit + rich
-    return
+
+    #
+    # Run the REPL with the command line arguments
+    #
+    args = argparse.ArgumentParser(
+        prog=cemu.const.PROGNAME, description=cemu.const.DESCRIPTION
+    )
+    args.parse_args(argv)
+
+    instance = cemu.cli.repl.CEmuRepl(args)
+    instance.run_forever()
     return

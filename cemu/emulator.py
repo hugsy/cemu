@@ -1,6 +1,6 @@
 from enum import IntEnum, unique
 from multiprocessing import Lock
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable, Optional
 
 import unicorn
 
@@ -28,7 +28,7 @@ class Emulator:
     def __init__(self):
         self.use_step_mode = False
         self.widget = None
-        self.lock: Lock = Lock()
+        self.lock = Lock()
         self.state: EmulatorState = EmulatorState.NOT_RUNNING
         self.__state_change_callbacks: dict[EmulatorState, list[Callable]] = {
             EmulatorState.NOT_RUNNING: [],
@@ -477,7 +477,7 @@ class Emulator:
     def set_threaded_runner(self, runnable_object: object):
         self.threaded_runner = runnable_object
 
-    def context(self) -> dict[str, Union[int, str]]:
+    def context(self) -> dict[str, int]:
         """Get the current context for the registers as a hash table
 
         Returns:
@@ -485,5 +485,5 @@ class Emulator:
         """
         if not self.vm:
             return {}
-        # regs = {name: self.get_register_value(name) for name in self.registers}
-        return self.registers
+        regs = {name: self.get_register_value(name) for name in self.registers}
+        return regs
