@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=61.0", "capstone", "keystone-engine", "unicorn", "PyQt6", "Pygments", "lief"]
+build-backend = "setuptools.build_meta"
+
 [tool.isort]
 profile = "black"
 
