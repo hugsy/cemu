@@ -77,6 +77,11 @@ jobs:
       run: |
         cp -v ~/.local/bin/cemu build/bin/ || cp -v /Users/runner/Library/Python/${{ matrix.python-version }}/bin/cemu build/bin/
 
+    - name: "Run tests"
+      run: |
+        python -m pip install --user --upgrade -r tests/requirements.txt
+        python -m pytest tests/
+
     - name: Publish artifact
       id: publish_artifact
       uses: actions/upload-artifact@v3
