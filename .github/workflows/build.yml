@@ -57,7 +57,6 @@ jobs:
         python --version
         python -m pip --version
         python -m pip install --upgrade pip setuptools wheel
-        python -m pip install --user --upgrade -r requirements.txt
         python -m pip install --user --upgrade .
 
     - name: "Post build actions for Windows"
