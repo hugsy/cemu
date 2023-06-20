@@ -114,6 +114,16 @@ class TestEmulatorBasic(unittest.TestCase):
                 os.linesep.join(["nop", "xor rax, rax", "inc rax", "nop"]),
                 lambda: self.emu.registers["RAX"] == 1,
             ),
+            GenericTestCase(
+                cemu.arch.arm.ARM(),
+                os.linesep.join(["mov r0, 1", "add r0, r0, 1"]),
+                lambda: self.emu.registers["R0"] == 2,
+            ),
+            GenericTestCase(
+                cemu.arch.arm.AARCH64(),
+                os.linesep.join(["mov x0, 1", "add x0, x0, 1"]),
+                lambda: self.emu.registers["X0"] == 2,
+            ),
         ]
 
         for tc in matrix:

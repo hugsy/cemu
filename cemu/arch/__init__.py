@@ -194,6 +194,10 @@ class ArchitectureManager(dict[str, list[Architecture]]):
 Architectures = ArchitectureManager()
 
 from .x86 import X86, X86_32, X86_64  # noqa: E402
+from .arm import ARM, AARCH64  # noqa: E402
+from .mips import MIPS, MIPS64  # noqa: E402
+from .sparc import SPARC, SPARC64  # noqa: E402
+from .ppc import PowerPC  # noqa: E402
 
 
 def is_x86_16(a: Architecture):
@@ -213,32 +217,36 @@ def is_x86(a: Architecture):
 
 
 def is_arm(a: Architecture):
-    return a.name in ("ARM THUMB mode", "ARM Native mode")
+    return isinstance(a, ARM)
+
+
+def is_arm_native(a: Architecture):
+    return isinstance(a, ARM) and a.thumb is False  # type: ignore
 
 
 def is_arm_thumb(a: Architecture):
-    return a.name == "ARM THUMB mode"
+    return isinstance(a, ARM) and a.thumb is True  # type: ignore
 
 
 def is_aarch64(a: Architecture):
-    return a.name == "ARM AARCH64"
+    return isinstance(a, AARCH64)
 
 
 def is_mips(a: Architecture):
-    return a.name == "MIPS 32bits"
+    return isinstance(a, MIPS)
 
 
 def is_mips64(a: Architecture):
-    return a.name == "MIPS 64bits"
+    return isinstance(a, MIPS64)
 
 
 def is_sparc(a: Architecture):
-    return a.name == "SPARC 32bits"
+    return isinstance(a, SPARC)
 
 
 def is_sparc64(a: Architecture):
-    return a.name == "SPARC 64bits"
+    return isinstance(a, SPARC64)
 
 
 def is_ppc(a: Architecture):
-    return a.name == "PowerPC 32bits"
+    return isinstance(a, PowerPC)
