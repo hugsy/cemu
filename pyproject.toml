@@ -1,10 +1,115 @@
+
+#
+# https://packaging.python.org/en/latest/tutorials/packaging-projects
+#
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+
+[project]
+name = "CEmu"
+version = "0.7"
+authors = [{ name = "hugsy", email = "hugsy@blah.cat" }]
+description = "Cemu is a simple assembly/dissembly/emulation IDE that provides an easy Plug-n-Play environment to start playing with many architectures (currently supports x86-{32,64}, ARM, AARCH64, MIPS, MIPS64, SPARC and PPC)."
+readme = "README.md"
+requires-python = ">=3.9"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.9",
+    "Topic :: Software Development :: Assemblers",
+    "Natural Language :: English",
+    "Environment :: Console",
+]
+
+keywords = [
+    "assembly",
+    "disassembly",
+    "emulation",
+    "x86",
+    "x64",
+    "arm",
+    "aarch64",
+    "mips",
+    "powerpc",
+    "sparc",
+]
+
+dependencies = [
+    "capstone",
+    "unicorn",
+    "keystone-engine",
+    "PyQt6",
+    "Pygments",
+    "lief",
+    "loguru",
+    "prompt_toolkit",
+]
+
+[project.entry-points.console_scripts]
+cemu = "cemu.__main__:main"
+
+[project.entry-points.gui_scripts]
+cemu = "cemu.__main__:main"
+
+[project.urls]
+"Homepage" = "https://github.com/hugsy/cemu"
+"Bug Tracker" = "https://github.com/hugsy/cemu/issues"
+
 [tool.isort]
 profile = "black"
 
 [tool.ruff]
 select = ["E", "F"]
 ignore = []
-fixable = ["A", "B", "C", "D", "E", "F", "G", "I", "N", "Q", "S", "T", "W", "ANN", "ARG", "BLE", "COM", "DJ", "DTZ", "EM", "ERA", "EXE", "FBT", "ICN", "INP", "ISC", "NPY", "PD", "PGH", "PIE", "PL", "PT", "PTH", "PYI", "RET", "RSE", "RUF", "SIM", "SLF", "TCH", "TID", "TRY", "UP", "YTT"]
+fixable = [
+    "A",
+    "B",
+    "C",
+    "D",
+    "E",
+    "F",
+    "G",
+    "I",
+    "N",
+    "Q",
+    "S",
+    "T",
+    "W",
+    "ANN",
+    "ARG",
+    "BLE",
+    "COM",
+    "DJ",
+    "DTZ",
+    "EM",
+    "ERA",
+    "EXE",
+    "FBT",
+    "ICN",
+    "INP",
+    "ISC",
+    "NPY",
+    "PD",
+    "PGH",
+    "PIE",
+    "PL",
+    "PT",
+    "PTH",
+    "PYI",
+    "RET",
+    "RSE",
+    "RUF",
+    "SIM",
+    "SLF",
+    "TCH",
+    "TID",
+    "TRY",
+    "UP",
+    "YTT",
+]
 unfixable = []
 
 exclude = [
