@@ -2,6 +2,7 @@ from enum import IntEnum, unique
 from multiprocessing import Lock
 from typing import Any, Callable, Optional
 
+import collections
 import unicorn
 
 import cemu.core
@@ -24,6 +25,31 @@ class EmulatorState(IntEnum):
     # fmt: on
 
 
+class EmulationRegisters(collections.UserDict):
+    data: dict[str, int]
+
+    def __getitem__(self, key: str) -> int:
+        """Thin wrapper around `dict` `__getitem__` for register: try to refresh the value to its latest value from the
+        emulator.
+
+        Args:
+            key (str): register name
+
+        Returns:
+            int: the register value
+        """
+        emu = cemu.core.context.emulator
+        if (
+            emu.state
+            in (EmulatorState.RUNNING, EmulatorState.IDLE, EmulatorState.FINISHED)
+            and key in self.data.keys()
+        ):
+            val = emu.get_register_value(key)
+            if val is not None:
+                super().__setitem__(key, val)
+        return super().__getitem__(key)
+
+
 class Emulator:
     def __init__(self):
         self.use_step_mode = False
@@ -43,7 +69,7 @@ class Emulator:
         self.code: bytes = b""
         self.codelines: str = ""
         self.sections: list[MemorySection] = []
-        self.registers: dict[str, int] = {}
+        self.registers: EmulationRegisters = EmulationRegisters({})
         self.start_addr: int = 0
 
         #
@@ -56,7 +82,9 @@ class Emulator:
         self.code = b""
         self.codelines = ""
         self.sections = []
-        self.registers = {name: 0 for name in cemu.core.context.architecture.registers}
+        self.registers = EmulationRegisters(
+            {name: 0 for name in cemu.core.context.architecture.registers}
+        )
         self.start_addr = 0
         self.set(EmulatorState.NOT_RUNNING)
         return
@@ -66,20 +94,19 @@ class Emulator:
             return f"Emulator is running, IP={self.pc()}, SP={self.sp()}"
         return "Emulator instance is not running"
 
-    def get_register_value(self, regname: str) -> int:
+    def get_register_value(self, regname: str) -> Optional[int]:
         """
         Returns an integer value of the register passed as a string.
         """
 
         if not self.vm:
-            error("get_register_value() failed: VM not initialized")
-            return -1
+            return None
 
         arch = cemu.core.context.architecture
         ur = arch.uc_register(regname)
         val = self.vm.reg_read(ur)
 
-        # TODO handle xmmreg later
+        # TODO handle extended regs later
         assert isinstance(val, int)
         return val
 
@@ -169,7 +196,7 @@ class Emulator:
             return False
 
         arch = cemu.core.context.architecture
-        registers: dict[str, int] = self.registers
+        registers: EmulationRegisters = self.registers
 
         #
         # Set the initial IP if unspecified
@@ -194,27 +221,32 @@ class Emulator:
         if is_x86_32(arch):
             # create fake selectors
             ## required
+            text = self.find_section(".text")
             registers["CS"] = int(
                 x86.X86_32.SegmentDescriptor(
-                    0,
+                    text.address >> 8,
                     x86.X86_32.SegmentType.Code | x86.X86_32.SegmentType.Accessed,
                     False,
                     3,
                     True,
                 )
             )
+
+            data = self.find_section(".data")
             registers["DS"] = int(
                 x86.X86_32.SegmentDescriptor(
-                    0,
+                    data.address >> 8,
                     x86.X86_32.SegmentType.Data | x86.X86_32.SegmentType.Accessed,
                     False,
                     3,
                     True,
                 )
             )
+
+            stack = self.find_section(".stack")
             registers["SS"] = int(
                 x86.X86_32.SegmentDescriptor(
-                    0,
+                    stack.address >> 8,
                     x86.X86_32.SegmentType.Data
                     | x86.X86_32.SegmentType.Accessed
                     | x86.X86_32.SegmentType.ExpandDown,
@@ -229,6 +261,10 @@ class Emulator:
             registers["ES"] = 0
 
         for r in registers.keys():
+            # TODO figure out segmentation on  unicorn
+            if r in x86.X86_32.selector_registers:
+                continue
+
             ur = arch.uc_register(r)
             self.vm.reg_write(ur, registers[r])
 

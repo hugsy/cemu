@@ -56,6 +56,9 @@ class GlobalGuiContext(GlobalContext):
         self.__root = root
 
 
+#
+# The global application context. This **must** defined for cemu to operate
+#
 context: Union[GlobalContext, GlobalGuiContext]
 
 
@@ -83,18 +86,17 @@ def CemuGui(args: list[str]) -> None:
 
 
 def CemuCli(argv: list[str]) -> None:
-    """Run cemu from the terminal
+    """Entry point of the CLI
 
     Args:
         args (list[str]): _description_
     """
     global context
 
-    cemu.log.dbg("Creating CLI context")
-
     #
     # Initialize the context
     #
+    cemu.log.dbg("Creating CLI context")
     context = GlobalContext()
 
     #
