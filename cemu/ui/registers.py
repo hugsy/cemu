@@ -71,7 +71,7 @@ class RegistersWidget(QDockWidget):
                     DEFAULT_REGISTER_VIEW_REGISTER_FONT_SIZE,
                 )
             )
-            val = emu.get_register_value(reg) if emu.vm else 0
+            val = emu.registers[reg]
             old_val = self.__old_register_values.get(reg, 0)
             if type(val) in (int, int):
                 value = format_address(val, arch)
@@ -106,8 +106,8 @@ class RegistersWidget(QDockWidget):
     def getRegisterValuesFromGrid(self) -> dict[str, int]:
         """Returns the current values of the registers, as shown by the widget grid"""
         regs = {}
-        arch = cemu.core.context.architecture
-        for i in range(len(arch.registers)):
+        registers = cemu.core.context.emulator.registers.keys()
+        for i in range(len(registers)):
             name = self.RegisterTableWidget.item(i, 0).text()
             value = self.RegisterTableWidget.item(i, 1).text()
             regs[name] = int(value, 16)

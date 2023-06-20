@@ -14,15 +14,16 @@
 </p>
 
 
-![cemu-linux](https://i.imgur.com/iHtWvTL.png)
+## Description
 
+Writing assembly is fun. Assembly is the lowest language (humanly understandable) available to communicate with computers, and is crucial to understand the internal mechanisms of any machine. Unfortunately, setting up an environment to write, compile and run assembly for various architectures (x86, ARM, MIPS, SPARC) has always been painful. **CEmu** is an attempt to fix this by providing GUI, CLI and library that allows to write and test assembly quickly.
 
-## Description ##
+**CEmu** is built upon:
+ * [Keystone](https://github.com/keystone-engine/keystone) for compiling assembly to bytecode
+ * [Unicorn](https://github.com/unicorn-engine/unicorn/) for disassembling bytecode
+ * and [Capstone](https://github.com/aquynh/capstone) libraries
 
-
-Writing assembly is fun. Assembly is the lowest language (humanly understandable) available to communicate with computers, and is crucial to understand the internal mechanisms of any machine. Unfortunately, setting up an environment to write, compile and run assembly for various architectures (x86, ARM, MIPS, SPARC) has always been painful. **CEmu** is an attempt to fix this by providing a bundled GUI application that empowers users to write assembly and test it by compiling it to bytecode and executing it in an QEMU-based emulator.
-
-**CEmu** combines all the advantages of a basic assembly IDE, compilation and execution environment, by relying on the great libraries [Keystone](https://github.com/keystone-engine/keystone), [Unicorn](https://github.com/unicorn-engine/unicorn/) and [Capstone](https://github.com/aquynh/capstone) libraries in a Qt6 powered GUI.
+And the GUI is powered by in a Qt6.
 
 It allows to test binary samples, check your shellcodes or even simply learn how to write assembly code, all of this for the following architectures:
 
@@ -64,6 +65,37 @@ For 99% of cases, that's all you need to do. `cemu` will be installed in the ass
  * On Linux by default the executable will be found as `/usr/local/bin/cemu` if installed as root, `~/.local/bin/cemu` for non-root
  * On Windows, `%PYTHON_DIR%\Scripts\cemu.exe` if installed with privileges, `%APPDATA%\Python\Python310\Scripts\cemu.exe` if not
 
+## Usage
+
+### GUI
+
+After installing with `pip`, simply run the executable, or invoke via Python
+
+```bash
+python -m cemu
+```
+
+This should produce a GUI similar to this:
+
+![cemu-gui](https://i.imgur.com/iHtWvTL.png)
+
+### CLI
+
+```bash
+python -m cemu cli
+```
+
+From where you'll end up in a REPL, allowing you to build and run the emulation environment.
+
+
+### Lib
+
+```bash
+python
+>>> import cemu
+```
+
+Then use the provided API to build and run your environment.
 
 ## Contribution ##
 

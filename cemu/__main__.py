@@ -13,7 +13,7 @@ def main():
         cemu.log.register_sink(print)
         cemu.log.dbg("Starting in Debug Mode")
 
-    if sys.argv[1] == "cli":
+    if len(sys.argv) >= 2 and sys.argv[1] == "cli":
         cemu.core.CemuCli(sys.argv[2:])
         return
 
