@@ -40,7 +40,7 @@ class RegistersWidget(QDockWidget):
         widget = QWidget()
         widget.setLayout(layout)
         self.setWidget(widget)
-        self.updateGrid()
+        # self.updateGrid()
 
         #
         # Emulator state callback
@@ -50,6 +50,7 @@ class RegistersWidget(QDockWidget):
         emu.add_state_change_cb(
             EmulatorState.FINISHED, self.onFinishedRefreshRegisterGrid
         )
+        emu.add_state_change_cb(EmulatorState.NOT_RUNNING, self.updateGrid)
         return
 
     def updateGrid(self) -> None:

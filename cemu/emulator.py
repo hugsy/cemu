@@ -15,11 +15,11 @@ from .memory import MemorySection
 @unique
 class EmulatorState(IntEnum):
     # fmt: off
-    NOT_RUNNING = 0              # Nothing is initialized
-    # SETUP = 1
+    STARTING = 0                 # CEmu is starting
+    NOT_RUNNING = 1              # CEmu is started, but no emulation context is initialized
     IDLE = 2                     # The VM is running but stopped: used for stepping mode
     RUNNING = 3                  # The VM is running
-    TEARDOWN = 5
+    TEARDOWN = 5                 # Emulation is finishing
     FINISHED = 6                 # The VM has reached the end of the execution
     # fmt: on
 
@@ -29,8 +29,9 @@ class Emulator:
         self.use_step_mode = False
         self.widget = None
         self.lock = Lock()
-        self.state: EmulatorState = EmulatorState.NOT_RUNNING
+        self.state: EmulatorState = EmulatorState.STARTING
         self.__state_change_callbacks: dict[EmulatorState, list[Callable]] = {
+            EmulatorState.STARTING: [],
             EmulatorState.NOT_RUNNING: [],
             EmulatorState.IDLE: [],
             EmulatorState.RUNNING: [],
@@ -439,6 +440,8 @@ class Emulator:
 
         if old_state == self.state:
             return
+
+        dbg(f"Emulator state transition: {old_state} -> {self.state}")
 
         match self.state:
             case EmulatorState.RUNNING | EmulatorState.IDLE:
