@@ -20,8 +20,8 @@ Writing assembly is fun. Assembly is the lowest language (humanly understandable
 
 **CEmu** is built upon:
  * [Keystone](https://github.com/keystone-engine/keystone) for compiling assembly to bytecode
- * [Unicorn](https://github.com/unicorn-engine/unicorn/) for disassembling bytecode
- * and [Capstone](https://github.com/aquynh/capstone) libraries
+ * [Capstone](https://github.com/aquynh/capstone) for disassembling bytecode
+ * [Unicorn](https://github.com/unicorn-engine/unicorn/) for the emulation
 
 And the GUI is powered by in a Qt6.
 
