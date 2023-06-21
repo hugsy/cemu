@@ -19,11 +19,11 @@ jobs:
     name: ${{ matrix.os }} / ${{ matrix.python-version }}
     runs-on: ${{ matrix.os }}
     outputs:
-      windows-latest-3-9: ${{ join(steps.*.outputs.windows-latest-3-9,'') }}
+      windows-latest-3-10: ${{ join(steps.*.outputs.windows-latest-3-10,'') }}
       windows-latest-3-11: ${{ join(steps.*.outputs.windows-latest-3-11,'') }}
-      ubuntu-latest-3-9: ${{ join(steps.*.outputs.ubuntu-latest-3-9,'') }}
+      ubuntu-latest-3-10: ${{ join(steps.*.outputs.ubuntu-latest-3-10,'') }}
       ubuntu-latest-3-11: ${{ join(steps.*.outputs.ubuntu-latest-3-11,'') }}
-      macos-latest-3-9: ${{ join(steps.*.outputs.macos-latest-3-9,'') }}
+      macos-latest-3-10: ${{ join(steps.*.outputs.macos-latest-3-10,'') }}
       macos-latest-3-11: ${{ join(steps.*.outputs.macos-latest-3-11,'') }}
 
     steps:
@@ -36,7 +36,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
 
     - name: "Install Pre-requisite for Linux build"
-      if: startsWith(matrix.os, 'ubuntu')
+      if: matrix.os == 'ubuntu-latest'
       shell: bash
       run: |
         sudo apt update
@@ -44,7 +44,7 @@ jobs:
         sudo apt install -y build-essential python3-dev python3-pip python3-wheel python3-setuptools
 
     - name: "Install Pre-requisite for Windows build"
-      if: startsWith(matrix.os, 'windows')
+      if: matrix.os == 'windows-latest'
       shell: pwsh
       run: |
         echo todo
@@ -60,19 +60,19 @@ jobs:
         python -m pip install --user --upgrade .
 
     - name: "Post build actions for Windows"
-      if: startsWith(matrix.os, 'windows')
+      if: matrix.os == 'windows-latest'
       shell: pwsh
       run: |
         Copy-Item $env:APPDATA\Python\Python*\Scripts\cemu.exe build\bin\
 
     - name: "Post build actions for Linux"
-      if: startsWith(matrix.os, 'ubuntu')
+      if: matrix.os == 'ubuntu-latest'
       shell: bash
       run: |
         cp -v ~/.local/bin/cemu build/bin/
 
     - name: "Post build actions for MacOS"
-      if: startsWith(matrix.os, 'macos')
+      if: matrix.os == 'macos-latest'
       shell: bash
       run: |
         cp -v ~/.local/bin/cemu build/bin/ || cp -v /Users/runner/Library/Python/${{ matrix.python-version }}/bin/cemu build/bin/
@@ -144,11 +144,11 @@ jobs:
           ● Branch [`${{ env.GITHUB_REF_SLUG }}`](${{ env.BRANCH_URL }})
           ● [Detail Page](${{ env.RUN_URL }})
 
-          ${{ needs.build.outputs.windows-latest-3-9 }}
+          ${{ needs.build.outputs.windows-latest-3-10 }}
           ${{ needs.build.outputs.windows-latest-3-11 }}
-          ${{ needs.build.outputs.ubuntu-latest-3-9 }}
+          ${{ needs.build.outputs.ubuntu-latest-3-10 }}
           ${{ needs.build.outputs.ubuntu-latest-3-11 }}
-          ${{ needs.build.outputs.macos-latest-3-9 }}
+          ${{ needs.build.outputs.macos-latest-3-10 }}
           ${{ needs.build.outputs.macos-latest-3-11 }}
 
 
