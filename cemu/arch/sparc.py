@@ -45,30 +45,41 @@ class SPARC(Architecture):
         "O7",
         flag,
         pc,
+        sp,
     ]
     syscall_filename: str = "sparc"
     ptrsize: int = 4
-    endianness = Endianness.LITTLE_ENDIAN
+    endianness = Endianness.BIG_ENDIAN
 
     def keystone(self) -> tuple[int, int, int]:
         return (
             keystone.KS_ARCH_SPARC,
             keystone.KS_MODE_SPARC32,
-            keystone.KS_MODE_LITTLE_ENDIAN,
+            keystone.KS_MODE_LITTLE_ENDIAN
+            if self.endianness == Endianness.LITTLE_ENDIAN
+            else keystone.KS_MODE_BIG_ENDIAN,
         )
 
     def capstone(self) -> tuple[int, int, int]:
-        return (capstone.CS_ARCH_SPARC, 0, capstone.CS_MODE_LITTLE_ENDIAN)
+        return (
+            capstone.CS_ARCH_SPARC,
+            0,
+            capstone.CS_MODE_LITTLE_ENDIAN
+            if self.endianness == Endianness.LITTLE_ENDIAN
+            else capstone.CS_MODE_BIG_ENDIAN,
+        )
 
     def unicorn(self) -> tuple[int, int, int]:
         return (
             unicorn.UC_ARCH_SPARC,
             unicorn.UC_MODE_SPARC32,
-            unicorn.UC_MODE_LITTLE_ENDIAN,
+            unicorn.UC_MODE_LITTLE_ENDIAN
+            if self.endianness == Endianness.LITTLE_ENDIAN
+            else unicorn.UC_MODE_BIG_ENDIAN,
         )
 
     def uc_register(self, name: str) -> int:
-        return getattr(unicorn.x86_const, f"UC_SPARC_REG_{name.upper()}")
+        return getattr(unicorn.sparc_const, f"UC_SPARC_REG_{name.upper()}")
 
 
 class SPARC64(SPARC):
@@ -79,19 +90,25 @@ class SPARC64(SPARC):
         return (
             keystone.KS_ARCH_SPARC,
             keystone.KS_MODE_SPARC64,
-            keystone.KS_MODE_LITTLE_ENDIAN,
+            keystone.KS_MODE_LITTLE_ENDIAN
+            if self.endianness == Endianness.LITTLE_ENDIAN
+            else keystone.KS_MODE_BIG_ENDIAN,
         )
 
     def capstone(self) -> tuple[int, int, int]:
         return (
             capstone.CS_ARCH_SPARC,
             capstone.CS_MODE_64,
-            capstone.CS_MODE_LITTLE_ENDIAN,
+            capstone.CS_MODE_LITTLE_ENDIAN
+            if self.endianness == Endianness.LITTLE_ENDIAN
+            else capstone.CS_MODE_BIG_ENDIAN,
         )
 
     def unicorn(self) -> tuple[int, int, int]:
         return (
             unicorn.UC_ARCH_SPARC,
             unicorn.UC_MODE_SPARC64,
-            unicorn.UC_MODE_LITTLE_ENDIAN,
+            unicorn.UC_MODE_LITTLE_ENDIAN
+            if self.endianness == Endianness.LITTLE_ENDIAN
+            else unicorn.UC_MODE_BIG_ENDIAN,
         )

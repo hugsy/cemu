@@ -1,9 +1,11 @@
 from enum import IntEnum, unique
 from multiprocessing import Lock
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable, Optional
 
+import collections
 import unicorn
 
+import cemu.const
 import cemu.core
 import cemu.utils
 from cemu.log import dbg, error, info
@@ -15,22 +17,48 @@ from .memory import MemorySection
 @unique
 class EmulatorState(IntEnum):
     # fmt: off
-    NOT_RUNNING = 0              # Nothing is initialized
-    # SETUP = 1
+    STARTING = 0                 # CEmu is starting
+    NOT_RUNNING = 1              # CEmu is started, but no emulation context is initialized
     IDLE = 2                     # The VM is running but stopped: used for stepping mode
     RUNNING = 3                  # The VM is running
-    TEARDOWN = 5
+    TEARDOWN = 5                 # Emulation is finishing
     FINISHED = 6                 # The VM has reached the end of the execution
     # fmt: on
+
+
+class EmulationRegisters(collections.UserDict):
+    data: dict[str, int]
+
+    def __getitem__(self, key: str) -> int:
+        """Thin wrapper around `dict` `__getitem__` for register: try to refresh the value to its latest value from the
+        emulator.
+
+        Args:
+            key (str): register name
+
+        Returns:
+            int: the register value
+        """
+        emu = cemu.core.context.emulator
+        if (
+            emu.state
+            in (EmulatorState.RUNNING, EmulatorState.IDLE, EmulatorState.FINISHED)
+            and key in self.data.keys()
+        ):
+            val = emu.get_register_value(key)
+            if val is not None:
+                super().__setitem__(key, val)
+        return super().__getitem__(key)
 
 
 class Emulator:
     def __init__(self):
         self.use_step_mode = False
         self.widget = None
-        self.lock: Lock = Lock()
-        self.state: EmulatorState = EmulatorState.NOT_RUNNING
+        self.lock = Lock()
+        self.state: EmulatorState = EmulatorState.STARTING
         self.__state_change_callbacks: dict[EmulatorState, list[Callable]] = {
+            EmulatorState.STARTING: [],
             EmulatorState.NOT_RUNNING: [],
             EmulatorState.IDLE: [],
             EmulatorState.RUNNING: [],
@@ -42,7 +70,7 @@ class Emulator:
         self.code: bytes = b""
         self.codelines: str = ""
         self.sections: list[MemorySection] = []
-        self.registers: dict[str, int] = {}
+        self.registers: EmulationRegisters = EmulationRegisters({})
         self.start_addr: int = 0
 
         #
@@ -55,7 +83,9 @@ class Emulator:
         self.code = b""
         self.codelines = ""
         self.sections = []
-        self.registers = {name: 0 for name in cemu.core.context.architecture.registers}
+        self.registers = EmulationRegisters(
+            {name: 0 for name in cemu.core.context.architecture.registers}
+        )
         self.start_addr = 0
         self.set(EmulatorState.NOT_RUNNING)
         return
@@ -65,20 +95,19 @@ class Emulator:
             return f"Emulator is running, IP={self.pc()}, SP={self.sp()}"
         return "Emulator instance is not running"
 
-    def get_register_value(self, regname: str) -> int:
+    def get_register_value(self, regname: str) -> Optional[int]:
         """
         Returns an integer value of the register passed as a string.
         """
 
         if not self.vm:
-            error("get_register_value() failed: VM not initialized")
-            return -1
+            return None
 
         arch = cemu.core.context.architecture
         ur = arch.uc_register(regname)
         val = self.vm.reg_read(ur)
 
-        # TODO handle xmmreg later
+        # TODO handle extended regs later
         assert isinstance(val, int)
         return val
 
@@ -88,13 +117,15 @@ class Emulator:
         """
         Returns the current value of $pc
         """
-        return self.get_register_value(cemu.core.context.architecture.pc)
+        # return self.get_register_value(cemu.core.context.architecture.pc)
+        return self.registers[cemu.core.context.architecture.pc]
 
     def sp(self) -> int:
         """
         Returns the current value of $sp
         """
-        return self.get_register_value(cemu.core.context.architecture.sp)
+        # return self.get_register_value(cemu.core.context.architecture.sp)
+        return self.registers[cemu.core.context.architecture.sp]
 
     def setup(self) -> None:
         """
@@ -128,7 +159,7 @@ class Emulator:
         if not self.__populate_memory():
             raise Exception("populate_memory() failed")
 
-        if not self.__populate_registers():
+        if not self.__populate_vm_registers():
             raise Exception("populate_registers() failed")
 
         if not self.__populate_text_section():
@@ -158,7 +189,7 @@ class Emulator:
         self.end_addr = -1
         return True
 
-    def __populate_registers(self) -> bool:
+    def __populate_vm_registers(self) -> bool:
         """
         Populates the VM memory layout according to the values given as parameter.
         """
@@ -166,7 +197,7 @@ class Emulator:
             return False
 
         arch = cemu.core.context.architecture
-        registers: dict[str, int] = self.registers
+        registers: EmulationRegisters = self.registers
 
         #
         # Set the initial IP if unspecified
@@ -174,13 +205,16 @@ class Emulator:
         if registers[arch.pc] == 0:
             section_text = self.find_section(".text")
             registers[arch.pc] = section_text.address
+            dbg(f"Default PC set to {registers[arch.pc]:#x}")
 
         #
-        # Set the initial SP if unspecified
+        # Set the initial SP if unspecified, in the middle of the stack section
         #
         if registers[arch.sp] == 0:
             section_stack = self.find_section(".stack")
-            registers[arch.sp] = section_stack.address
+            offset = (section_stack.end - section_stack.address) // 2
+            registers[arch.sp] = section_stack.address + offset
+            dbg(f"Default SP set to {registers[arch.sp]:#x}")
 
         #
         # Populate all the registers for unicorn
@@ -188,27 +222,32 @@ class Emulator:
         if is_x86_32(arch):
             # create fake selectors
             ## required
+            text = self.find_section(".text")
             registers["CS"] = int(
                 x86.X86_32.SegmentDescriptor(
-                    0,
+                    text.address >> 8,
                     x86.X86_32.SegmentType.Code | x86.X86_32.SegmentType.Accessed,
                     False,
                     3,
                     True,
                 )
             )
+
+            data = self.find_section(".data")
             registers["DS"] = int(
                 x86.X86_32.SegmentDescriptor(
-                    0,
+                    data.address >> 8,
                     x86.X86_32.SegmentType.Data | x86.X86_32.SegmentType.Accessed,
                     False,
                     3,
                     True,
                 )
             )
+
+            stack = self.find_section(".stack")
             registers["SS"] = int(
                 x86.X86_32.SegmentDescriptor(
-                    0,
+                    stack.address >> 8,
                     x86.X86_32.SegmentType.Data
                     | x86.X86_32.SegmentType.Accessed
                     | x86.X86_32.SegmentType.ExpandDown,
@@ -223,10 +262,31 @@ class Emulator:
             registers["ES"] = 0
 
         for r in registers.keys():
+            # TODO figure out segmentation on  unicorn
+            if r in x86.X86_32.selector_registers:
+                continue
+
             ur = arch.uc_register(r)
             self.vm.reg_write(ur, registers[r])
 
         dbg(f"[vm::setup] Registers {registers}")
+        return True
+
+    def __refresh_registers_from_vm(self) -> bool:
+        """Refresh the emulation register hashmap by reading values from the VM
+
+        Returns:
+            bool: True on success, False otherwise
+        """
+        if not self.vm or not self.is_running:
+            return False
+
+        arch = cemu.core.context.architecture
+        for regname in self.registers.keys():
+            value = self.vm.reg_read(arch.uc_register(regname))
+            assert isinstance(value, int)
+            self.registers[regname] = value
+
         return True
 
     def __generate_text_bytecode(self) -> bool:
@@ -251,6 +311,9 @@ class Emulator:
 
         self.end_addr = self.start_addr + len(self.code)
         return True
+
+    def validate_assembly_code(self) -> bool:
+        return self.__generate_text_bytecode()
 
     def __populate_text_section(self) -> bool:
         if not self.vm:
@@ -296,24 +359,19 @@ class Emulator:
         """
         Unicorn instruction hook
         """
+        if not cemu.const.DEBUG:
+            return False
+
         if not self.vm:
             return False
 
-        # arch = cemu.core.context.architecture
         code = self.vm.mem_read(address, size)
         insn: cemu.utils.Instruction = self.next_instruction(code, address)
-        # if self.stop_now:
-        #     self.start_addr = self.get_register_value(arch.pc)
-        #     emu.emu_stop()
-        #     return True
 
         if self.use_step_mode:
             dbg(f"[vm::runtime] Stepping @ {insn}")
         else:
             dbg(f"[vm::runtime] Executing @ {insn}")
-
-        # if self.use_step_mode:
-        #     self.stop_now = True
         return True
 
     def hook_block(self, emu: unicorn.Uc, addr: int, size: int, misc: Any) -> int:
@@ -409,23 +467,37 @@ class Emulator:
             new_state (EmulatorState): the new state
         """
 
-        def assign_state(__new_state: EmulatorState):
+        def assign_state(__new_state: EmulatorState) -> EmulatorState:
             if self.state == __new_state:
-                return
-
+                return self.state
             info(f"Emulator is now {__new_state.name}")
-
+            __old_state = self.state
             self.state = __new_state
             assert int(self.state) == int(__new_state), f"{self.state} != {__new_state}"
+            return __old_state
 
-        assign_state(new_state)
+        old_state = assign_state(new_state)
 
-        match new_state:
+        if old_state == self.state:
+            return
+
+        dbg(f"Emulator state transition: {old_state} -> {self.state}")
+
+        match self.state:
             case EmulatorState.RUNNING | EmulatorState.IDLE:
                 #
                 # Make sure there's always an emulation environment ready
                 #
                 self.setup()
+
+                #
+                # If we stopped from execution (i.e RUNNING -> [IDLE,FINISHED]), refresh registers
+                #
+                if old_state == EmulatorState.RUNNING:
+                    self.__refresh_registers_from_vm()
+
+            case EmulatorState.FINISHED:
+                self.__refresh_registers_from_vm()
 
             case _:
                 pass
@@ -439,7 +511,7 @@ class Emulator:
             res = new_state_cb()
             dbg(f"{function_name}() return {res}")
 
-        match new_state:
+        match self.state:
             case EmulatorState.RUNNING:
                 #
                 # This will effectively trigger the execution in unicorn
@@ -476,14 +548,69 @@ class Emulator:
 
     def set_threaded_runner(self, runnable_object: object):
         self.threaded_runner = runnable_object
+        return
 
-    def context(self) -> dict[str, Union[int, str]]:
-        """Get the current context for the registers as a hash table
+    def read(self, address: int, size: int) -> Optional[bytearray]:
+        """Public wrapper for `vm.mem_read`
+
+        Args:
+            address (int): _description_
+            size (int): _description_
 
         Returns:
-            dict[str, Union[int, str]]: _description_
+            bytearray:
+            None:
         """
-        if not self.vm:
-            return {}
-        # regs = {name: self.get_register_value(name) for name in self.registers}
-        return self.registers
+        if not self.vm or not self.is_running:
+            return None
+
+        return self.vm.mem_read(address, size)
+
+    def write(self, address: int, data: bytes) -> Optional[int]:
+        """Public wrapper for `vm.mem_write`
+
+        Args:
+            address (int): _description_
+            data (bytes): _description_
+
+        Returns:
+            bytearray:
+            None:
+        """
+        if not self.vm or not self.is_running:
+            return None
+
+        self.vm.mem_write(address, data)
+        return len(data)
+
+    def start(self, start_address: int, end_address: int) -> None:
+        """Public wrapper for `vm.emu_start`
+
+        Args:
+
+        Returns:
+            bytearray:
+            None:
+        """
+        assert self.vm
+        assert self.is_running
+
+        with self.lock:
+            self.vm.emu_start(start_address, end_address)
+
+        return
+
+    def stop(self) -> None:
+        """Public wrapper for `vm.emu_stop`
+
+        Args:
+
+        Returns:
+            bytearray:
+            None:
+        """
+        assert self.vm
+        assert self.is_running
+
+        self.vm.emu_stop()
+        return

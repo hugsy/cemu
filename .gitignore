@@ -1,4 +1,10 @@
+.benchmarks
+.pytest_cache
 .vscode
 .vs
 *.pyc
+*.egg-info
 __pycache__
+.ruff_cache
+build
+dist

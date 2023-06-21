@@ -94,7 +94,7 @@ class ARM(Architecture):
         )
 
     def uc_register(self, name: str) -> int:
-        return getattr(unicorn.x86_const, f"UC_ARM_REG_{name.upper()}")
+        return getattr(unicorn.arm_const, f"UC_ARM_REG_{name.upper()}")
 
 
 class AARCH64(Architecture):
@@ -163,4 +163,4 @@ class AARCH64(Architecture):
         )
 
     def uc_register(self, name: str) -> int:
-        return getattr(unicorn.x86_const, f"UC_ARM64_REG_{name.upper()}")
+        return getattr(unicorn.arm64_const, f"UC_ARM64_REG_{name.upper()}")

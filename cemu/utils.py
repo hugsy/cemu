@@ -3,12 +3,13 @@ import pathlib
 import random
 import string
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
+if TYPE_CHECKING:
+    import cemu.arch
 import cemu.core
 import cemu.errors
 import cemu.utils
-from cemu.arch import Architecture, Architectures, Endianness
 from cemu.const import COMMENT_MARKER, PROPERTY_MARKER
 from cemu.log import dbg
 
@@ -48,7 +49,7 @@ def hexdump(
     return os.linesep.join(result)
 
 
-def format_address(addr: int, arch: Optional[Architecture] = None) -> str:
+def format_address(addr: int, arch: Optional[cemu.arch.Architecture] = None) -> str:
     """Format an address to string, aligned to the given architecture
 
     Args:
@@ -144,6 +145,8 @@ def assemble(
     if not bytecode or assembled_insn_count == 0:
         raise cemu.errors.AssemblyException("Not instruction compiled")
 
+    assert isinstance(bytecode, bytes)
+
     #
     # Decompile it and return the stuff
     #
@@ -176,7 +179,9 @@ def generate_random_string(length: int) -> str:
     return "".join(random.choice(charset) for _ in range(length))
 
 
-def get_metadata_from_stream(content: str) -> Optional[tuple[Architecture, Endianness]]:
+def get_metadata_from_stream(
+    content: str,
+) -> Optional[tuple[cemu.arch.Architecture, cemu.arch.Endianness]]:
     """Parse a file content to automatically extract metadata. Metadata can only be passed in the file
     header, and *must* be a commented line (i.e. starting with `;;; `) followed by the property marker (i.e. `@@@`).
     Both the architecture and endianess *must* be provided
@@ -196,8 +201,8 @@ def get_metadata_from_stream(content: str) -> Optional[tuple[Architecture, Endia
             - if an architecture metadata is found, but invalid
             - if an endianess metadata is found, but invalid
     """
-    arch: Optional[Architecture] = None
-    endian: Optional[Endianness] = None
+    arch: Optional[cemu.arch.Architecture] = None
+    endian: Optional[cemu.arch.Endianness] = None
 
     for line in content.splitlines():
         part = line.strip().split()
@@ -214,15 +219,15 @@ def get_metadata_from_stream(content: str) -> Optional[tuple[Architecture, Endia
         metadata_value = part[2].lower()
 
         if metadata_type == "architecture" and not arch:
-            arch = Architectures.find(metadata_value)
+            arch = cemu.arch.Architectures.find(metadata_value)
             dbg(f"Forcing architecture '{arch}'")
             continue
 
         if metadata_type == "endianness" and not endian:
             if metadata_value == "little":
-                endian = Endianness.LITTLE_ENDIAN
+                endian = cemu.arch.Endianness.LITTLE_ENDIAN
             elif metadata_value == "big":
-                endian = Endianness.BIG_ENDIAN
+                endian = cemu.arch.Endianness.BIG_ENDIAN
             else:
                 continue
             dbg(f"Forcing endianness '{endian}'")

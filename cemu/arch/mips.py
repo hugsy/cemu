@@ -82,7 +82,7 @@ class MIPS(Architecture):
         )
 
     def uc_register(self, name: str) -> int:
-        return getattr(unicorn.x86_const, f"UC_MIPS_REG_{name.upper()}")
+        return getattr(unicorn.mips_const, f"UC_MIPS_REG_{name.upper()}")
 
 
 class MIPS64(MIPS):

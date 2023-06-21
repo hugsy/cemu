@@ -725,7 +725,7 @@ class CEmuWindow(QMainWindow):
         """
         Returns the memory layout as defined by the __mapWidget values as a structured list.
         """
-        return self.__mapWidget.maps
+        return cemu.core.context.emulator.sections
 
     def update_layout_not_running(self):
         self.statusBar().showMessage("Not running")
