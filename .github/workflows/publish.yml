@@ -2,40 +2,41 @@ name: Publish CEmu to PyPI
 
 on:
   workflow_dispatch:
+  push:
 
 jobs:
   publish:
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
     runs-on: ubuntu-latest
+    environment:
+      name: hugsy
+      url: https://pypi.org/p/cemu
+    permissions:
+      id-token: write    
     steps:
-      - name: Check out repository code
+      - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Setup Python
+      - name: Setup
         uses: actions/setup-python@v4
         with:
-          python-version: "3.x"
+          python-version: "3.10"
 
-      - name: Install Requirements
+      - name: Requirements
         run: |
-          python -m pip install --upgrade build wheel twine
+          python -m pip install --upgrade build wheel
 
-      - id: cache-pipenv
-        uses: actions/cache@v1
-        with:
-          path: ~/.local/share/virtualenvs
-          key: ${{ runner.os }}-pipenv-${{ hashFiles('**/Pipfile.lock') }}
-
-      - name: Install (if not cached)
-        if: steps.cache-pipenv.outputs.cache-hit != 'true'
+      - name: Install
         run: |
-          python -m pip install --user --upgrade -r requirements.txt
           python -m pip install --user --upgrade .
 
-      - name: Build a binary wheel and source tarball
+      - name: Build
         run: |
           python -m build
 
-      - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@master
+      - name: Publish
+        uses: pypa/gh-action-pypi-publish@release/v1
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}
+          print-hash: true
+          
