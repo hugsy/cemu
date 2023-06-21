@@ -5,6 +5,7 @@ from typing import Any, Callable, Optional
 import collections
 import unicorn
 
+import cemu.const
 import cemu.core
 import cemu.utils
 from cemu.log import dbg, error, info
@@ -358,6 +359,9 @@ class Emulator:
         """
         Unicorn instruction hook
         """
+        if not cemu.const.DEBUG:
+            return False
+
         if not self.vm:
             return False
 
@@ -594,4 +598,19 @@ class Emulator:
         with self.lock:
             self.vm.emu_start(start_address, end_address)
 
+        return
+
+    def stop(self) -> None:
+        """Public wrapper for `vm.emu_stop`
+
+        Args:
+
+        Returns:
+            bytearray:
+            None:
+        """
+        assert self.vm
+        assert self.is_running
+
+        self.vm.emu_stop()
         return

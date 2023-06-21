@@ -1,11 +1,8 @@
 import logging
 import os
-import platform
 import unittest
 from dataclasses import dataclass
 from typing import Callable
-
-import pytest
 
 import cemu.arch
 import cemu.core
@@ -39,12 +36,11 @@ class EmulationTestRunner:
 
         start_address = self.emu.pc() or self.emu.start_addr
         start_offset = start_address - self.emu.start_addr
-
         last_insn_address = self.emu.start_addr + len(self.emu.code)
 
         if self.emu.use_step_mode:
             insn = self.emu.next_instruction(
-                self.emu.code[start_offset:], start_address
+                self.emu.code[start_offset:], start_address + start_offset
             )
             end_address = insn.end
         else:
@@ -60,9 +56,6 @@ class EmulationTestRunner:
         return
 
 
-@pytest.mark.skipif(
-    platform.system().lower() != "linux", reason="Tests only for Windows"
-)
 class TestEmulatorBasic(unittest.TestCase):
     def __repr__(self) -> str:
         return "TestEmulatorBasic"
@@ -124,6 +117,27 @@ class TestEmulatorBasic(unittest.TestCase):
                 os.linesep.join(["mov x0, 1", "add x0, x0, 1"]),
                 lambda: self.emu.registers["X0"] == 2,
             ),
+            # TODO Buggy - last PC value is not refreshed in unicorn
+            # GenericTestCase(
+            #     cemu.arch.mips.MIPS(),
+            #     os.linesep.join(["addiu $v0, $zero, 1", "addi $v0, $v0, 1"]),
+            #     lambda: self.emu.registers["V0"] == 2,
+            # ),
+            # GenericTestCase(
+            #     cemu.arch.mips.MIPS64(),
+            #     os.linesep.join(["addiu $v0, $zero, 1", "addi $v0, $v0, 1"]),
+            #     lambda: self.emu.registers["V0"] == 2,
+            # ),
+            # GenericTestCase(
+            #     cemu.arch.sparc.SPARC(),
+            #     os.linesep.join(["mov  1, %g0", "add %g0, 1, %g0"]),
+            #     lambda: self.emu.registers["G0"] == 2,
+            # ),
+            # GenericTestCase(
+            #     cemu.arch.sparc.SPARC64(),
+            #     os.linesep.join(["mov  1, %g0", "add %g0, 1, %g0"]),
+            #     lambda: self.emu.registers["V0"] == 2,
+            # ),
         ]
 
         for tc in matrix:
@@ -132,8 +146,8 @@ class TestEmulatorBasic(unittest.TestCase):
             #
             cemu.core.context.architecture = tc.arch
             self.emu.reset()
-            self.emu.sections = MEMORY_MAP_DEFAULT_LAYOUT
-            self.emu.codelines = tc.codelines
+            self.emu.sections = MEMORY_MAP_DEFAULT_LAYOUT[:]
+            self.emu.codelines = tc.codelines[:]
             self.emu.use_step_mode = False
 
             #
@@ -144,5 +158,6 @@ class TestEmulatorBasic(unittest.TestCase):
             #
             # Test
             #
+            assert self.emu.pc() == self.emu.sections[0].address + len(self.emu.code)
             assert self.emu.state == EmulatorState.FINISHED
             assert tc.result()

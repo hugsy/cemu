@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+
 import sys
 from typing import TYPE_CHECKING, Union
 
@@ -12,6 +13,7 @@ import cemu.cli.repl
 import cemu.const
 import cemu.emulator
 import cemu.log
+import cemu.os
 import cemu.settings
 
 
@@ -19,12 +21,14 @@ class GlobalContext:
     settings: cemu.settings.Settings
     __emulator: cemu.emulator.Emulator
     __architecture: cemu.arch.Architecture
+    __os: cemu.os.OperatingSystem
 
     def __init__(self):
         self.settings = cemu.settings.Settings()
         self.__emulator = cemu.emulator.Emulator()
         default_arch = self.settings.get("Global", "DefaultArchitecture", "x86_64")
         self.__architecture = cemu.arch.Architectures.find(default_arch)
+        self.__os = cemu.os.Linux
         return
 
     @property
@@ -42,6 +46,17 @@ class GlobalContext:
     @property
     def emulator(self) -> cemu.emulator.Emulator:
         return self.__emulator
+
+    @property
+    def os(self) -> cemu.os.OperatingSystem:
+        return self.__os
+
+    @os.setter
+    def os(self, new_os: cemu.os.OperatingSystem):
+        cemu.log.dbg(f"Changing OS {self.__os} to {new_os}")
+        self.__os = new_os
+        self.__emulator.reset()
+        return
 
 
 class GlobalGuiContext(GlobalContext):

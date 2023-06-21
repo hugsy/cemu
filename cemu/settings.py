@@ -22,6 +22,7 @@ class Settings:
         """
         Store a setting
         """
+        assert self.__config
         if not self.__config.has_section(section):
             self.__config.add_section(section)
 
@@ -32,24 +33,28 @@ class Settings:
         """
         Retrieve a setting
         """
+        assert self.__config
         return self.__config.get(section, key, fallback=default)
 
     def getint(self, section: str, key: str, default=0) -> int:
         """
         Retrieve an integer setting
         """
+        assert self.__config
         return self.__config.getint(section, key, fallback=default)
 
     def getboolean(self, section: str, key: str, default=False) -> bool:
         """
         Retrieve a boolean setting
         """
+        assert self.__config
         return self.__config.getboolean(section, key, fallback=default)
 
     def save(self) -> None:
         """
         Save the settings to disk
         """
+        assert self.__config
         with open(self.__config_filename, "w") as fd:
             self.__config.write(fd)
         dbg(f"Settings saved to '{self.__config_filename}'")
@@ -79,4 +84,5 @@ class Settings:
         """
         Check if a config key exists
         """
+        assert self.__config
         return key in self.__config

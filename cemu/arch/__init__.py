@@ -1,12 +1,15 @@
 import enum
 import importlib
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 import capstone
 import keystone
 import unicorn
 
 from cemu.const import SYSCALLS_PATH
+
+if TYPE_CHECKING:
+    import cemu.core
 
 
 class Endianness(enum.Enum):
@@ -56,15 +59,22 @@ class Architecture:
         return f"{self.name} (Ptrsize={self.ptrsize}, Endian={self.endianness}, Syntax={self.syntax})"
 
     def __str__(self):
-        return f"{self.name}"
+        return self.name
 
+    __context: Optional["cemu.core.GlobalContext"] = None
     __syscalls: Optional[dict[str, int]] = None
     syscall_base = 0
 
     @property
     def syscalls(self):
+        if not self.__context:
+            mod = __import__("cemu.core")
+            self.__context = getattr(mod, "context")
+            assert isinstance(self.__context, cemu.core.GlobalContext)
+
         if not self.__syscalls:
-            fpath = SYSCALLS_PATH / (self.syscall_filename + ".csv")
+            syscall_dir = SYSCALLS_PATH / cemu.core.context.os
+            fpath = syscall_dir / (self.syscall_filename + ".csv")
             self.__syscalls = {}
 
             with fpath.open("r") as fd:
