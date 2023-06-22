@@ -87,6 +87,7 @@ python -m cemu cli
 
 From where you'll end up in a REPL, allowing you to build and run the emulation environment.
 
+![cemu-cli](https://i.imgur.com/SyRJmI5.png)
 
 ### Lib
 
