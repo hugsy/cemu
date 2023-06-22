@@ -183,7 +183,7 @@ class Emulator:
                 self.vm.mem_write(section.address, section.content)
                 msg += f", imported data '{len(section.content)}'"
 
-            info(f"[vm::setup] {msg}")
+            dbg(f"[vm::setup] {msg}")
 
         self.start_addr = self.sections[0].address
         self.end_addr = -1

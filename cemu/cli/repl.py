@@ -1,9 +1,9 @@
-import subprocess
-import pathlib
-import tempfile
-import unicorn
 import os
+import pathlib
+import subprocess
+import tempfile
 
+import unicorn
 from prompt_toolkit import prompt
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 from prompt_toolkit.completion import NestedCompleter
@@ -11,16 +11,24 @@ from prompt_toolkit.history import FileHistory
 from prompt_toolkit.key_binding import KeyBindings
 
 import cemu
-import cemu.core
 import cemu.arch
+import cemu.const
+import cemu.core
 import cemu.memory
-from cemu.utils import hexdump
 from cemu.emulator import EmulatorState
 from cemu.log import dbg, error, info, ok, warn
+from cemu.utils import hexdump
 
 bindings = KeyBindings()
 
 TEXT_EDITOR = os.getenv("EDITOR") or "nano -c"
+
+MEMORY_MAP_DEFAULT_LAYOUT: list[cemu.memory.MemorySection] = [
+    cemu.memory.MemorySection(".text", 0x00004000, 0x1000, "READ|EXEC"),
+    cemu.memory.MemorySection(".data", 0x00005000, 0x1000, "READ|WRITE"),
+    cemu.memory.MemorySection(".stack", 0x00006000, 0x4000, "READ|WRITE"),
+    cemu.memory.MemorySection(".misc", 0x0000A000, 0x1000, "READ|WRITE|EXEC"),
+]
 
 
 @bindings.add("c-c")
@@ -71,41 +79,52 @@ class CEmuRepl:
             #
             # Refresh the completer values
             #
-            completer = NestedCompleter.from_nested_dict(
-                {
-                    ".quit": None,
-                    ".arch": {
-                        "get": None,
-                        "set": {x: None for x in cemu.arch.Architectures.keys()},
-                    },
-                    ".regs": {
-                        "set": {x: None for x, _ in emu.registers.items()},
-                        "get": {x: None for x, _ in emu.registers.items()},
-                    },
-                    ".mem": {
-                        "list": None,
-                        "add": None,
-                        "del": None,
-                        "view": None,
-                        "edit": None,
-                    },
-                    ".reset": None,
-                    ".run": None,
-                    ".code": {
-                        "show": None,
-                        "check": None,
-                        "edit": None,
-                    },
-                    # TODO everything below
-                    ".load": None,
-                    ".save": {
-                        "asm": None,
-                        "bin": None,
-                        "pe": None,
-                        "elf": None,
-                    },
-                }
-            )
+            menu_dict = {
+                ".quit": None,
+                ".version": None,
+                ".arch": {
+                    "get": None,
+                    "set": {x: None for x in cemu.arch.Architectures.keys()},
+                },
+                ".regs": {
+                    "set": {x: None for x, _ in emu.registers.items()},
+                    "get": {x: None for x, _ in emu.registers.items()},
+                },
+                ".mem": {
+                    "default": None,
+                    "list": None,
+                    "add": None,
+                    "del": None,
+                    "view": None,
+                    "edit": None,
+                },
+                ".reset": None,
+                ".run": None,
+                ".code": {
+                    "show": None,
+                    "check": None,
+                    "edit": None,
+                },
+                ".step": {
+                    "on": None,
+                    "off": None,
+                },
+                # TODO everything below
+                ".debug": None,
+                ".load": {
+                    "asm": None,
+                    "bin": None,
+                    "minidump": None,
+                    "coredump": None,
+                },
+                ".save": {
+                    "asm": None,
+                    "bin": None,
+                    "pe": None,
+                    "elf": None,
+                },
+            }
+            completer = NestedCompleter.from_nested_dict(menu_dict)
 
             #
             # Prompt
@@ -145,6 +164,12 @@ class CEmuRepl:
             # Dispatch
             #
             match command:
+                case "help":
+                    print(os.linesep.join([f" - {x}" for x in menu_dict.keys()]))
+
+                case "version":
+                    print(f"{cemu.const.PROGNAME} v{cemu.const.VERSION}")
+
                 case "quit":
                     self.keep_running = False
 
@@ -168,6 +193,8 @@ class CEmuRepl:
 
                 case "mem":
                     match args[0]:
+                        case "default":
+                            emu.sections = MEMORY_MAP_DEFAULT_LAYOUT[:]
                         case "list":
                             for idx, section in enumerate(emu.sections):
                                 print(f"{idx:#04x}\t{section}")
@@ -221,13 +248,21 @@ class CEmuRepl:
                     emu.set(EmulatorState.RUNNING)
 
                 case "step":
-                    pass
+                    match args[0]:
+                        case "on":
+                            emu.use_step_mode = True
+                        case "on":
+                            emu.use_step_mode = False
 
                 case "reset":
                     emu.set(EmulatorState.FINISHED)
 
+                case "debug":
+                    cemu.const.DEBUG = not cemu.const.DEBUG
+                    ok(f"Debug is now {'on' if cemu.const.DEBUG else 'off'}")
+
                 case _:
-                    dbg(f"Executing {command=}")
+                    error(f"Executing {command=}")
         return
 
     def bottom_toolbar(self) -> str:
