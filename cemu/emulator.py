@@ -8,7 +8,7 @@ import unicorn
 import cemu.const
 import cemu.core
 import cemu.utils
-from cemu.log import dbg, error, info
+from cemu.log import dbg, error, info, warn
 
 from .arch import is_x86, is_x86_32, x86
 from .memory import MemorySection
@@ -183,7 +183,7 @@ class Emulator:
                 self.vm.mem_write(section.address, section.content)
                 msg += f", imported data '{len(section.content)}'"
 
-            info(f"[vm::setup] {msg}")
+            dbg(f"[vm::setup] {msg}")
 
         self.start_addr = self.sections[0].address
         self.end_addr = -1
@@ -205,7 +205,9 @@ class Emulator:
         if registers[arch.pc] == 0:
             section_text = self.find_section(".text")
             registers[arch.pc] = section_text.address
-            dbg(f"Default PC set to {registers[arch.pc]:#x}")
+            warn(
+                f"No value specified for PC register, setting to {registers[arch.pc]:#x}"
+            )
 
         #
         # Set the initial SP if unspecified, in the middle of the stack section
@@ -214,7 +216,9 @@ class Emulator:
             section_stack = self.find_section(".stack")
             offset = (section_stack.end - section_stack.address) // 2
             registers[arch.sp] = section_stack.address + offset
-            dbg(f"Default SP set to {registers[arch.sp]:#x}")
+            warn(
+                f"No value specified for SP register, setting to {registers[arch.sp]:#x}"
+            )
 
         #
         # Populate all the registers for unicorn

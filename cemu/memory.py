@@ -62,19 +62,114 @@ class MemoryPermission(enum.IntFlag):
                 perm_obj |= MemoryPermission.EXECUTE
             else:
                 raise ValueError(f"Unsupported value {block}")
-
         return perm_obj
+
+    @staticmethod
+    def from_windows(protect: int) -> "MemoryPermission":
+        """Converts region Protection values to a MemoryProtection
+
+        Args:
+            protect (int): _description_
+
+        Raises:
+            ValueError: if there's no match
+            NotImplementedError: for PAGE_GUARD
+
+        Returns:
+            MemoryPermission: _description_
+        """
+        match protect:
+            case 0x01:
+                # PAGE_NOACCESS
+                return MemoryPermission.NONE
+            case 0x02:
+                # PAGE_READONLY
+                return MemoryPermission.READ
+            case 0x04:
+                # PAGE_READWRITE
+                return MemoryPermission.READ | MemoryPermission.WRITE
+            case 0x08:
+                # PAGE_WRITECOPY
+                return MemoryPermission.READ | MemoryPermission.WRITE
+            case 0x10:
+                # PAGE_EXECUTE
+                return MemoryPermission.EXECUTE
+            case 0x20:
+                # PAGE_EXECUTE_READ
+                return MemoryPermission.EXECUTE | MemoryPermission.READ
+            case 0x40:
+                # PAGE_EXECUTE_READWRITE
+                return (
+                    MemoryPermission.READ
+                    | MemoryPermission.WRITE
+                    | MemoryPermission.EXECUTE
+                )
+            case 0x80:
+                # PAGE_EXECUTE_WRITECOPY
+                return (
+                    MemoryPermission.READ
+                    | MemoryPermission.WRITE
+                    | MemoryPermission.EXECUTE
+                )
+            case 0x100:
+                raise NotImplementedError("PAGE_GUARD is not implemented")
+
+        raise ValueError(f"Invalid value {protect}")
+
+    def as_windows_str(self) -> str:
+        """Converts region Protection values to a MemoryProtection
+
+        Args:
+            protect (int): _description_
+
+        Raises:
+            ValueError: if there's no match
+            NotImplementedError: for PAGE_GUARD
+
+        Returns:
+            MemoryPermission: _description_
+        """
+
+        if self == MemoryPermission.NONE:
+            return "PAGE_NOACCESS"
+
+        if self == MemoryPermission.READ:
+            return "PAGE_READONLY"
+
+        if self == MemoryPermission.READ | MemoryPermission.WRITE:
+            return "PAGE_READWRITE"
+
+        if self == MemoryPermission.EXECUTE:
+            return "PAGE_EXECUTE"
+
+        if self == MemoryPermission.EXECUTE | MemoryPermission.READ:
+            return "PAGE_EXECUTE_READ"
+
+        if self == MemoryPermission.ALL:
+            return "PAGE_EXECUTE_READWRITE"
+
+        raise ValueError(f"Cannot convert value {int(self)}")
 
     def unicorn(self) -> int:
         """Get the integer value as used by `unicorn`
 
         Returns:
-            int: _description_
+            int: the protection, as a value understandable for unicorn
         """
-        perm_int = 0
+        if self == MemoryPermission.NONE:
+            return unicorn.UC_PROT_NONE
+
+        unicorn_permission = 0
         if self & MemoryPermission.READ:
-            perm_int += unicorn.UC_PROT_READ
-        return perm_int
+            unicorn_permission |= unicorn.UC_PROT_READ
+
+        if self & MemoryPermission.WRITE:
+            unicorn_permission |= unicorn.UC_PROT_WRITE
+
+        if self & MemoryPermission.EXECUTE:
+            unicorn_permission |= unicorn.UC_PROT_EXEC
+
+        return unicorn_permission
 
 
 class MemorySection:
