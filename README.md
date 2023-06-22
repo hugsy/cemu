@@ -67,7 +67,7 @@ For 99% of cases, that's all you need to do. `cemu` will be installed in the ass
 
 ## Usage
 
-### GUI
+### As a GUI
 
 After installing with `pip`, simply run the executable, or invoke via Python
 
@@ -79,7 +79,7 @@ This should produce a GUI similar to this:
 
 ![cemu-gui](https://i.imgur.com/iHtWvTL.png)
 
-### CLI
+### In the terminal
 
 ```bash
 python -m cemu cli
@@ -89,10 +89,10 @@ From where you'll end up in a REPL, allowing you to build and run the emulation 
 
 ![cemu-cli](https://i.imgur.com/SyRJmI5.png)
 
-### Lib
+### As a Library
 
 ```bash
-python
+$ python
 >>> import cemu
 ```
 
