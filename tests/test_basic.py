@@ -2,7 +2,7 @@ import logging
 import os
 import unittest
 from dataclasses import dataclass
-from typing import Callable
+from typing import Callable, ClassVar
 
 import cemu.arch
 import cemu.core
@@ -19,6 +19,58 @@ MEMORY_MAP_DEFAULT_LAYOUT: list[MemorySection] = [
 
 LOGGER = logging.getLogger(__name__)
 cemu.log.register_sink(LOGGER.debug)
+
+
+@dataclass
+class GenericTestCase:
+    arch: cemu.arch.Architecture
+    codelines: str
+    result: Callable
+
+
+@dataclass
+class X86_16TestCase(GenericTestCase):
+    arch: ClassVar[cemu.arch.Architecture] = cemu.arch.x86.X86()
+
+
+@dataclass
+class X86_32TestCase(GenericTestCase):
+    arch: ClassVar[cemu.arch.Architecture] = cemu.arch.x86.X86_32()
+
+
+@dataclass
+class X86_64TestCase(GenericTestCase):
+    arch: ClassVar[cemu.arch.Architecture] = cemu.arch.x86.X86_64()
+
+
+@dataclass
+class ArmTestCase(GenericTestCase):
+    arch: ClassVar[cemu.arch.Architecture] = cemu.arch.arm.ARM()
+
+
+@dataclass
+class Arm64TestCase(GenericTestCase):
+    arch: ClassVar[cemu.arch.Architecture] = cemu.arch.arm.AARCH64()
+
+
+@dataclass
+class MipsTestCase(GenericTestCase):
+    arch: ClassVar[cemu.arch.Architecture] = cemu.arch.mips.MIPS()
+
+
+@dataclass
+class Mips64TestCase(GenericTestCase):
+    arch: ClassVar[cemu.arch.Architecture] = cemu.arch.mips.MIPS64()
+
+
+@dataclass
+class SparcTestCase(GenericTestCase):
+    arch: ClassVar[cemu.arch.Architecture] = cemu.arch.sparc.SPARC()
+
+
+@dataclass
+class Sparc64TestCase(GenericTestCase):
+    arch: ClassVar[cemu.arch.Architecture] = cemu.arch.sparc.SPARC64()
 
 
 class EmulationTestRunner:
@@ -85,58 +137,42 @@ class TestEmulatorBasic(unittest.TestCase):
     def test_matrix_execute_assembly_regs(self):
         """Test the emulation for all supported architectures, with very basic instructions"""
 
-        @dataclass
-        class GenericTestCase:
-            arch: cemu.arch.Architecture
-            codelines: str
-            result: Callable
-
         matrix: list[GenericTestCase] = [
-            GenericTestCase(
-                cemu.arch.x86.X86(),
+            X86_16TestCase(
                 os.linesep.join(["nop", "xor ax, ax", "inc ax", "nop"]),
                 lambda: self.emu.registers["AX"] == 1,
             ),
-            GenericTestCase(
-                cemu.arch.x86.X86_32(),
+            X86_32TestCase(
                 os.linesep.join(["nop", "xor eax, eax", "inc eax", "nop"]),
                 lambda: self.emu.registers["EAX"] == 1,
             ),
-            GenericTestCase(
-                cemu.arch.x86.X86_64(),
+            X86_64TestCase(
                 os.linesep.join(["nop", "xor rax, rax", "inc rax", "nop"]),
                 lambda: self.emu.registers["RAX"] == 1,
             ),
-            GenericTestCase(
-                cemu.arch.arm.ARM(),
+            ArmTestCase(
                 os.linesep.join(["mov r0, 1", "add r0, r0, 1"]),
                 lambda: self.emu.registers["R0"] == 2,
             ),
-            GenericTestCase(
-                cemu.arch.arm.AARCH64(),
+            Arm64TestCase(
                 os.linesep.join(["mov x0, 1", "add x0, x0, 1"]),
                 lambda: self.emu.registers["X0"] == 2,
             ),
-            # TODO Buggy - last PC value is not refreshed in unicorn
-            # GenericTestCase(
-            #     cemu.arch.mips.MIPS(),
+            MipsTestCase(
+                os.linesep.join(["addiu $v0, $zero, 1", "addi $v0, $v0, 1"]),
+                lambda: self.emu.registers["V0"] == 2,
+            ),
+            SparcTestCase(
+                os.linesep.join(["mov  1, %o0", "add %o0, 1, %o0"]),
+                lambda: self.emu.registers["O0"] == 2,
+            ),
+            # Mips64TestCase(
             #     os.linesep.join(["addiu $v0, $zero, 1", "addi $v0, $v0, 1"]),
             #     lambda: self.emu.registers["V0"] == 2,
             # ),
-            # GenericTestCase(
-            #     cemu.arch.mips.MIPS64(),
-            #     os.linesep.join(["addiu $v0, $zero, 1", "addi $v0, $v0, 1"]),
-            #     lambda: self.emu.registers["V0"] == 2,
-            # ),
-            # GenericTestCase(
-            #     cemu.arch.sparc.SPARC(),
-            #     os.linesep.join(["mov  1, %g0", "add %g0, 1, %g0"]),
-            #     lambda: self.emu.registers["G0"] == 2,
-            # ),
-            # GenericTestCase(
-            #     cemu.arch.sparc.SPARC64(),
-            #     os.linesep.join(["mov  1, %g0", "add %g0, 1, %g0"]),
-            #     lambda: self.emu.registers["V0"] == 2,
+            # Sparc64TestCase(
+            #     os.linesep.join(["mov  1, %o0", "add %o0, 1, %o0"]),
+            #     lambda: self.emu.registers["O0"] == 2,
             # ),
         ]
 
@@ -158,6 +194,17 @@ class TestEmulatorBasic(unittest.TestCase):
             #
             # Test
             #
-            assert self.emu.pc() == self.emu.sections[0].address + len(self.emu.code)
-            assert self.emu.state == EmulatorState.FINISHED
+            # TODO Buggy - last PC value is not refreshed in unicorn for some archs
+            if (
+                isinstance(tc.arch, cemu.arch.x86.X86)
+                or isinstance(tc.arch, cemu.arch.x86.X86_32)
+                or isinstance(tc.arch, cemu.arch.x86.X86_64)
+                or isinstance(tc.arch, cemu.arch.arm.ARM)
+                or isinstance(tc.arch, cemu.arch.arm.AARCH64)
+            ):
+                assert self.emu.pc() == self.emu.sections[0].address + len(
+                    self.emu.code
+                )
+                assert self.emu.state == EmulatorState.FINISHED
+
             assert tc.result()
