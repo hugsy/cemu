@@ -176,7 +176,7 @@ class Emulator:
             return False
 
         for section in self.sections:
-            self.vm.mem_map(section.address, section.size, int(section.permission))
+            self.vm.mem_map(section.address, section.size, perms=section.permission.unicorn())
             msg = f"Mapping {str(section)}"
 
             if section.content:
@@ -197,27 +197,25 @@ class Emulator:
             return False
 
         arch = cemu.core.context.architecture
-        registers: EmulationRegisters = self.registers
 
         #
         # Set the initial IP if unspecified
         #
-        if registers[arch.pc] == 0:
-            section_text = self.find_section(".text")
-            registers[arch.pc] = section_text.address
+        if self.registers[arch.pc] == 0:
+            section = self.find_section(".text")
+            self.registers[arch.pc] = section.address
             warn(
-                f"No value specified for PC register, setting to {registers[arch.pc]:#x}"
+                f"No value specified for PC register, setting to {self.registers[arch.pc]:#x}"
             )
 
         #
         # Set the initial SP if unspecified, in the middle of the stack section
         #
-        if registers[arch.sp] == 0:
-            section_stack = self.find_section(".stack")
-            offset = (section_stack.end - section_stack.address) // 2
-            registers[arch.sp] = section_stack.address + offset
+        if self.registers[arch.sp] == 0:
+            section = self.find_section(".stack")
+            self.registers[arch.sp] = section.address + (section.size // 2)
             warn(
-                f"No value specified for SP register, setting to {registers[arch.sp]:#x}"
+                f"No value specified for SP register, setting to {self.registers[arch.sp]:#x}"
             )
 
         #
@@ -227,7 +225,7 @@ class Emulator:
             # create fake selectors
             ## required
             text = self.find_section(".text")
-            registers["CS"] = int(
+            self.registers["CS"] = int(
                 x86.X86_32.SegmentDescriptor(
                     text.address >> 8,
                     x86.X86_32.SegmentType.Code | x86.X86_32.SegmentType.Accessed,
@@ -238,7 +236,7 @@ class Emulator:
             )
 
             data = self.find_section(".data")
-            registers["DS"] = int(
+            self.registers["DS"] = int(
                 x86.X86_32.SegmentDescriptor(
                     data.address >> 8,
                     x86.X86_32.SegmentType.Data | x86.X86_32.SegmentType.Accessed,
@@ -249,7 +247,7 @@ class Emulator:
             )
 
             stack = self.find_section(".stack")
-            registers["SS"] = int(
+            self.registers["SS"] = int(
                 x86.X86_32.SegmentDescriptor(
                     stack.address >> 8,
                     x86.X86_32.SegmentType.Data
@@ -261,19 +259,18 @@ class Emulator:
                 )
             )
             ## optional
-            registers["GS"] = 0
-            registers["FS"] = 0
-            registers["ES"] = 0
+            self.registers["GS"] = 0
+            self.registers["FS"] = 0
+            self.registers["ES"] = 0
 
-        for r in registers.keys():
-            # TODO figure out segmentation on  unicorn
-            if r in x86.X86_32.selector_registers:
+        for regname, regvalue in self.registers.items():
+            # TODO figure out segmentation on unicorn
+            if regname in x86.X86_32.selector_registers:
                 continue
 
-            ur = arch.uc_register(r)
-            self.vm.reg_write(ur, registers[r])
+            self.vm.reg_write(arch.uc_register(regname), regvalue)
 
-        dbg(f"[vm::setup] Registers {registers}")
+        dbg(f"[vm::setup] Registers {self.registers}")
         return True
 
     def __refresh_registers_from_vm(self) -> bool:
@@ -294,9 +291,10 @@ class Emulator:
         return True
 
     def __generate_text_bytecode(self) -> bool:
-        """
-        Compile the assembly code using Keystone. Returns True if all went well,
-        False otherwise.
+        """Compile the assembly code using Keystone.
+
+        Returns:
+            bool True if all went well, False otherwise.
         """
         dbg(
             f"[vm::setup] Generating assembly code for {cemu.core.context.architecture.name}"
@@ -471,23 +469,15 @@ class Emulator:
             new_state (EmulatorState): the new state
         """
 
-        def assign_state(__new_state: EmulatorState) -> EmulatorState:
-            if self.state == __new_state:
-                return self.state
-            info(f"Emulator is now {__new_state.name}")
-            __old_state = self.state
-            self.state = __new_state
-            assert int(self.state) == int(__new_state), f"{self.state} != {__new_state}"
-            return __old_state
-
-        old_state = assign_state(new_state)
-
-        if old_state == self.state:
+        if self.state == new_state:
             return
 
-        dbg(f"Emulator state transition: {old_state} -> {self.state}")
+        dbg(f"Emulator state transition: {self.state.name} -> {new_state.name}")
 
-        match self.state:
+        #
+        # Validate which state we're entering
+        #
+        match new_state:
             case EmulatorState.RUNNING | EmulatorState.IDLE:
                 #
                 # Make sure there's always an emulation environment ready
@@ -497,7 +487,7 @@ class Emulator:
                 #
                 # If we stopped from execution (i.e RUNNING -> [IDLE,FINISHED]), refresh registers
                 #
-                if old_state == EmulatorState.RUNNING:
+                if self.state == EmulatorState.RUNNING:
                     self.__refresh_registers_from_vm()
 
             case EmulatorState.FINISHED:
@@ -506,10 +496,19 @@ class Emulator:
             case _:
                 pass
 
+        #
+        # Do the state change
+        #
+        info(f"Emulator is now {new_state.name}")
+        self.state = new_state
+
         dbg(
             f"Executing {len(self.__state_change_callbacks[new_state])} callbacks for state {new_state.name}"
         )
 
+        #
+        # Notify the components who've subscribed to the new state change
+        #
         for new_state_cb in self.__state_change_callbacks[new_state]:
             function_name = f"{new_state_cb.__module__}.{new_state_cb.__class__.__qualname__}.{new_state_cb.__name__}"
             res = new_state_cb()

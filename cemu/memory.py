@@ -196,16 +196,30 @@ class MemorySection:
         self.address = addr
         self.size = size
         self.permission = MemoryPermission.from_string(perm)
-        self.file_source = None
-        self.content = None
-        if data_file and data_file.is_file():
-            self.file_source = data_file
-            self.content = data_file.open("rb").read()
+        self.file_source = data_file if data_file and data_file.is_file() else None
         return
 
     @property
     def end(self):
         return self.address + self.size - 1
+
+    @property
+    def content(self) -> Optional[bytes]:
+        """Get the content from source file. This data will be used to populate the memory region
+
+        Raises:
+            AttributeError: if the file content exceeds the region size
+
+        Returns:
+            bytes: the file content
+        """
+        if not self.file_source:
+            return None
+
+        data = self.file_source.open("rb").read()
+        if len(data) > self.size:
+            raise AttributeError("Insufficient space")
+        return data
 
     def __str__(self) -> str:
         return (

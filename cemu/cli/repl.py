@@ -82,6 +82,7 @@ class CEmuRepl:
             menu_dict = {
                 ".quit": None,
                 ".version": None,
+                ".debug": None,
                 ".arch": {
                     "get": None,
                     "set": {x: None for x in cemu.arch.Architectures.keys()},
@@ -110,7 +111,6 @@ class CEmuRepl:
                     "off": None,
                 },
                 # TODO everything below
-                ".debug": None,
                 ".load": {
                     "asm": None,
                     "bin": None,
@@ -187,7 +187,11 @@ class CEmuRepl:
                 case "regs":
                     match args[0]:
                         case "get":
-                            print(f"{args[1]}={emu.registers[args[1]]:#x}")
+                            if len(args) == 1:
+                                for regname, regvalue in emu.registers.items():
+                                    print(f"{regname}={regvalue:#x}")
+                            else:
+                                print(f"{args[1]}={emu.registers[args[1]]:#x}")
                         case "set":
                             emu.registers[args[1]] = int(args[2])
 
@@ -209,14 +213,18 @@ class CEmuRepl:
                             emu.sections.remove(section)
                             dbg(f"Section {section} deleted")
                         case "view":
-                            if not emu.is_running:
+                            if emu.state not in (
+                                EmulatorState.RUNNING,
+                                EmulatorState.IDLE,
+                                EmulatorState.FINISHED,
+                            ):
                                 warn("Emulator not running")
                             else:
                                 assert emu.vm
-                                address = int(args[1])
-                                size = int(args[2])
+                                address = int(args[1], 0)
+                                size = int(args[2], 0)
                                 data = emu.vm.mem_read(address, size)
-                                print(hexdump(data))
+                                print(hexdump(data, base=address))
 
                 case "code":
                     match args[0]:
