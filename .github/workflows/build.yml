@@ -82,13 +82,6 @@ jobs:
         python -m pip install --user --upgrade -r tests/requirements.txt
         python -m pytest tests/
 
-    - name: Publish artifact
-      id: publish_artifact
-      uses: actions/upload-artifact@v3
-      with:
-        name: ${{ env.NAME }}_${{ matrix.os }}_py${{ matrix.python-version }}_${{ env.GITHUB_REF_SLUG }}_${{ env.GITHUB_SHA_SHORT }}
-        path: build/
-
     - name: Populate the successful output (Windows)
       id: output_success_windows
       if: ${{ matrix.os == 'windows-latest' &&  success() }}
