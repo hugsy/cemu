@@ -56,7 +56,7 @@ jobs:
         mkdir build/bin
         python --version
         python -m pip --version
-        python -m pip install --upgrade pip setuptools wheel
+        python -m pip install --upgrade pip build setuptools wheel
         python -m pip install --user --upgrade .
 
     - name: "Post build actions for Windows"
@@ -77,7 +77,7 @@ jobs:
       run: |
         cp -v ~/.local/bin/cemu build/bin/ || cp -v /Users/runner/Library/Python/${{ matrix.python-version }}/bin/cemu build/bin/
 
-    - name: "Run tests"
+    - name: Run tests
       run: |
         python -m pip install --user --upgrade -r tests/requirements.txt
         python -m pytest tests/
