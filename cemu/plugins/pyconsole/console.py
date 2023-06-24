@@ -8,6 +8,7 @@ from PyQt6.QtWidgets import QTextEdit
 
 import cemu.core
 import cemu.emulator
+from cemu import const
 
 CONSOLE_DEFAULT_PROMPT = ">>> "
 
@@ -40,8 +41,10 @@ class PythonConsole(QTextEdit):
 
         self.setWordWrapMode(QTextOption.WrapMode.WrapAnywhere)
         self.setUndoRedoEnabled(False)
-        self.document().setDefaultFont(QFont("monospace", 10, QFont.Weight.Normal))
-        self.setText(self.startup_message+os.linesep)
+        self.document().setDefaultFont(
+            QFont(const.DEFAULT_FONT, const.DEFAULT_FONT_SIZE, QFont.Weight.Normal)
+        )
+        self.setText(self.startup_message + os.linesep)
         self.newPrompt()
         return
 
@@ -51,7 +54,7 @@ class PythonConsole(QTextEdit):
         return
 
     def newPrompt(self):
-        prompt = '.' * len(self.prompt) if self.construct else self.prompt
+        prompt = "." * len(self.prompt) if self.construct else self.prompt
         self.appendPlainText(prompt)
         self.moveCursor(QTextCursor.MoveOperation.End)
         return
@@ -65,11 +68,13 @@ class PythonConsole(QTextEdit):
         if self.getCommand() == command:
             return
         self.moveCursor(QTextCursor.MoveOperation.End)
-        self.moveCursor(QTextCursor.MoveOperation.StartOfLine,
-                        QTextCursor.MoveMode.KeepAnchor)
+        self.moveCursor(
+            QTextCursor.MoveOperation.StartOfLine, QTextCursor.MoveMode.KeepAnchor
+        )
         for i in range(len(self.prompt)):
-            self.moveCursor(QTextCursor.MoveOperation.Right,
-                            QTextCursor.MoveMode.KeepAnchor)
+            self.moveCursor(
+                QTextCursor.MoveOperation.Right, QTextCursor.MoveMode.KeepAnchor
+            )
         self.textCursor().removeSelectedText()
         self.textCursor().insertText(command)
         self.moveCursor(QTextCursor.MoveOperation.End)
@@ -84,11 +89,11 @@ class PythonConsole(QTextEdit):
                 self.construct = []
                 return ret_val
             else:
-                return ''
+                return ""
         else:
-            if command and command[-1] == (':'):
+            if command and command[-1] == (":"):
                 self.construct.append(command)
-                return ''
+                return ""
             else:
                 return command
 
@@ -103,7 +108,7 @@ class PythonConsole(QTextEdit):
         if self.history:
             self.history_index = max(0, self.history_index - 1)
             return self.history[self.history_index]
-        return ''
+        return ""
 
     def getNextHistoryEntry(self):
         if self.history:
@@ -111,7 +116,7 @@ class PythonConsole(QTextEdit):
             self.history_index = min(hist_len, self.history_index + 1)
             if self.history_index < hist_len:
                 return self.history[self.history_index]
-        return ''
+        return ""
 
     def get_current_position(self):
         return self.textCursor().columnNumber() - len(self.prompt)
@@ -137,8 +142,7 @@ class PythonConsole(QTextEdit):
 
                 result = eval(command, self.__locales, self.__globals)
                 if result is not None:
-                    self.appendPlainText(
-                        f"{result}{os.linesep}".format(result))
+                    self.appendPlainText(f"{result}{os.linesep}".format(result))
 
             except SyntaxError:
                 exec(command, self.__locales, self.__globals)
@@ -150,8 +154,7 @@ class PythonConsole(QTextEdit):
                 traceback_lines = traceback.format_exc().splitlines()
                 for i in (3, 2, 1, -1):
                     traceback_lines.pop(i)
-                self.appendPlainText(os.linesep.join(
-                    traceback_lines)+os.linesep)
+                self.appendPlainText(os.linesep.join(traceback_lines) + os.linesep)
 
             finally:
                 sys.stdout = old_stdout
@@ -197,7 +200,10 @@ class PythonConsole(QTextEdit):
             self.setCommand(self.getNextHistoryEntry())
             return
 
-        if event.key() == Qt.Key.Key_D and event.modifiers() == Qt.KeyboardModifier.ControlModifier:
+        if (
+            event.key() == Qt.Key.Key_D
+            and event.modifiers() == Qt.KeyboardModifier.ControlModifier
+        ):
             self.close()
 
         super(PythonConsole, self).keyPressEvent(event)
@@ -213,4 +219,4 @@ class PythonConsole(QTextEdit):
 
     @property
     def arch(self):
-        return self.emu.arch
+        return cemu.core.context.architecture

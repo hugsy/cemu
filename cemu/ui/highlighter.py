@@ -13,15 +13,15 @@ class QFormatter(Formatter):
         self.styles: dict[str, QTextCharFormat] = {}
         for token, style in self.style:
             qtf = QTextCharFormat()
-            if style['color']:
-                qtf.setForeground(self.hex2QColor(style['color']))
-            if style['bgcolor']:
-                qtf.setBackground(self.hex2QColor(style['bgcolor']))
-            if style['bold']:
+            if style["color"]:
+                qtf.setForeground(self.hex2QColor(style["color"]))
+            if style["bgcolor"]:
+                qtf.setBackground(self.hex2QColor(style["bgcolor"]))
+            if style["bold"]:
                 qtf.setFontWeight(QFont.Weight.Bold)
-            if style['italic']:
+            if style["italic"]:
                 qtf.setFontItalic(True)
-            if style['underline']:
+            if style["underline"]:
                 qtf.setFontUnderline(True)
             self.styles[str(token)] = qtf
         return
@@ -35,9 +35,14 @@ class QFormatter(Formatter):
     def format(self, tokensource, outfile):
         self.data = []
         for ttype, value in tokensource:
-            l = len(value)
-            t = str(ttype)
-            self.data.extend([self.styles[t], ]*l)
+            value_width = len(value)
+            type_as_str = str(ttype)
+            self.data.extend(
+                [
+                    self.styles[type_as_str],
+                ]
+                * value_width
+            )
         return
 
 
@@ -52,11 +57,11 @@ class Highlighter(QSyntaxHighlighter):
     def highlightBlock(self, text):
         cb = self.currentBlock()
         p = cb.position()
-        text = self.document().toPlainText() + '\n'
+        text = self.document().toPlainText() + "\n"
         highlight(text, self.lexer, self.formatter)
         for i in range(len(text)):
             try:
-                self.setFormat(i, 1, self.formatter.data[p+i])
+                self.setFormat(i, 1, self.formatter.data[p + i])
             except IndexError:
                 pass
         self.tstamp = time.time()

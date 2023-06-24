@@ -8,6 +8,7 @@ from typing import Generator, Optional, TYPE_CHECKING
 from PyQt6.QtWidgets import QDockWidget
 
 import cemu.core
+
 if TYPE_CHECKING:
     from cemu.ui.main import CEmuWindow
 from cemu.const import PLUGINS_PATH
@@ -25,6 +26,7 @@ class CemuPlugin(QDockWidget):
 
     @property
     def rootWindow(self) -> CEmuWindow:
+        assert isinstance(cemu.core.context, cemu.core.GlobalGuiContext)
         return cemu.core.context.root
 
 

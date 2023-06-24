@@ -1,0 +1,2 @@
+class AssemblyException(Exception):
+    pass

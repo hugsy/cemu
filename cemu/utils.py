@@ -2,44 +2,69 @@ import os
 import pathlib
 import random
 import string
-from typing import Optional, Tuple
+from dataclasses import dataclass
+from typing import Optional, TYPE_CHECKING
 
-import capstone
-import keystone
-import unicorn
-from PyQt6.QtWidgets import QTextEdit
-
+if TYPE_CHECKING:
+    import cemu.arch
 import cemu.core
-from cemu.arch import (Architecture, Architectures, Endianness, is_aarch64,
-                       is_arm, is_arm_thumb, is_mips, is_mips64, is_sparc,
-                       is_sparc64, is_x86_16, is_x86_32, is_x86_64)
+import cemu.errors
+import cemu.utils
 from cemu.const import COMMENT_MARKER, PROPERTY_MARKER
 from cemu.log import dbg
 
 DISASSEMBLY_DEFAULT_BASE_ADDRESS = 0x40000
 
 
-def hexdump(source: bytearray, length: int = 0x10, separator: str = ".", show_raw: bool = False, base: int = 0x00) -> str:
-    """
-    Produces a `hexdump` command like output version of the bytearray given.
+def hexdump(
+    source: bytes,
+    alignment: int = 0x10,
+    separator: str = ".",
+    show_raw: bool = False,
+    base: int = 0x00,
+) -> str:
+    """Produces a `hexdump` command like output version of the bytearray given.
+
+    Args:
+        source (bytes): _description_
+        alignment (int, optional): _description_. Defaults to 0x10.
+        separator (str, optional): _description_. Defaults to ".".
+        show_raw (bool, optional): _description_. Defaults to False.
+        base (int, optional): _description_. Defaults to 0x00.
+
+    Returns:
+        str: _description_
     """
     result: list[str] = []
-    for i in range(0, len(source), length):
-        s = source[i:i+length]
-
-        hexa = ' '.join(["%02X" % c for c in s])
-        text = ''.join([chr(c) if 0x20 <= c < 0x7F else separator for c in s])
+    for i in range(0, len(source), alignment):
+        chunk = source[i : i + alignment]
+        hexa = " ".join([f"{c:02X}" for c in chunk])
+        text = "".join([chr(c) if 0x20 <= c < 0x7F else separator for c in chunk])
 
         if show_raw:
             result.append(hexa)
         else:
-            result.append("%#-.*x   %-*s  %s" %
-                          (16, base+i, 3*length, hexa, text))
+            result.append(f"{format_address(base)}  {hexa}  {text}")
 
-    return '\n'.join(result)
+    return os.linesep.join(result)
 
 
-def format_address(addr: int, arch: Architecture) -> str:
+def format_address(addr: int, arch: Optional[cemu.arch.Architecture] = None) -> str:
+    """Format an address to string, aligned to the given architecture
+
+    Args:
+        addr (int): _description_
+        arch (Optional[Architecture], optional): _description_. Defaults to None.
+
+    Raises:
+        ValueError: _description_
+
+    Returns:
+        str: _description_
+    """
+    if arch is None:
+        arch = cemu.core.context.architecture
+
     if arch.ptrsize == 2:
         return f"{addr:#04x}"
     elif arch.ptrsize == 4:
@@ -50,236 +75,95 @@ def format_address(addr: int, arch: Architecture) -> str:
         raise ValueError(f"Invalid value for '{arch.ptrsize=}'")
 
 
-def get_arch_mode(lib: str) -> Tuple[int, int, int]:
+@dataclass
+class Instruction:
+    address: int
+    mnemonic: str
+    operands: str
+    bytes: bytes
 
-    arch = cemu.core.context.architecture
+    @property
+    def size(self):
+        return len(self.bytes)
 
-    # x86
-    if is_x86_16(arch):
-        if lib == "keystone":
-            return (keystone.KS_ARCH_X86, keystone.KS_MODE_16, keystone.KS_MODE_LITTLE_ENDIAN)
-        elif lib == "capstone":
-            return (capstone.CS_ARCH_X86, capstone.CS_MODE_16, capstone.CS_MODE_LITTLE_ENDIAN)
-        elif lib == "unicorn":
-            return (unicorn.UC_ARCH_X86, unicorn.UC_MODE_16, unicorn.UC_MODE_LITTLE_ENDIAN)
-        else:
-            raise ValueError(f"Unknown module '{lib}' for {arch}")
+    @property
+    def end(self) -> int:
+        return self.address + self.size
 
-    if is_x86_32(arch):
-        if lib == "keystone":
-            return (keystone.KS_ARCH_X86, keystone.KS_MODE_32, keystone.KS_MODE_LITTLE_ENDIAN)
-        elif lib == "capstone":
-            return (capstone.CS_ARCH_X86, capstone.CS_MODE_32, capstone.CS_MODE_LITTLE_ENDIAN)
-        elif lib == "unicorn":
-            return (unicorn.UC_ARCH_X86, unicorn.UC_MODE_32, unicorn.UC_MODE_LITTLE_ENDIAN)
-        else:
-            raise ValueError(f"Unknown module '{lib}' for {arch}")
-
-    if is_x86_64(arch):
-        if lib == "keystone":
-            return (keystone.KS_ARCH_X86, keystone.KS_MODE_64, keystone.KS_MODE_LITTLE_ENDIAN)
-        elif lib == "capstone":
-            return (capstone.CS_ARCH_X86, capstone.CS_MODE_64, capstone.CS_MODE_LITTLE_ENDIAN)
-        elif lib == "unicorn":
-            return (unicorn.UC_ARCH_X86, unicorn.UC_MODE_64, unicorn.UC_MODE_LITTLE_ENDIAN)
-        else:
-            raise ValueError(f"Unknown module '{lib}' for {arch}")
-
-    # arm
-    if is_arm(arch):
-        if lib == "keystone":
-            return (keystone.KS_ARCH_ARM, keystone.KS_MODE_ARM, keystone.KS_MODE_LITTLE_ENDIAN)
-        elif lib == "capstone":
-            return (capstone.CS_ARCH_ARM, capstone.CS_MODE_ARM, capstone.CS_MODE_LITTLE_ENDIAN)
-        elif lib == "unicorn":
-            return (unicorn.UC_ARCH_ARM, unicorn.UC_MODE_ARM, unicorn.UC_MODE_LITTLE_ENDIAN)
-        else:
-            raise ValueError(f"Unknown module '{lib}' for {arch}")
-
-    if is_arm_thumb(arch):
-        if lib == "keystone":
-            return (keystone.KS_ARCH_ARM, keystone.KS_MODE_THUMB, keystone.KS_MODE_LITTLE_ENDIAN)
-        elif lib == "capstone":
-            return (capstone.CS_ARCH_ARM, capstone.CS_MODE_THUMB, capstone.CS_MODE_LITTLE_ENDIAN)
-        elif lib == "unicorn":
-            return (unicorn.UC_ARCH_ARM, unicorn.UC_MODE_THUMB, unicorn.UC_MODE_LITTLE_ENDIAN)
-        else:
-            raise ValueError(f"Unknown module '{lib}' for {arch}")
-
-    # aarch64
-    if is_aarch64(arch):
-        if lib == "keystone":
-            return (keystone.KS_ARCH_ARM64, 0, keystone.KS_MODE_LITTLE_ENDIAN)
-        elif lib == "capstone":
-            return (capstone.CS_ARCH_ARM64, capstone.CS_MODE_ARM, capstone.CS_MODE_LITTLE_ENDIAN)
-        elif lib == "unicorn":
-            return (unicorn.UC_ARCH_ARM64, unicorn.UC_MODE_ARM, unicorn.UC_MODE_LITTLE_ENDIAN)
-        else:
-            raise ValueError(f"Unknown module '{lib}' for {arch}")
-
-    # mips/mips64
-    if is_mips(arch):
-        if arch.endianness == Endianness.LITTLE_ENDIAN:
-            if lib == "keystone":
-                return (keystone.KS_ARCH_MIPS, keystone.KS_MODE_MIPS32, keystone.KS_MODE_LITTLE_ENDIAN)
-            elif lib == "capstone":
-                return (capstone.CS_ARCH_MIPS, capstone.CS_MODE_MIPS32, capstone.CS_MODE_LITTLE_ENDIAN)
-            elif lib == "unicorn":
-                return (unicorn.UC_ARCH_MIPS, unicorn.UC_MODE_MIPS32, unicorn.UC_MODE_LITTLE_ENDIAN)
-            else:
-                raise ValueError(f"Unknown module '{lib}' for {arch}")
-        else:
-            if lib == "keystone":
-                return (keystone.KS_ARCH_MIPS, keystone.KS_MODE_MIPS32, keystone.KS_MODE_BIG_ENDIAN)
-            elif lib == "capstone":
-                return (capstone.CS_ARCH_MIPS, capstone.CS_MODE_MIPS32, capstone.CS_MODE_BIG_ENDIAN)
-            elif lib == "unicorn":
-                return (unicorn.UC_ARCH_MIPS, unicorn.UC_MODE_MIPS32, unicorn.UC_MODE_BIG_ENDIAN)
-            else:
-                raise ValueError(f"Unknown module '{lib}' for {arch}")
-
-    if is_mips64(arch):
-        if arch.endianness == Endianness.LITTLE_ENDIAN:
-            if lib == "keystone":
-                return (keystone.KS_ARCH_MIPS, keystone.KS_MODE_MIPS64, keystone.KS_MODE_LITTLE_ENDIAN)
-            elif lib == "capstone":
-                return (capstone.CS_ARCH_MIPS, capstone.CS_MODE_MIPS64, capstone.CS_MODE_LITTLE_ENDIAN)
-            elif lib == "unicorn":
-                return (unicorn.UC_ARCH_MIPS, unicorn.UC_MODE_MIPS64, unicorn.UC_MODE_LITTLE_ENDIAN)
-            else:
-                raise ValueError(f"Unknown module '{lib}' for {arch}")
-        else:
-            if lib == "keystone":
-                return (keystone.KS_ARCH_MIPS, keystone.KS_MODE_MIPS64, keystone.KS_MODE_BIG_ENDIAN)
-            elif lib == "capstone":
-                return (capstone.CS_ARCH_MIPS, capstone.CS_MODE_MIPS64, capstone.CS_MODE_BIG_ENDIAN)
-            elif lib == "unicorn":
-                return (unicorn.UC_ARCH_MIPS, unicorn.UC_MODE_MIPS64, unicorn.UC_MODE_BIG_ENDIAN)
-            else:
-                raise ValueError(f"Unknown module '{lib}' for {arch}")
-
-    # sparc/sparc64
-    if is_sparc(arch):
-        if lib == "keystone":
-            return (keystone.KS_ARCH_SPARC, keystone.KS_MODE_SPARC32, keystone.KS_MODE_LITTLE_ENDIAN)
-        elif lib == "capstone":
-            return (capstone.CS_ARCH_SPARC, 0, capstone.CS_MODE_LITTLE_ENDIAN)
-        elif lib == "unicorn":
-            return (unicorn.UC_ARCH_SPARC, unicorn.UC_MODE_SPARC32, unicorn.UC_MODE_LITTLE_ENDIAN)
-        else:
-            raise ValueError(f"Unknown module '{lib}' for {arch}")
-    if is_sparc64(arch):
-        if lib == "keystone":
-            return (keystone.KS_ARCH_SPARC, keystone.KS_MODE_SPARC64, keystone.KS_MODE_LITTLE_ENDIAN)
-        elif lib == "capstone":
-            return (capstone.CS_ARCH_SPARC, 0, capstone.CS_MODE_LITTLE_ENDIAN)
-        elif lib == "unicorn":
-            return (unicorn.UC_ARCH_SPARC, unicorn.UC_MODE_SPARC64, unicorn.UC_MODE_LITTLE_ENDIAN)
-        else:
-            raise ValueError(f"Unknown module '{lib}' for {arch}")
-
-    # default, just throw
-    raise ValueError(f"Unknown module '{lib}' for {arch}")
+    def __str__(self):
+        return f'Instruction({self.address:#x}, "{self.mnemonic} {self.operands}")'
 
 
-def disassemble(raw_data: bytes, count: int = -1, base: int = DISASSEMBLY_DEFAULT_BASE_ADDRESS) -> dict[int, Tuple[str, str]]:
+def disassemble(
+    raw_data: bytes, count: int = -1, base: int = DISASSEMBLY_DEFAULT_BASE_ADDRESS
+) -> list[Instruction]:
     """Disassemble the code given as raw data, with the given architecture.
 
     Args:
         raw_data (bytes): the raw byte code to disassemble
         arch (Architecture): the architecture to use for disassembling
         count (int, optional): the maximum number of instruction to disassemble. Defaults to -1.
-        count (int, optional): the disassembled code base address. Defaults to DISASSEMBLY_DEFAULT_BASE_ADDRESS
+        base (int, optional): the disassembled code base address. Defaults to DISASSEMBLY_DEFAULT_BASE_ADDRESS
 
     Returns:
         str: the text representation of the disassembled code
     """
-    cs_arch, cs_mode, cs_endian = get_arch_mode("capstone")
-    cs = capstone.Cs(cs_arch, cs_mode | cs_endian)
-    insns: dict[int, Tuple[str, str]] = {}
-    for idx, ins in enumerate(cs.disasm(bytes(raw_data), base)):
-        insns[ins.address] = (ins.mnemonic, ins.op_str)
+    arch = cemu.core.context.architecture
+    insns: list[Instruction] = []
+    for idx, ins in enumerate(arch.cs.disasm(raw_data, base)):
+        insn = Instruction(ins.address, ins.mnemonic, ins.op_str, ins.bytes)
+        insns.append(insn)
         if idx == count:
             break
 
+    dbg(f"{insns=}")
     return insns
 
 
-def disassemble_file(fpath: pathlib.Path) -> dict[int, Tuple[str, str]]:
-    with fpath.open('rb') as f:
+def disassemble_file(fpath: pathlib.Path) -> list[Instruction]:
+    with fpath.open("rb") as f:
         return disassemble(f.read())
 
 
-def assemble(asm_code: str, as_bytes: bool = True) -> Tuple[bytes, int]:
+def assemble(
+    code: str, base_address: int = DISASSEMBLY_DEFAULT_BASE_ADDRESS
+) -> list[Instruction]:
     """
     Helper function to assemble code receive in parameter `asm_code` using Keystone.
 
-    @param asm_code : assembly code in bytes (multiple instructions must be separated by ';')
-    @param mode : defines the mode to use Keystone with
-    @return a tuple of bytecodes as bytearray, along with the number of instruction compiled. If failed, the
-    bytearray will be empty, the count of instruction will be the negative number for the faulty line.
+    @param code : assembly code in bytes (multiple instructions must be separated by ';')
+    @param base_address : (opt) the base address to use
+
+    @return a list of Instruction
     """
     arch = cemu.core.context.architecture
-    ks_arch, ks_mode, ks_endian = get_arch_mode("keystone")
-    ks = keystone.Ks(ks_arch, ks_mode | ks_endian)
 
-    try:
-        bytecode, cnt = ks.asm(asm_code, as_bytes=as_bytes)
-        if not bytecode or not cnt:
-            return (b'', 0)
-        bytecode = bytes(bytecode)
-    except keystone.keystone.KsError as kse:
-        return (b'', kse.get_asm_count())
+    #
+    # Compile the entire given code
+    #
+    bytecode, assembled_insn_count = arch.ks.asm(code, as_bytes=True, addr=base_address)
+    if not bytecode or assembled_insn_count == 0:
+        raise cemu.errors.AssemblyException("Not instruction compiled")
 
-    return (bytecode, cnt)
+    assert isinstance(bytecode, bytes)
+
+    #
+    # Decompile it and return the stuff
+    #
+    insns = disassemble(bytecode, base=base_address)
+    dbg(f"{insns=}")
+    return insns
+
+
+def assemble_file(fpath: pathlib.Path) -> list[Instruction]:
+    with fpath.open("r") as f:
+        return assemble(f.read())
 
 
 def ishex(x: str) -> bool:
     if x.lower().startswith("0x"):
         x = x[2:]
     return all([c in string.hexdigits for c in x])
-
-
-def get_cursor_row_number(widget: QTextEdit) -> int:
-    """Get the cursor row number from the QTextEdit widget
-
-    Args:
-        widget (QTextEdit): _description_
-
-    Returns:
-        int: _description_
-    """
-    assert isinstance(widget, QTextEdit)
-    pos = widget.textCursor().position()
-    text = widget.toPlainText()
-    return text[:pos].count(os.linesep)
-
-
-def get_cursor_column_number(widget: QTextEdit) -> int:
-    """Get the cursor column number from the QTextEdit widget
-
-    Args:
-        widget (QTextEdit): _description_
-
-    Returns:
-        int: _description_
-    """
-    assert isinstance(widget, QTextEdit)
-    pos = widget.textCursor().position()
-    text = widget.toPlainText()
-    return len(text[:pos].split(os.linesep)[-1])
-
-
-def get_cursor_position(widget: QTextEdit) -> Tuple[int, int]:
-    """Returns the position of a cursor like (nb_row, nb_col) from a textedit widget
-
-    Args:
-        widget (QTextEdit): _description_
-
-    Returns:
-        Tuple[int, int]: _description_
-    """
-    return (get_cursor_row_number(widget), get_cursor_column_number(widget))
 
 
 def generate_random_string(length: int) -> str:
@@ -295,7 +179,9 @@ def generate_random_string(length: int) -> str:
     return "".join(random.choice(charset) for _ in range(length))
 
 
-def get_metadata_from_stream(content: str) -> Optional[Tuple[Architecture, Endianness]]:
+def get_metadata_from_stream(
+    content: str,
+) -> Optional[tuple[cemu.arch.Architecture, cemu.arch.Endianness]]:
     """Parse a file content to automatically extract metadata. Metadata can only be passed in the file
     header, and *must* be a commented line (i.e. starting with `;;; `) followed by the property marker (i.e. `@@@`).
     Both the architecture and endianess *must* be provided
@@ -308,15 +194,15 @@ def get_metadata_from_stream(content: str) -> Optional[Tuple[Architecture, Endia
         content (str): _description_
 
     Returns:
-        Optional[Tuple[str, str]]: _description_
+        Optional[tuple[str, str]]: _description_
 
     Raises:
         KeyError:
             - if an architecture metadata is found, but invalid
             - if an endianess metadata is found, but invalid
     """
-    arch: Optional[Architecture] = None
-    endian: Optional[Endianness] = None
+    arch: Optional[cemu.arch.Architecture] = None
+    endian: Optional[cemu.arch.Endianness] = None
 
     for line in content.splitlines():
         part = line.strip().split()
@@ -333,15 +219,15 @@ def get_metadata_from_stream(content: str) -> Optional[Tuple[Architecture, Endia
         metadata_value = part[2].lower()
 
         if metadata_type == "architecture" and not arch:
-            arch = Architectures.find(metadata_value)
+            arch = cemu.arch.Architectures.find(metadata_value)
             dbg(f"Forcing architecture '{arch}'")
             continue
 
         if metadata_type == "endianness" and not endian:
             if metadata_value == "little":
-                endian = Endianness.LITTLE_ENDIAN
+                endian = cemu.arch.Endianness.LITTLE_ENDIAN
             elif metadata_value == "big":
-                endian = Endianness.BIG_ENDIAN
+                endian = cemu.arch.Endianness.BIG_ENDIAN
             else:
                 continue
             dbg(f"Forcing endianness '{endian}'")

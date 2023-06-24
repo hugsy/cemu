@@ -1,0 +1,150 @@
+
+#
+# https://packaging.python.org/en/latest/tutorials/packaging-projects
+#
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+
+[project]
+name = "CEmu"
+version = "0.7"
+authors = [{ name = "hugsy", email = "hugsy@blah.cat" }]
+description = "Cemu is a simple assembly/dissembly/emulation IDE that provides an easy Plug-n-Play environment to start playing with many architectures (currently supports x86-{32,64}, ARM, AARCH64, MIPS, MIPS64, SPARC and PPC)."
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Topic :: Software Development :: Assemblers",
+    "Natural Language :: English",
+    "Environment :: Console",
+]
+
+keywords = [
+    "assembly",
+    "disassembly",
+    "emulation",
+    "x86",
+    "x64",
+    "arm",
+    "aarch64",
+    "mips",
+    "powerpc",
+    "sparc",
+]
+
+dependencies = [
+    "capstone",
+    "unicorn",
+    "keystone-engine",
+    "PyQt6",
+    "Pygments",
+    "lief",
+    "loguru",
+    "prompt_toolkit",
+]
+
+[project.entry-points.console_scripts]
+cemu = "cemu.__main__:main"
+
+[project.entry-points.gui_scripts]
+cemu = "cemu.__main__:main"
+
+[project.urls]
+"Homepage" = "https://github.com/hugsy/cemu"
+"Bug Tracker" = "https://github.com/hugsy/cemu/issues"
+
+[tool.pytest.ini_options]
+log_cli = true
+log_cli_level = "INFO"
+log_cli_format = "%(asctime)s [%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)"
+log_cli_date_format = "%Y-%m-%d %H:%M:%S"
+
+[tool.isort]
+profile = "black"
+
+[tool.ruff]
+select = ["E", "F"]
+ignore = []
+fixable = [
+    "A",
+    "B",
+    "C",
+    "D",
+    "E",
+    "F",
+    "G",
+    "I",
+    "N",
+    "Q",
+    "S",
+    "T",
+    "W",
+    "ANN",
+    "ARG",
+    "BLE",
+    "COM",
+    "DJ",
+    "DTZ",
+    "EM",
+    "ERA",
+    "EXE",
+    "FBT",
+    "ICN",
+    "INP",
+    "ISC",
+    "NPY",
+    "PD",
+    "PGH",
+    "PIE",
+    "PL",
+    "PT",
+    "PTH",
+    "PYI",
+    "RET",
+    "RSE",
+    "RUF",
+    "SIM",
+    "SLF",
+    "TCH",
+    "TID",
+    "TRY",
+    "UP",
+    "YTT",
+]
+unfixable = []
+
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "venv",
+]
+
+line-length = 120
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+target-version = "py310"
+
+[tool.ruff.mccabe]
+max-complexity = 10
