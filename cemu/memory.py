@@ -1,6 +1,6 @@
 import enum
 import pathlib
-from typing import Optional
+from typing import Optional, Union
 
 import unicorn
 
@@ -180,8 +180,9 @@ class MemorySection:
         name: str,
         addr: int,
         size: int,
-        perm: str,
+        perm: Union[str, MemoryPermission],
         data_file: Optional[pathlib.Path] = None,
+        data_content: Optional[bytes] = None,
     ):
         if addr < 0 or addr >= 2**64:
             raise ValueError("address")
@@ -195,8 +196,16 @@ class MemorySection:
         self.name = name.strip().lower()
         self.address = addr
         self.size = size
-        self.permission = MemoryPermission.from_string(perm)
+
+        if isinstance(perm, str):
+            self.permission = MemoryPermission.from_string(perm)
+        elif isinstance(perm, MemoryPermission):
+            self.permission = perm
+        else:
+            raise TypeError("Invalid type for `perm`")
+
         self.file_source = data_file if data_file and data_file.is_file() else None
+        self.__content: Optional[bytes] = data_content
         return
 
     @property
@@ -213,13 +222,25 @@ class MemorySection:
         Returns:
             bytes: the file content
         """
+
+        #
+        # If the content is already loaded, use it
+        #
+        if self.__content:
+            return self.__content
+
+        #
+        # If a file has been provided, but not read yet, do it now
+        #
         if not self.file_source:
             return None
 
         data = self.file_source.open("rb").read()
         if len(data) > self.size:
             raise AttributeError("Insufficient space")
-        return data
+
+        self.__content = data
+        return self.__content
 
     def __str__(self) -> str:
         return (

@@ -1,17 +1,20 @@
+import collections
+import pathlib
 from enum import IntEnum, unique
 from multiprocessing import Lock
 from typing import Any, Callable, Optional
 
-import collections
+import udmp_parser
 import unicorn
 
 import cemu.const
 import cemu.core
+import cemu.os
 import cemu.utils
 from cemu.log import dbg, error, info, warn
 
-from .arch import is_x86, is_x86_32, x86
-from .memory import MemorySection
+from .arch import is_x86, is_x86_32, is_x86_64, x86
+from .memory import MemoryPermission, MemorySection
 
 
 @unique
@@ -176,7 +179,9 @@ class Emulator:
             return False
 
         for section in self.sections:
-            self.vm.mem_map(section.address, section.size, perms=section.permission.unicorn())
+            self.vm.mem_map(
+                section.address, section.size, perms=section.permission.unicorn()
+            )
             msg = f"Mapping {str(section)}"
 
             if section.content:
@@ -617,3 +622,170 @@ class Emulator:
 
         self.vm.emu_stop()
         return
+
+    def allocate(self, size: int) -> int:
+        def aligned_allocation_size(size: int) -> int:
+            if size % ALLOCATION_ALIGNMENT == 0:
+                return size
+            return (size // ALLOCATION_ALIGNMENT) + ALLOCATION_ALIGNMENT
+
+        if not self.vm:
+            return -1
+
+        ALLOCATABLE_REGION_START = 0x1_0000
+        LAST_ALLOCATION = ALLOCATABLE_REGION_START
+        ALLOCATION_ALIGNMENT = 0x1_0000
+        MAX_ATTEMPT = 10
+
+        addr = LAST_ALLOCATION
+        sz = aligned_allocation_size(size)
+        for i in range(MAX_ATTEMPT):
+            try:
+                dbg(f"Trying to allocate({addr=:#x}, {sz=:d}), attempt {i}")
+                self.vm.mem_map(addr, sz, unicorn.UC_PROT_ALL)
+                LAST_ALLOCATION = addr + ALLOCATION_ALIGNMENT
+                return addr
+            except unicorn.unicorn.UcError as e:
+                print(f"UcError({str(e)}")
+                addr += ALLOCATION_ALIGNMENT
+                continue
+
+        raise Exception(f"Memory allocation: failed to malloc({size})")
+
+    def load_dumpfile(self, dmp_fpath: pathlib.Path) -> bool:
+        """Populate the VM with the execution context from a minidump file (if running under a Windows context) or a
+        coredump (if running under a Linux context)
+
+        Args:
+            dmp_fpath (pathlib.Path): _description_
+
+        Raises:
+            NotImplementedError
+
+        Returns:
+            bool: _description_
+        """
+        match cemu.core.context.os:
+            case cemu.os.Linux:
+                dbg(f"Parsing coredump {dmp_fpath}")
+                raise NotImplementedError("Linux coredump not implemented yet")
+
+            case cemu.os.Windows:
+                dbg(f"Parsing minidump {dmp_fpath}")
+                dmp = udmp_parser.UserDumpParser()
+                if not dmp.Parse(dmp_fpath):
+                    error(f"Failed to parse minidump {dmp_fpath}")
+                    return False
+
+                #
+                # Populate the memory
+                #
+                memory = dmp.Memory()
+                dbg(f"Mapping {len(memory)} memory sections")
+                self.sections.clear()
+
+                for _, section in memory.items():
+                    content = bytes(
+                        dmp.ReadMemory(section.BaseAddress, section.RegionSize)
+                    )
+                    section = MemorySection(
+                        "",
+                        section.BaseAddress,
+                        section.RegionSize,
+                        MemoryPermission.from_windows(section.Protect),
+                        data_content=content,
+                    )
+                    self.sections.append(section)
+
+                #
+                # Populate the threads
+                #
+                self.threads = dmp.Threads()
+
+                tids = list(self.threads.keys())
+                if not self.switch_to_thread(tids[0]):
+                    return False
+
+            case _:
+                raise ValueError("Unknown OS context")
+
+        return True
+
+    def switch_to_thread(self, tid: int) -> bool:
+        """Switch to the context of the thread whose TID is given as argument
+
+        Args:
+            tid (int): _description_
+
+        Raises:
+            IndexError: _description_
+            NotImplementedError: _description_
+        """
+        # https://wiki.osdev.org/SWAPGS
+        FSBase, GSBase, KernelGSBase = 0xC0000100, 0xC0000101, 0xC0000102  # noqa: F841
+
+        if not self.vm:
+            warn("VM must be initialized")
+            return False
+
+        threads = [t for t in self.threads if t.Tid == tid]
+        if not threads:
+            raise IndexError(f"No thread with TID={tid}")
+
+        assert len(threads) == 1, f"Multiple threads with TID={tid}, invalid"
+
+        thread = threads[0]
+
+        dbg(f"Trying to switch to thread context TID={thread.Tid}")
+
+        # TODO abstract thread switching through architecture
+        if not is_x86_64(cemu.core.context.architecture):
+            raise NotImplementedError(
+                "Thread switching only implemented for x64, currently"
+            )
+
+        try:
+            # Set GSBase to the TEB
+            self.vm.msr_write(GSBase, thread.Teb)
+            self.vm.reg_write(unicorn.x86_const.UC_X86_REG_CS, thread.Context.SegCs)
+            self.vm.reg_write(unicorn.x86_const.UC_X86_REG_DS, thread.Context.SegDs)
+            self.vm.reg_write(
+                unicorn.x86_const.UC_X86_REG_RIP, thread.Context.Rip
+            )  # pc
+            self.vm.reg_write(
+                unicorn.x86_const.UC_X86_REG_RSP, thread.Context.Rsp
+            )  # sp
+            # uc.reg_write(unicorn.x86_const.UC_X86_REG_GS, curthread.Context.SegGs)
+            # TODO other regs?
+        except Exception as e:
+            error(f"Exception: {str(e)}")
+            return False
+
+        return True
+
+    def invoke(self, start_address: int, end_address: int, args: list[Any]) -> bool:
+        if not self.vm:
+            warn("VM must be initialized")
+            return False
+
+        if not is_x86_64(cemu.core.context.architecture):
+            raise NotImplementedError(
+                "Thread switching only implemented for x64, currently"
+            )
+
+        # TODO abstract the calling convention through architecture
+        if len(args) >= 1:
+            self.vm.reg_write(unicorn.x86_const.UC_X86_REG_RCX, args[0])
+        if len(args) >= 2:
+            self.vm.reg_write(unicorn.x86_const.UC_X86_REG_RDX, args[1])
+        if len(args) >= 3:
+            self.vm.reg_write(unicorn.x86_const.UC_X86_REG_R8, args[2])
+        if len(args) >= 4:
+            self.vm.reg_write(unicorn.x86_const.UC_X86_REG_R8, args[3])
+
+        self.start_addr = start_address
+        self.end_addr = end_address
+
+        self.set(EmulatorState.RUNNING)
+
+        return True
