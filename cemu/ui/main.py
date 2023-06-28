@@ -325,9 +325,10 @@ class CEmuWindow(QMainWindow):
         # Add Architecture menu bar
         archMenu = menubar.addMenu("&Architecture")
         for abi in sorted(Architectures.keys()):
-            archSubMenu = archMenu.addMenu(abi)
+            archSubMenu = archMenu.addMenu(abi.upper())
             for arch in Architectures[abi]:
-                self.archActions[arch.name] = QAction(QIcon(), str(arch), self)
+                label = f"{arch.name:s} / Endian: {str(arch.endianness)} / Syntax: {str(arch.syntax)}"
+                self.archActions[arch.name] = QAction(QIcon(), label, self)
                 if arch == cemu.core.context.architecture:
                     self.archActions[arch.name].setEnabled(False)
                     self.currentAction = self.archActions[arch.name]

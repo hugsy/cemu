@@ -1,12 +1,13 @@
+import collections
 from enum import IntEnum, unique
 from multiprocessing import Lock
 from typing import Any, Callable, Optional
 
-import collections
 import unicorn
 
 import cemu.const
 import cemu.core
+import cemu.os
 import cemu.utils
 from cemu.log import dbg, error, info, warn
 
@@ -175,8 +176,14 @@ class Emulator:
             error("VM is not initalized")
             return False
 
+        if len(self.sections) < 0:
+            error("No section declared")
+            return False
+
         for section in self.sections:
-            self.vm.mem_map(section.address, section.size, perms=section.permission.unicorn())
+            self.vm.mem_map(
+                section.address, section.size, perms=section.permission.unicorn()
+            )
             msg = f"Mapping {str(section)}"
 
             if section.content:
@@ -185,6 +192,10 @@ class Emulator:
 
             dbg(f"[vm::setup] {msg}")
 
+        #
+        # Set temporary values to start_addr and end_addr.
+        # Those values will likely be changed when populating text section
+        #
         self.start_addr = self.sections[0].address
         self.end_addr = -1
         return True
