@@ -41,11 +41,22 @@ dependencies = [
     "capstone",
     "unicorn",
     "keystone-engine",
-    "PyQt6",
     "Pygments",
     "lief",
     "loguru",
+    "pre-commit",
     "prompt_toolkit",
+    "PyQt6",
+]
+
+[project.optional-dependencies]
+tests = [
+    "pytest",
+    "pytest-cov",
+    "pytest-xdist",
+    "pytest-benchmark",
+    "pytest-forked",
+    "coverage",
 ]
 
 [project.entry-points.console_scripts]
@@ -59,10 +70,16 @@ cemu = "cemu.__main__:main"
 "Bug Tracker" = "https://github.com/hugsy/cemu/issues"
 
 [tool.pytest.ini_options]
+minversion = "6.0"
+python_functions = ["test_*", "time_*"]
+python_files = ["*.py"]
 log_cli = true
-log_cli_level = "INFO"
+log_cli_level = "DEBUG"
 log_cli_format = "%(asctime)s [%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)"
 log_cli_date_format = "%Y-%m-%d %H:%M:%S"
+addopts = "--cov --cov-report html --cov-report term-missing --cov-fail-under 95"
+testpaths = ["tests"]
+pythonpath = ["."]
 
 [tool.isort]
 profile = "black"
