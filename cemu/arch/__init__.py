@@ -68,21 +68,24 @@ class Architecture:
     @property
     def syscalls(self):
         if not self.__context:
-            mod = __import__("cemu.core")
-            self.__context = getattr(mod, "context")
+            import cemu.core
+
+            self.__context = cemu.core.context
             assert isinstance(self.__context, cemu.core.GlobalContext)
 
         if not self.__syscalls:
-            syscall_dir = SYSCALLS_PATH / cemu.core.context.os
+            syscall_dir = SYSCALLS_PATH / str(self.__context.os)
             fpath = syscall_dir / (self.syscall_filename + ".csv")
             self.__syscalls = {}
-
-            with fpath.open("r") as fd:
-                for row in fd.readlines():
-                    row = [x.strip() for x in row.strip().split(",")]
-                    syscall_number = int(row[0])
-                    syscall_name = row[1].lower()
-                    self.__syscalls[syscall_name] = self.syscall_base + syscall_number
+            if fpath.exists():
+                with fpath.open("r") as fd:
+                    for row in fd.readlines():
+                        row = [x.strip() for x in row.strip().split(",")]
+                        syscall_number = int(row[0])
+                        syscall_name = row[1].lower()
+                        self.__syscalls[syscall_name] = (
+                            self.syscall_base + syscall_number
+                        )
 
         return self.__syscalls
 
