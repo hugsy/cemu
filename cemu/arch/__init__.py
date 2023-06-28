@@ -17,7 +17,7 @@ class Endianness(enum.Enum):
     BIG_ENDIAN = 2
 
     def __str__(self) -> str:
-        return self.name
+        return self.name.replace("_", " ").title()
 
     def __repr__(self) -> str:
         return self.name
