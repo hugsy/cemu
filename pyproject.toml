@@ -9,7 +9,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "CEmu"
-version = "0.7"
+version = "0.8"
 authors = [{ name = "hugsy", email = "hugsy@blah.cat" }]
 description = "Cemu is a simple assembly/dissembly/emulation IDE that provides an easy Plug-n-Play environment to start playing with many architectures (currently supports x86-{32,64}, ARM, AARCH64, MIPS, MIPS64, SPARC and PPC)."
 readme = "README.md"
@@ -44,9 +44,20 @@ dependencies = [
     "Pygments",
     "lief",
     "loguru",
+    "pre-commit",
     "prompt_toolkit",
     "PyQt6",
     "udmp_parser>=0.4.2",
+]
+
+[project.optional-dependencies]
+tests = [
+    "pytest",
+    "pytest-cov",
+    "pytest-xdist",
+    "pytest-benchmark",
+    "pytest-forked",
+    "coverage",
 ]
 
 [project.entry-points.console_scripts]
@@ -60,10 +71,16 @@ cemu = "cemu.__main__:main"
 "Bug Tracker" = "https://github.com/hugsy/cemu/issues"
 
 [tool.pytest.ini_options]
+minversion = "6.0"
+python_functions = ["test_*", "time_*"]
+python_files = ["*.py"]
 log_cli = true
 log_cli_level = "DEBUG"
 log_cli_format = "%(asctime)s [%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)"
 log_cli_date_format = "%Y-%m-%d %H:%M:%S"
+addopts = "--cov --cov-report html --cov-report term-missing --cov-fail-under 45"
+testpaths = ["tests"]
+pythonpath = ["."]
 
 [tool.isort]
 profile = "black"
