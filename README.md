@@ -10,7 +10,7 @@
   <img alt="Python-Version 3.10" src="https://img.shields.io/pypi/pyversions/cemu.svg">
   <a href="https://pypi.org/project/cemu/"><img alt="CEmu on PyPI" src="https://img.shields.io/pypi/v/cemu.svg"></a>
   <a href="https://discord.gg/qBn9MbG9vp"><img alt="CEmu on Discord" src="https://img.shields.io/badge/Discord-CEmu-green"></a>
-  <a href="https://pepy.tech/project/cemu"><img alt="Downloads" src="https://pepy.tech/badge/cemu"></a>
+  <a href="https://pepy.tech/project/cemu"><img alt="Downloads" src="https://static.pepy.tech/badge/cemu"></a>
 </p>
 
 
