@@ -47,6 +47,7 @@ dependencies = [
     "pre-commit",
     "prompt_toolkit",
     "PyQt6",
+    "udmp_parser>=0.4.2",
 ]
 
 [project.optional-dependencies]
