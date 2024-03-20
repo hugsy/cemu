@@ -91,7 +91,7 @@ jobs:
       id: publish_artifact
       uses: actions/upload-artifact@v4
       with:
-        name: ${{ env.NAME }}_${{ env.VERSION }}_${{ matrix.os }}_py${{ matrix.python-version }}_${{ github.ref_name }}_${{ github.sha }}
+        name: ${{ env.NAME }}_${{ env.VERSION }}_${{ matrix.os }}_py${{ matrix.python-version }}_${{ github.sha }}
         path: build/
 
     - name: Populate the successful output (Windows)
@@ -132,9 +132,9 @@ jobs:
     steps:
     - name: Send Discord notification
       env:
-        COMMIT_URL: "https://github.com/${{ env.REPO }}/commit/${{ env.GITHUB_SHA_SHORT }}"
+        COMMIT_URL: "https://github.com/${{ env.REPO }}/commit/${{ github.sha }}"
         RUN_URL: "https://github.com/${{ env.REPO }}/actions/runs/${{ github.run_id }}"
-        BRANCH_URL: "https://github.com/${{ env.REPO }}/tree/${{ env.GITHUB_REF_SLUG }}"
+        BRANCH_URL: "https://github.com/${{ env.REPO }}/tree/${{ github.ref_name }}"
         AUTHOR_URL: "https://github.com/${{ github.actor }}"
       uses: sarisia/actions-status-discord@v1.10.0
       with:
