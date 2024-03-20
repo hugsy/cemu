@@ -91,7 +91,7 @@ jobs:
       id: publish_artifact
       uses: actions/upload-artifact@v4
       with:
-        name: ${{ env.NAME }}_${{ env.VERSION }}_${{ matrix.os }}_py${{ matrix.python-version }}_${{ github.ref }}_${{ github.sha }}
+        name: ${{ env.NAME }}_${{ env.VERSION }}_${{ matrix.os }}_py${{ matrix.python-version }}_${{ github.ref_name }}_${{ github.sha }}
         path: build/
 
     - name: Populate the successful output (Windows)
@@ -143,7 +143,7 @@ jobs:
         description: |
           [Job #${{ github.run_number }}](${{ env.RUN_URL }}): CI build `${{ github.sha }}` initiated by [${{ github.actor }}](${{ env.AUTHOR_URL }}):
           ● Commit [${{ github.sha }}](${{ env.COMMIT_URL }})
-          ● Branch [`${{ github.ref }}`](${{ env.BRANCH_URL }})
+          ● Branch [`${{ github.ref_name }}`](${{ env.BRANCH_URL }})
           ● [Detail Page](${{ env.RUN_URL }})
 
           ${{ needs.build.outputs.windows-latest-3-10 }}
