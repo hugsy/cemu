@@ -15,20 +15,13 @@ import cemu.arch
 import cemu.const
 import cemu.core
 import cemu.memory
-from cemu.emulator import EmulatorState
+from cemu.emulator import MEMORY_MAP_DEFAULT_LAYOUT, EmulatorState
 from cemu.log import dbg, error, info, ok, warn
 from cemu.utils import hexdump
 
 bindings = KeyBindings()
 
 TEXT_EDITOR = os.getenv("EDITOR") or "nano -c"
-
-MEMORY_MAP_DEFAULT_LAYOUT: list[cemu.memory.MemorySection] = [
-    cemu.memory.MemorySection(".text", 0x00004000, 0x1000, "READ|EXEC"),
-    cemu.memory.MemorySection(".data", 0x00005000, 0x1000, "READ|WRITE"),
-    cemu.memory.MemorySection(".stack", 0x00006000, 0x4000, "READ|WRITE"),
-    cemu.memory.MemorySection(".misc", 0x0000A000, 0x1000, "READ|WRITE|EXEC"),
-]
 
 
 @bindings.add("c-c")

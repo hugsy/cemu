@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from typing import TYPE_CHECKING
 
 from PyQt6.QtWidgets import (
@@ -19,7 +17,7 @@ from PyQt6.QtWidgets import (
 
 import cemu.core
 from cemu.emulator import Emulator, EmulatorState
-from cemu.log import error
+from cemu.log import error, info
 from cemu.memory import MemorySection
 from cemu.utils import format_address
 
@@ -29,18 +27,9 @@ if TYPE_CHECKING:
     from cemu.ui.main import CEmuWindow
 
 
-MEMORY_MAP_DEFAULT_LAYOUT: list[MemorySection] = [
-    MemorySection(".text", 0x00004000, 0x1000, "READ|EXEC"),
-    MemorySection(".data", 0x00005000, 0x1000, "READ|WRITE"),
-    MemorySection(".stack", 0x00006000, 0x4000, "READ|WRITE"),
-    MemorySection(".misc", 0x0000A000, 0x1000, "READ|WRITE|EXEC"),
-]
-
-
 class MemoryMappingWidget(QDockWidget):
-    def __init__(self, parent: CEmuWindow):
+    def __init__(self, parent: "CEmuWindow"):
         super().__init__("Memory Map", parent)
-        self.memory_sections = MEMORY_MAP_DEFAULT_LAYOUT
 
         layout = QVBoxLayout()
 
@@ -74,55 +63,34 @@ class MemoryMappingWidget(QDockWidget):
         #
         # Emulator state callback
         #
-        emu: Emulator = cemu.core.context.emulator
-        emu.add_state_change_cb(
+        self.emu: Emulator = cemu.core.context.emulator
+        self.emu.add_state_change_cb(
             EmulatorState.NOT_RUNNING, self.onNotRunningUpdateMemoryMap
         )
-        emu.add_state_change_cb(
+        self.emu.add_state_change_cb(
             EmulatorState.RUNNING, self.onRunningDisableMemoryMapGrid
         )
-        emu.add_state_change_cb(EmulatorState.IDLE, self.onIdleEnableMemoryMapGrid)
-        emu.add_state_change_cb(
+        self.emu.add_state_change_cb(EmulatorState.IDLE, self.onIdleEnableMemoryMapGrid)
+        self.emu.add_state_change_cb(
             EmulatorState.FINISHED, self.onFinishedEnableMemoryMapGrid
         )
-        return
 
     def onNotRunningUpdateMemoryMap(self) -> None:
-        self.SynchronizeMemoryMap()
-        return
+        self.redraw_memory_map_table()
 
     def onRunningDisableMemoryMapGrid(self) -> None:
         self.MemoryMapTableWidget.setDisabled(True)
-        return
 
     def onIdleEnableMemoryMapGrid(self) -> None:
         self.MemoryMapTableWidget.setDisabled(False)
-        return
 
     onFinishedEnableMemoryMapGrid = onIdleEnableMemoryMapGrid
 
-    def SynchronizeMemoryMap(self) -> None:
-        #
-        # If unset, use a default layout
-        #
-        if not self.memory_sections:
-            self.memory_sections = MEMORY_MAP_DEFAULT_LAYOUT
-
-        #
-        # Propagate the view change to the emulator
-        #
-        cemu.core.context.emulator.sections = self.memory_sections
-
-        #
-        # Apply the values to the grid
-        #
-        self.UpdateMemoryMapGrid()
-        return
-
-    def UpdateMemoryMapGrid(self) -> None:
+    def redraw_memory_map_table(self) -> None:
+        """Re-draw the memory table widget from the emulator sections"""
         self.MemoryMapTableWidget.clearContents()
 
-        for idx, section in enumerate(self.memory_sections):
+        for idx, section in enumerate(self.emu.sections):
             self.MemoryMapTableWidget.insertRow(idx)
             name = QTableWidgetItem(section.name)
             start_address = QTableWidgetItem(format_address(section.address))
@@ -135,7 +103,7 @@ class MemoryMappingWidget(QDockWidget):
             self.MemoryMapTableWidget.setItem(idx, 2, name)
             self.MemoryMapTableWidget.setItem(idx, 3, permission)
 
-        self.MemoryMapTableWidget.setRowCount(len(self.memory_sections))
+        self.MemoryMapTableWidget.setRowCount(len(self.emu.sections))
         return
 
     def onAddSectionButtonClicked(self) -> None:
@@ -152,12 +120,13 @@ class MemoryMappingWidget(QDockWidget):
         selection = self.MemoryMapTableWidget.selectionModel()
         if not selection.hasSelection():
             return
+
         indexes = [x.row() for x in selection.selectedRows()]
 
-        for idx in range(len(self.memory_sections) - 1, 0, -1):
+        for idx in range(len(self.emu.sections) - 1, 0, -1):
             if idx in indexes:
-                del self.memory_sections[idx]
-        self.UpdateMemoryMapGrid()
+                del cemu.core.context.emulator.sections[idx]
+        self.redraw_memory_map_table()
         return
 
     def add_or_edit_section_popup(self) -> None:
@@ -179,9 +148,9 @@ class MemoryMappingWidget(QDockWidget):
         perm = QLabel("Permissions")
         permCheck = QWidget()
         permCheckLayout = QHBoxLayout()
-        perm_read_btn = QCheckBox("R")
-        perm_write_btn = QCheckBox("W")
-        perm_exec_btn = QCheckBox("X")
+        perm_read_btn = QCheckBox("Read")
+        perm_write_btn = QCheckBox("Write")
+        perm_exec_btn = QCheckBox("eXecute")
         permCheckLayout.addWidget(perm_read_btn)
         permCheckLayout.addWidget(perm_write_btn)
         permCheckLayout.addWidget(perm_exec_btn)
@@ -221,12 +190,13 @@ class MemoryMappingWidget(QDockWidget):
             address = int(startAddressEdit.text(), 0)
             size = int(sizeEdit.text(), 0)
 
-            if name in (x.name for x in self.memory_sections):
+            if name in (x.name for x in cemu.core.context.emulator.sections):
                 error("section name already exists")
                 return
 
             memory_set = (
-                set(range(x.address, x.address + x.size)) for x in self.memory_sections
+                set(range(x.address, x.address + x.size))
+                for x in cemu.core.context.emulator.sections
             )
             current_set = set(range(address, address + size))
             for m in memory_set:
@@ -243,8 +213,8 @@ class MemoryMappingWidget(QDockWidget):
                 section_perm.append("EXEC")
             try:
                 section = MemorySection(name, address, size, "|".join(section_perm))
-                self.memory_sections.append(section)
-                self.UpdateMemoryMapGrid()
+                cemu.core.context.emulator.sections.append(section)
+                self.redraw_memory_map_table()
             except ValueError as ve:
                 popup(f"MemorySection is invalid, reason: Invalid {str(ve)}")
                 return
@@ -253,8 +223,8 @@ class MemoryMappingWidget(QDockWidget):
                 section_perm.append("EXEC")
             try:
                 section = MemorySection(name, address, size, "|".join(section_perm))
-                self.memory_sections.append(section)
-                self.UpdateMemoryMapGrid()
+                cemu.core.context.emulator.sections.append(section)
+                self.redraw_memory_map_table()
             except ValueError as ve:
                 popup(f"MemorySection is invalid, reason: Invalid {str(ve)}")
 

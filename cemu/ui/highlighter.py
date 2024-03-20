@@ -5,6 +5,8 @@ from pygments.formatter import Formatter
 from pygments.lexers import get_lexer_by_name
 from PyQt6.QtGui import QColor, QFont, QSyntaxHighlighter, QTextCharFormat
 
+import cemu.log
+
 
 class QFormatter(Formatter):
     def __init__(self, *args, **kwargs):
@@ -26,10 +28,10 @@ class QFormatter(Formatter):
             self.styles[str(token)] = qtf
         return
 
-    def hex2QColor(self, c):
-        red = int(c[0:2], 16)
-        green = int(c[2:4], 16)
-        blue = int(c[4:6], 16)
+    def hex2QColor(self, color: str):
+        red = int(color[0:2], 16)
+        green = int(color[2:4], 16)
+        blue = int(color[4:6], 16)
         return QColor(red, green, blue)
 
     def format(self, tokensource, outfile):
@@ -56,13 +58,14 @@ class Highlighter(QSyntaxHighlighter):
 
     def highlightBlock(self, text):
         cb = self.currentBlock()
-        p = cb.position()
+        pos = cb.position()
         text = self.document().toPlainText() + "\n"
         highlight(text, self.lexer, self.formatter)
         for i in range(len(text)):
             try:
-                self.setFormat(i, 1, self.formatter.data[p + i])
-            except IndexError:
-                pass
+                self.setFormat(i, 1, self.formatter.data[pos + i])
+            except IndexError as ie:
+                cemu.log.dbg(f"setFormat() failed, reason: {ie}")
+                break
         self.tstamp = time.time()
         return
