@@ -136,7 +136,7 @@ jobs:
         RUN_URL: "https://github.com/${{ env.REPO }}/actions/runs/${{ github.run_id }}"
         BRANCH_URL: "https://github.com/${{ env.REPO }}/tree/${{ github.ref_name }}"
         AUTHOR_URL: "https://github.com/${{ github.actor }}"
-      uses: sarisia/actions-status-discord@v1.10.0
+      uses: sarisia/actions-status-discord@v1.14.0
       with:
         nodetail: true
         title: 🚧 🚧 Summary of Build `${{ github.sha }}` for `${{ env.REPO }}` 🚧 🚧
