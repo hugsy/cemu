@@ -1,13 +1,19 @@
-name: "Continuous Delivery"
+name: Build
 
 on:
   workflow_dispatch:
   push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
 
 env:
   NAME: cemu
   REPO: hugsy/cemu
   DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+  VERSION: 0.8
 
 jobs:
   build:
@@ -15,27 +21,28 @@ jobs:
       fail-fast: false
       matrix:
         os: [windows-latest, ubuntu-latest, macos-latest]
-        python-version: ['3.10', '3.11']
+        python-version: ['3.10', '3.11', '3.12']
     name: ${{ matrix.os }} / ${{ matrix.python-version }}
     runs-on: ${{ matrix.os }}
     outputs:
       windows-latest-3-10: ${{ join(steps.*.outputs.windows-latest-3-10,'') }}
       windows-latest-3-11: ${{ join(steps.*.outputs.windows-latest-3-11,'') }}
+      windows-latest-3-12: ${{ join(steps.*.outputs.windows-latest-3-12,'') }}
       ubuntu-latest-3-10: ${{ join(steps.*.outputs.ubuntu-latest-3-10,'') }}
       ubuntu-latest-3-11: ${{ join(steps.*.outputs.ubuntu-latest-3-11,'') }}
+      ubuntu-latest-3-12: ${{ join(steps.*.outputs.ubuntu-latest-3-12,'') }}
       macos-latest-3-10: ${{ join(steps.*.outputs.macos-latest-3-10,'') }}
       macos-latest-3-11: ${{ join(steps.*.outputs.macos-latest-3-11,'') }}
+      macos-latest-3-12: ${{ join(steps.*.outputs.macos-latest-3-12,'') }}
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
-    - uses: rlespinasse/github-slug-action@v4
-
-    - uses: actions/setup-python@v4
+    - uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
 
-    - name: "Install Pre-requisite for Linux build"
+    - name: "Install Pre-requisite (Linux)"
       if: matrix.os == 'ubuntu-latest'
       shell: bash
       run: |
@@ -43,11 +50,11 @@ jobs:
         sudo apt upgrade -y
         sudo apt install -y build-essential python3-dev python3-pip python3-wheel python3-setuptools
 
-    - name: "Install Pre-requisite for Windows build"
+    - name: "Install Pre-requisite (Windows)"
       if: matrix.os == 'windows-latest'
       shell: pwsh
       run: |
-        echo todo
+        env
 
     - name: Build artifact
       shell: bash
@@ -59,19 +66,19 @@ jobs:
         python -m pip install --upgrade pip setuptools wheel
         python -m pip install --user --upgrade .[all]
 
-    - name: "Post build actions for Windows"
+    - name: "Post build Cemu (Windows)"
       if: matrix.os == 'windows-latest'
       shell: pwsh
       run: |
         Copy-Item $env:APPDATA\Python\Python*\Scripts\cemu.exe build\bin\
 
-    - name: "Post build actions for Linux"
+    - name: "Post build Cemu (Linux)"
       if: matrix.os == 'ubuntu-latest'
       shell: bash
       run: |
         cp -v ~/.local/bin/cemu build/bin/
 
-    - name: "Post build actions for MacOS"
+    - name: "Post build Cemu (macOS)"
       if: matrix.os == 'macos-latest'
       shell: bash
       run: |
@@ -83,9 +90,9 @@ jobs:
 
     - name: Publish artifact
       id: publish_artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
-        name: ${{ env.NAME }}_${{ matrix.os }}_py${{ matrix.python-version }}_${{ env.GITHUB_REF_SLUG }}_${{ env.GITHUB_SHA_SHORT }}
+        name: ${{ env.NAME }}_${{ env.VERSION }}_${{ matrix.os }}_py${{ matrix.python-version }}_${{ github.sha }}
         path: build/
 
     - name: Populate the successful output (Windows)
@@ -124,31 +131,31 @@ jobs:
     runs-on: 'ubuntu-latest'
     needs: build
     steps:
-    - name: Inject slug/short variables
-      uses: rlespinasse/github-slug-action@v4
-
     - name: Send Discord notification
       env:
-        COMMIT_URL: "https://github.com/${{ env.REPO }}/commit/${{ env.GITHUB_SHA_SHORT }}"
+        COMMIT_URL: "https://github.com/${{ env.REPO }}/commit/${{ github.sha }}"
         RUN_URL: "https://github.com/${{ env.REPO }}/actions/runs/${{ github.run_id }}"
-        BRANCH_URL: "https://github.com/${{ env.REPO }}/tree/${{ env.GITHUB_REF_SLUG }}"
+        BRANCH_URL: "https://github.com/${{ env.REPO }}/tree/${{ github.ref_name }}"
         AUTHOR_URL: "https://github.com/${{ github.actor }}"
-      uses: sarisia/actions-status-discord@v1.10.0
+      uses: sarisia/actions-status-discord@v1.14.0
       with:
         nodetail: true
-        title: 🚧 🚧 Summary of Build `${{ env.GITHUB_SHA_SHORT }}` for `${{ env.REPO }}` 🚧 🚧
+        title: 🚧 🚧 Summary of Build `${{ github.sha }}` for `${{ env.REPO }}` 🚧 🚧
         description: |
-          [Job #${{ github.run_number }}](${{ env.RUN_URL }}): CI build `${{ env.GITHUB_SHA_SHORT }}` initiated by [${{ github.actor }}](${{ env.AUTHOR_URL }}):
-          ● Commit [${{ env.GITHUB_SHA_SHORT }}](${{ env.COMMIT_URL }})
-          ● Branch [`${{ env.GITHUB_REF_SLUG }}`](${{ env.BRANCH_URL }})
+          [Job #${{ github.run_number }}](${{ env.RUN_URL }}): CI build `${{ github.sha }}` initiated by [${{ github.actor }}](${{ env.AUTHOR_URL }}):
+          ● Commit [${{ github.sha }}](${{ env.COMMIT_URL }})
+          ● Branch [`${{ github.ref_name }}`](${{ env.BRANCH_URL }})
           ● [Detail Page](${{ env.RUN_URL }})
 
           ${{ needs.build.outputs.windows-latest-3-10 }}
           ${{ needs.build.outputs.windows-latest-3-11 }}
+          ${{ needs.build.outputs.windows-latest-3-12 }}
           ${{ needs.build.outputs.ubuntu-latest-3-10 }}
           ${{ needs.build.outputs.ubuntu-latest-3-11 }}
+          ${{ needs.build.outputs.ubuntu-latest-3-12 }}
           ${{ needs.build.outputs.macos-latest-3-10 }}
           ${{ needs.build.outputs.macos-latest-3-11 }}
+          ${{ needs.build.outputs.macos-latest-3-12 }}
 
 
         color: 0x0000ff
