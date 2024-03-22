@@ -359,10 +359,11 @@ class Emulator:
             MEMORY_STACK_SECTION_NAME,
         ):
             try:
-                text_section = self.find_section(secname)
+                self.find_section(secname)
             except KeyError:
                 raise CemuEmulatorMissingRequiredSection(secname)
 
+        text_section = self.find_section(MEMORY_TEXT_SECTION_NAME)
         info(f"Using text section {text_section}")
 
         if not self.__generate_text_bytecode():
