@@ -4,6 +4,8 @@ from typing import Optional
 
 import unicorn
 
+from cemu.const import MEMORY_MAX_SECTION_SIZE
+
 MemoryLayoutEntryType = tuple[str, int, int, str, Optional[pathlib.Path]]
 
 MEMORY_FIELD_SEPARATOR = "|"
@@ -180,22 +182,27 @@ class MemorySection:
         name: str,
         addr: int,
         size: int,
-        perm: str,
+        perm: str | MemoryPermission,
         data_file: Optional[pathlib.Path] = None,
     ):
-        if addr < 0 or addr >= 2**64:
+        if not (0 <= addr < 2**64):
             raise ValueError("address")
 
         if len(name.strip()) == 0:
             raise ValueError("name")
 
-        if size < 0:
+        if not (0 < size < MEMORY_MAX_SECTION_SIZE):
             raise ValueError("size")
 
         self.name = name.strip().lower()
         self.address = addr
         self.size = size
-        self.permission = MemoryPermission.from_string(perm)
+        if isinstance(perm, str):
+            self.permission = MemoryPermission.from_string(perm)
+        elif isinstance(perm, MemoryPermission):
+            self.permission = perm
+        else:
+            raise TypeError("permission")
         self.file_source = data_file if data_file and data_file.is_file() else None
         return
 

@@ -7,9 +7,18 @@ import unicorn
 
 import cemu.const
 import cemu.core
+from cemu.exceptions import CemuEmulatorMissingRequiredSection
 import cemu.os
+from cemu.ui.utils import popup
 import cemu.utils
+
 from cemu.log import dbg, error, info, warn
+
+from cemu.const import (
+    MEMORY_TEXT_SECTION_NAME,
+    MEMORY_DATA_SECTION_NAME,
+    MEMORY_STACK_SECTION_NAME,
+)
 
 from .arch import is_x86, is_x86_32, x86
 from .memory import MemorySection
@@ -17,14 +26,27 @@ from .memory import MemorySection
 
 @unique
 class EmulatorState(IntEnum):
-    # fmt: off
-    STARTING = 0                 # CEmu is starting
-    NOT_RUNNING = 1              # CEmu is started, but no emulation context is initialized
-    IDLE = 2                     # The VM is running but stopped: used for stepping mode
-    RUNNING = 3                  # The VM is running
-    TEARDOWN = 5                 # Emulation is finishing
-    FINISHED = 6                 # The VM has reached the end of the execution
-    # fmt: on
+    INVALID = 0
+    """An invalid state, ideally should never be here"""
+    STARTING = 1
+    """CEmu is starting"""
+    NOT_RUNNING = 2
+    """CEmu is started, but no emulation context is initialized"""
+    IDLE = 3
+    """The VM is running but stopped: used for stepping mode"""
+    RUNNING = 4
+    """The VM is running"""
+    TEARDOWN = 5
+    """Emulation is finishing"""
+    FINISHED = 6
+    """The VM has reached the end of the execution"""
+
+
+MEMORY_MAP_DEFAULT_LAYOUT: list[MemorySection] = [
+    MemorySection(MEMORY_TEXT_SECTION_NAME, 0x00004000, 0x1000, "READ|EXEC"),
+    MemorySection(MEMORY_DATA_SECTION_NAME, 0x00005000, 0x1000, "READ|WRITE"),
+    MemorySection(MEMORY_STACK_SECTION_NAME, 0x00006000, 0x4000, "READ|WRITE"),
+]
 
 
 class EmulationRegisters(collections.UserDict):
@@ -83,7 +105,7 @@ class Emulator:
         self.vm = None
         self.code = b""
         self.codelines = ""
-        self.sections = []
+        self.sections = MEMORY_MAP_DEFAULT_LAYOUT[:]
         self.registers = EmulationRegisters(
             {name: 0 for name in cemu.core.context.architecture.registers}
         )
@@ -158,10 +180,10 @@ class Emulator:
             )
 
         if not self.__populate_memory():
-            raise Exception("populate_memory() failed")
+            raise RuntimeError("populate_memory() failed")
 
         if not self.__populate_vm_registers():
-            raise Exception("populate_registers() failed")
+            raise RuntimeError("populate_registers() failed")
 
         if not self.__populate_text_section():
             raise Exception("populate_text_section() failed")
@@ -176,7 +198,7 @@ class Emulator:
             error("VM is not initalized")
             return False
 
-        if len(self.sections) < 0:
+        if len(self.sections) < 1:
             error("No section declared")
             return False
 
@@ -213,7 +235,7 @@ class Emulator:
         # Set the initial IP if unspecified
         #
         if self.registers[arch.pc] == 0:
-            section = self.find_section(".text")
+            section = self.find_section(cemu.const.MEMORY_TEXT_SECTION_NAME)
             self.registers[arch.pc] = section.address
             warn(
                 f"No value specified for PC register, setting to {self.registers[arch.pc]:#x}"
@@ -223,7 +245,7 @@ class Emulator:
         # Set the initial SP if unspecified, in the middle of the stack section
         #
         if self.registers[arch.sp] == 0:
-            section = self.find_section(".stack")
+            section = self.find_section(MEMORY_STACK_SECTION_NAME)
             self.registers[arch.sp] = section.address + (section.size // 2)
             warn(
                 f"No value specified for SP register, setting to {self.registers[arch.sp]:#x}"
@@ -235,7 +257,7 @@ class Emulator:
         if is_x86_32(arch):
             # create fake selectors
             ## required
-            text = self.find_section(".text")
+            text = self.find_section(MEMORY_TEXT_SECTION_NAME)
             self.registers["CS"] = int(
                 x86.X86_32.SegmentDescriptor(
                     text.address >> 8,
@@ -246,7 +268,7 @@ class Emulator:
                 )
             )
 
-            data = self.find_section(".data")
+            data = self.find_section(MEMORY_DATA_SECTION_NAME)
             self.registers["DS"] = int(
                 x86.X86_32.SegmentDescriptor(
                     data.address >> 8,
@@ -257,7 +279,7 @@ class Emulator:
                 )
             )
 
-            stack = self.find_section(".stack")
+            stack = self.find_section(MEMORY_STACK_SECTION_NAME)
             self.registers["SS"] = int(
                 x86.X86_32.SegmentDescriptor(
                     stack.address >> 8,
@@ -275,7 +297,6 @@ class Emulator:
             self.registers["ES"] = 0
 
         for regname, regvalue in self.registers.items():
-            # TODO figure out segmentation on unicorn
             if regname in x86.X86_32.selector_registers:
                 continue
 
@@ -332,17 +353,17 @@ class Emulator:
         if not self.vm:
             return False
 
-        try:
-            text_section = self.find_section(".text")
-        except KeyError:
-            #
-            # Try to get the 1st executable section. Let the exception propagage if it fails
-            #
-            matches = [
-                section for section in self.sections if section.permission.executable
-            ]
-            text_section = matches[0]
+        for secname in (
+            MEMORY_TEXT_SECTION_NAME,
+            MEMORY_DATA_SECTION_NAME,
+            MEMORY_STACK_SECTION_NAME,
+        ):
+            try:
+                self.find_section(secname)
+            except KeyError:
+                raise CemuEmulatorMissingRequiredSection(secname)
 
+        text_section = self.find_section(MEMORY_TEXT_SECTION_NAME)
         info(f"Using text section {text_section}")
 
         if not self.__generate_text_bytecode():

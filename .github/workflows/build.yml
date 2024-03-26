@@ -48,7 +48,12 @@ jobs:
       run: |
         sudo apt update
         sudo apt upgrade -y
-        sudo apt install -y build-essential python3-dev python3-pip python3-wheel python3-setuptools
+        sudo apt install -y build-essential libegl1 libgl1-mesa-glx python3-dev python3-pip python3-wheel python3-setuptools
+
+    - name: "Install Pre-requisite (macOS)"
+      if: matrix.os == 'macos-latest'
+      run: |
+        env
 
     - name: "Install Pre-requisite (Windows)"
       if: matrix.os == 'windows-latest'
@@ -64,8 +69,7 @@ jobs:
         python --version
         python -m pip --version
         python -m pip install --upgrade pip setuptools wheel
-        python -m pip install --user --upgrade -r tests/requirements.txt
-        python -m pip install --user --upgrade .
+        python -m pip install --user --upgrade .[all]
 
     - name: "Post build Cemu (Windows)"
       if: matrix.os == 'windows-latest'

@@ -44,12 +44,13 @@ dependencies = [
     "Pygments",
     "lief",
     "loguru",
-    "pre-commit",
     "prompt_toolkit",
     "PyQt6",
 ]
 
 [project.optional-dependencies]
+dev = ["pre-commit", "debugpy", "black"]
+
 tests = [
     "pytest",
     "pytest-cov",
@@ -58,6 +59,9 @@ tests = [
     "pytest-forked",
     "coverage",
 ]
+
+all = ["cemu[dev,tests]"]
+
 
 [project.entry-points.console_scripts]
 cemu = "cemu.__main__:main"

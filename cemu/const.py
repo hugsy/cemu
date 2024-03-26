@@ -1,6 +1,6 @@
 import pathlib
 
-DEBUG = True
+DEBUG = False
 
 PROGNAME = "cemu"
 AUTHOR = "hugsy"
@@ -30,6 +30,8 @@ TEMPLATE_CONFIG = TEMPLATE_PATH / "cemu.ini"
 CONFIG_FILEPATH = HOME / ".cemu.ini"
 DEFAULT_STYLE_PATH = STYLE_PATH / "default.qss"
 
+DEBUG_DEBUGPY_PORT = 5678
+
 LOG_INSERT_TIMESTAMP = False
 LOG_DEFAULT_TIMESTAMP_FORMAT = "%Y/%m/%d - %H:%M:%S"
 
@@ -49,3 +51,8 @@ DEFAULT_MEMORY_VIEW_CHUNK_SIZE: int = 256
 
 DEFAULT_FONT: str = "Courier"
 DEFAULT_FONT_SIZE: int = 10
+
+MEMORY_MAX_SECTION_SIZE: int = 4294967296  # 4GB
+MEMORY_TEXT_SECTION_NAME: str = ".text"
+MEMORY_STACK_SECTION_NAME: str = ".stack"
+MEMORY_DATA_SECTION_NAME: str = ".data"

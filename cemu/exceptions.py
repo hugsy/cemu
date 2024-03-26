@@ -1,0 +1,2 @@
+class CemuEmulatorMissingRequiredSection(Exception):
+    pass

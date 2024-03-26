@@ -5,8 +5,10 @@ import argparse
 import sys
 from typing import TYPE_CHECKING, Union
 
+import cemu.ui.main
+
 if TYPE_CHECKING:
-    import cemu.ui.main
+    from cemu.emulator import Emulator
 
 import cemu.arch
 import cemu.cli.repl
@@ -44,7 +46,7 @@ class GlobalContext:
         return
 
     @property
-    def emulator(self) -> cemu.emulator.Emulator:
+    def emulator(self) -> "Emulator":
         return self.__emulator
 
     @property
@@ -88,15 +90,13 @@ def CemuGui(args: list[str]) -> None:
     from PyQt6.QtGui import QIcon
     from PyQt6.QtWidgets import QApplication
 
-    from cemu.ui.main import CEmuWindow
-
     cemu.log.dbg("Creating GUI context")
     context = GlobalGuiContext()
 
     app = QApplication(args)
     app.setStyleSheet(cemu.const.DEFAULT_STYLE_PATH.open().read())
     app.setWindowIcon(QIcon(str(cemu.const.ICON_PATH.absolute())))
-    context.root = CEmuWindow(app)
+    context.root = cemu.ui.main.CEmuWindow(app)
     sys.exit(app.exec())
 
 
@@ -124,4 +124,3 @@ def CemuCli(argv: list[str]) -> None:
 
     instance = cemu.cli.repl.CEmuRepl(args)
     instance.run_forever()
-    return
