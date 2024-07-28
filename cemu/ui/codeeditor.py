@@ -16,12 +16,11 @@ from PyQt6.QtWidgets import (
 )
 
 import cemu.core
+from build.lib.cemu.const import DEFAULT_CODE_VIEW_FONT, DEFAULT_CODE_VIEW_FONT_SIZE
 from cemu.const import (
     COMMENT_MARKER,
     DEFAULT_ASSEMBLY_VIEW_FONT,
     DEFAULT_ASSEMBLY_VIEW_FONT_SIZE,
-    DEFAULT_CODE_VIEW_FONT,
-    DEFAULT_CODE_VIEW_FONT_SIZE,
 )
 from cemu.log import error
 
@@ -30,11 +29,11 @@ if typing.TYPE_CHECKING:
 
 from ..utils import assemble
 from .highlighter import Highlighter
-from .utils import get_cursor_position
+from .utils import get_cursor_position, is_dark_mode
 
 
 class CodeEdit(QTextEdit):
-    def __init__(self, parent):
+    def __init__(self, parent=None):
         super(CodeEdit, self).__init__(parent)
         self.cursorPositionChanged.connect(self.UpdateHighlightedLine)
         self.setFont(
@@ -42,22 +41,23 @@ class CodeEdit(QTextEdit):
         )
         self.setFrameStyle(QFrame.Shape.Panel | QFrame.Shape.NoFrame)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        return
+        # self.setStyleSheet("""
+        #     QTextEdit {
+        #         background-color: #3b3b3b;
+        #         color: #ffffff;
+        #     }
+        # """)
 
     def UpdateHighlightedLine(self):
         selection = QTextEdit.ExtraSelection()
-        selection.format.setBackground(self.palette().alternateBase())
-        selection.format.setProperty(
-            QTextFormat.Property.FullWidthSelection, QVariant(True)
-        )
+        if is_dark_mode(self.palette()):
+            selection.format.setBackground(self.palette().light())
+        else:
+            selection.format.setBackground(self.palette().alternateBase())
+        selection.format.setProperty(QTextFormat.Property.FullWidthSelection, QVariant(True))
         selection.cursor = self.textCursor()
         selection.cursor.clearSelection()
-        self.setExtraSelections(
-            [
-                selection,
-            ]
-        )
-        return
+        self.setExtraSelections([selection])
 
 
 class AssemblyView(QTextEdit):
@@ -66,9 +66,9 @@ class AssemblyView(QTextEdit):
         self.rootWindow = parent.rootWindow
         self.setReadOnly(True)
         self.setFont(QFont(DEFAULT_ASSEMBLY_VIEW_FONT, DEFAULT_ASSEMBLY_VIEW_FONT_SIZE))
-        self.setFixedWidth(140)
+        self.setFixedWidth(230)
         self.setFrameStyle(QFrame.Shape.Panel | QFrame.Shape.NoFrame)
-        self.setStyleSheet("background-color: rgb(211, 211, 211);")
+        # self.setStyleSheet("background-color: rgb(211, 211, 211);")
         self.editor = editor
         self.editor.textChanged.connect(self.update_assembly_code_pane)
         self.__last_assembly_error_msg = ""
@@ -80,7 +80,7 @@ class AssemblyView(QTextEdit):
         #
         text: str = self.editor.toPlainText()
         cur: int = self.editor.textCursor().position()
-        if cur < 1 or text[cur - 1] != os.linesep:
+        if cur < 1 or text[cur - 1] != '\n':
             return
 
         #
@@ -89,8 +89,8 @@ class AssemblyView(QTextEdit):
         pane_width = self.width() // 10
         lines: list[str] = text.splitlines()
         bytecode_lines: list[str] = [
-            "",
-        ] * pane_width
+                                        "",
+                                    ] * pane_width
         assembly_failed_lines: list[int] = []
 
         for i in range(len(lines)):
@@ -121,7 +121,6 @@ class AssemblyView(QTextEdit):
                 self.__last_assembly_error_msg = msg
 
         self.setText(os.linesep.join(bytecode_lines))
-        return
 
 
 class CodeWithAssemblyFrame(QFrame):
@@ -135,7 +134,6 @@ class CodeWithAssemblyFrame(QFrame):
         layout.addWidget(self.__asm_widget)
         layout.addWidget(self.__code_widget)
         self.setLayout(layout)
-        return
 
     @property
     def code_editor(self):
@@ -148,11 +146,10 @@ class CodeEditorFrame(QFrame):
         self.rootWindow = parent.rootWindow
         inner_frame = CodeWithAssemblyFrame(self)
         self.editor = inner_frame.code_editor
-        self.highlighter = Highlighter(self.editor, "asm")
+        self.highlighter = Highlighter(self.editor.document(), "asm")
         layout = QVBoxLayout(self)
         layout.setSpacing(0)
         layout.addWidget(inner_frame)
-        return
 
 
 class CodeWidget(QDockWidget):
@@ -172,20 +169,16 @@ class CodeWidget(QDockWidget):
         widget = QWidget(self)
         widget.setLayout(layout)
         self.setWidget(widget)
-        return
 
     def onUpdateText(self):
         cemu.core.context.emulator.codelines = self.getCleanContent()
-        return
 
     def onCursorPositionChanged(self):
         self.UpdateTitleLabel()
-        return
 
     def UpdateTitleLabel(self):
         row_num, col_num = get_cursor_position(self.editor)
-        self.widget_title_label.setText(f"Code (Line:{row_num+1} Column:{col_num+1})")
-        return
+        self.widget_title_label.setText(f"Code (Line:{row_num + 1} Column:{col_num + 1})")
 
     def getCleanContent(self) -> str:
         """
