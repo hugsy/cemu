@@ -1,6 +1,7 @@
 import enum
 import os
 
+from PyQt6.QtGui import QPalette
 from PyQt6.QtWidgets import QMessageBox, QTextEdit
 
 from cemu.log import dbg
@@ -65,3 +66,7 @@ def popup(msg: str, type: PopupType = PopupType.Error, title: str = ""):
 
     dbg(f"{title} - {msg}")
     QMessageBox(icon, title, msg, buttons=QMessageBox.StandardButton.Discard).exec()
+
+
+def is_dark_mode(palette: QPalette):
+    return palette.color(QPalette.ColorRole.Window).value() < 128
