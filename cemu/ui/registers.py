@@ -31,7 +31,7 @@ class RegistersWidget(QDockWidget):
         self.RegisterTableWidget.horizontalHeader().setStretchLastSection(True)
         self.RegisterTableWidget.setHorizontalHeaderLabels(["Register", "Value"])
         self.RegisterTableWidget.verticalHeader().setVisible(False)
-        self.RegisterTableWidget.setColumnWidth(0, 60)
+        self.RegisterTableWidget.setColumnWidth(0, 80)
         layout.addWidget(self.RegisterTableWidget)
 
         #
