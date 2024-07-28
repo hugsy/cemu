@@ -11,6 +11,10 @@ from cemu.const import SYSCALLS_PATH
 if TYPE_CHECKING:
     import cemu.core
 
+from PyQt6.QtWidgets import (
+    QMessageBox
+)
+
 
 class Endianness(enum.Enum):
     LITTLE_ENDIAN = 1
@@ -75,7 +79,16 @@ class Architecture:
 
         if not self.__syscalls:
             syscall_dir = SYSCALLS_PATH / str(self.__context.os)
-            fpath = syscall_dir / (self.syscall_filename + ".csv")
+            fpath = syscall_dir / "not_exists"
+            try:
+                fpath = syscall_dir / (self.syscall_filename + ".csv")
+            except ValueError as e:
+                msgbox = QMessageBox()
+                msgbox.setIcon(QMessageBox.Icon.Critical)
+                msgbox.setWindowTitle("No Syscall File Error")
+                msgbox.setText(str(e))
+                msgbox.exec()
+                pass
             self.__syscalls = {}
             if fpath.exists():
                 with fpath.open("r") as fd:
