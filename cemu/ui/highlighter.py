@@ -1,9 +1,9 @@
 import time
 
+from PyQt6.QtGui import QColor, QFont, QSyntaxHighlighter, QTextCharFormat
 from pygments import highlight
 from pygments.formatter import Formatter
 from pygments.lexers import get_lexer_by_name
-from PyQt6.QtGui import QColor, QFont, QSyntaxHighlighter, QTextCharFormat
 
 import cemu.log
 
@@ -26,7 +26,6 @@ class QFormatter(Formatter):
             if style["underline"]:
                 qtf.setFontUnderline(True)
             self.styles[str(token)] = qtf
-        return
 
     def hex2QColor(self, color: str):
         red = int(color[0:2], 16)
@@ -45,7 +44,6 @@ class QFormatter(Formatter):
                 ]
                 * value_width
             )
-        return
 
 
 class Highlighter(QSyntaxHighlighter):
