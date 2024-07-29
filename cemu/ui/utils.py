@@ -70,3 +70,41 @@ def popup(msg: str, type: PopupType = PopupType.Error, title: str = ""):
 
 def is_dark_mode(palette: QPalette):
     return palette.color(QPalette.ColorRole.Window).value() < 128
+
+
+def brighten_color(hex_color: str, percent: float):
+    # Remove the '#' if it exists
+    hex_color = hex_color.lstrip('#')
+
+    # Convert hex to RGB
+    r = int(hex_color[0:2], 16)
+    g = int(hex_color[2:4], 16)
+    b = int(hex_color[4:6], 16)
+
+    # Increase each component by the given percentage
+    r = min(255, int(r * (1 + percent / 100)))
+    g = min(255, int(g * (1 + percent / 100)))
+    b = min(255, int(b * (1 + percent / 100)))
+
+    # Convert RGB back to hex
+    return f'{r:02x}{g:02x}{b:02x}'
+
+
+def hex_to_rgb(hex_color: str):
+    hex_color = hex_color.lstrip('#')
+    return tuple(int(hex_color[i:i + 2], 16) for i in (0, 2, 4))
+
+
+def is_red(hex_color: str):
+    r, g, b = hex_to_rgb(hex_color)
+    return r > g and r > b
+
+
+def is_green(hex_color: str):
+    r, g, b = hex_to_rgb(hex_color)
+    return g > r and g > b
+
+
+def is_blue(hex_color: str):
+    r, g, b = hex_to_rgb(hex_color)
+    return b > r and b > g

@@ -1,22 +1,33 @@
 import time
 
-from PyQt6.QtGui import QColor, QFont, QSyntaxHighlighter, QTextCharFormat
+from PyQt6.QtGui import QColor, QFont, QSyntaxHighlighter, QTextCharFormat, QPalette
 from pygments import highlight
 from pygments.formatter import Formatter
 from pygments.lexers import get_lexer_by_name
 
 import cemu.log
+from cemu.ui.utils import brighten_color, is_blue, is_red, is_dark_mode, is_green
 
 
 class QFormatter(Formatter):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, palette: QPalette):
         Formatter.__init__(self)
         self.data = []
         self.styles: dict[str, QTextCharFormat] = {}
         for token, style in self.style:
             qtf = QTextCharFormat()
             if style["color"]:
-                qtf.setForeground(self.hex2QColor(style["color"]))
+                style_color = style["color"]
+                if is_dark_mode(palette):
+                    if is_blue(style_color):
+                        style_color = "3F81F0"
+                    elif is_red(style_color):
+                        style_color = "F92673"
+                    elif is_green(style_color):
+                        style_color = "20999D"
+                    else:
+                        style_color = brighten_color(style_color, 50)
+                qtf.setForeground(self.hex2QColor(style_color))
             if style["bgcolor"]:
                 qtf.setBackground(self.hex2QColor(style["bgcolor"]))
             if style["bold"]:
@@ -50,7 +61,7 @@ class Highlighter(QSyntaxHighlighter):
     def __init__(self, parent, mode):
         QSyntaxHighlighter.__init__(self, parent)
         self.tstamp = time.time()
-        self.formatter = QFormatter()
+        self.formatter = QFormatter(parent.palette())
         self.lexer = get_lexer_by_name(mode)
         return
 

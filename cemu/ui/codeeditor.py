@@ -29,7 +29,7 @@ if typing.TYPE_CHECKING:
 
 from ..utils import assemble
 from .highlighter import Highlighter
-from .utils import get_cursor_position, is_dark_mode
+from .utils import get_cursor_position
 
 
 class CodeEdit(QTextEdit):
@@ -41,19 +41,10 @@ class CodeEdit(QTextEdit):
         )
         self.setFrameStyle(QFrame.Shape.Panel | QFrame.Shape.NoFrame)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        # self.setStyleSheet("""
-        #     QTextEdit {
-        #         background-color: #3b3b3b;
-        #         color: #ffffff;
-        #     }
-        # """)
 
     def UpdateHighlightedLine(self):
         selection = QTextEdit.ExtraSelection()
-        if is_dark_mode(self.palette()):
-            selection.format.setBackground(self.palette().light())
-        else:
-            selection.format.setBackground(self.palette().alternateBase())
+        selection.format.setBackground(self.palette().alternateBase())
         selection.format.setProperty(QTextFormat.Property.FullWidthSelection, QVariant(True))
         selection.cursor = self.textCursor()
         selection.cursor.clearSelection()
@@ -146,7 +137,7 @@ class CodeEditorFrame(QFrame):
         self.rootWindow = parent.rootWindow
         inner_frame = CodeWithAssemblyFrame(self)
         self.editor = inner_frame.code_editor
-        self.highlighter = Highlighter(self.editor.document(), "asm")
+        self.highlighter = Highlighter(self.editor, "asm")
         layout = QVBoxLayout(self)
         layout.setSpacing(0)
         layout.addWidget(inner_frame)
