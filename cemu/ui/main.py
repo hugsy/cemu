@@ -52,36 +52,36 @@ from .registers import RegistersWidget
 class CEmuWindow(QMainWindow):
     def __init__(self, app: QApplication, *args, **kwargs):
         super(CEmuWindow, self).__init__()
-        self.currentAction = None
+        self.currentAction: Optional[QAction] = None
         assert cemu.core.context is not None
         assert isinstance(cemu.core.context, cemu.core.GlobalGuiContext)
 
-        self.rootWindow = self
-        self.__app = app
+        self.rootWindow: CEmuWindow = self
+        self.__app: QApplication = app
         self.recentFileActions: list[QAction] = []
         self.__dockable_widgets: list[QDockWidget] = []
-        self.archActions = {}
-        self.signals = {}
+        self.archActions: dict[str, QAction] = {}
+        # self.signals = {} Unused?
         self.current_file: Optional[pathlib.Path] = None
-        self.__background_emulator_thread = EmulationRunner()
+        self.__background_emulator_thread: EmulationRunner = EmulationRunner()
         cemu.core.context.emulator.set_threaded_runner(
             self.__background_emulator_thread
         )
 
-        self.shortcuts = ShortcutManager()
+        self.shortcuts: ShortcutManager = ShortcutManager()
 
         # set up the dockable items
-        self.__regsWidget = RegistersWidget(self)
+        self.__regsWidget: RegistersWidget = RegistersWidget(self)
         self.__dockable_widgets.append(self.__regsWidget)
-        self.__mapWidget = MemoryMappingWidget(self)
+        self.__mapWidget: MemoryMappingWidget = MemoryMappingWidget(self)
         self.__dockable_widgets.append(self.__mapWidget)
-        self.__memWidget = MemoryWidget(self)
+        self.__memWidget: MemoryWidget = MemoryWidget(self)
         self.__dockable_widgets.append(self.__memWidget)
-        self.__cmdWidget = CommandWidget(self)
+        self.__cmdWidget: CommandWidget = CommandWidget(self)
         self.__dockable_widgets.append(self.__cmdWidget)
-        self.__logWidget = LogWidget(self)
+        self.__logWidget: LogWidget = LogWidget(self)
         self.__dockable_widgets.append(self.__logWidget)
-        self.__codeWidget = CodeWidget(self)
+        self.__codeWidget: CodeWidget = CodeWidget(self)
         self.__dockable_widgets.append(self.__codeWidget)
         self.setCentralWidget(self.__codeWidget)
 
@@ -542,7 +542,7 @@ class CEmuWindow(QMainWindow):
         ok(f"Saved as '{fpath}'")
         return
 
-    def pick_file(self, title, file_picker_filter) -> Optional[pathlib.Path]:
+    def pick_file(self, title: str, file_picker_filter: str) -> Optional[pathlib.Path]:
         dbg(f"Saving content of '{title}'")
         qFile, _ = QFileDialog().getSaveFileName(
             self, title, str(HOME), filter=file_picker_filter + ";;All files (*.*)"
@@ -581,7 +581,7 @@ class CEmuWindow(QMainWindow):
         if picked_file_path is None:
             return
 
-        with open(picked_file_path, "w") as fd:
+        with picked_file_path.open("w") as fd:
             body = template % (
                 cemu.core.context.architecture.name,
                 len(insns),
@@ -600,7 +600,7 @@ class CEmuWindow(QMainWindow):
         if picked_file_path is None:
             return
 
-        with open(picked_file_path, "w") as fd:
+        with picked_file_path.open("w") as fd:
             body = template % (cemu.core.context.architecture.name, code)
             fd.write(body)
             ok(f"Saved as '{fd.name}'")
@@ -669,7 +669,7 @@ class CEmuWindow(QMainWindow):
     def showShortcutPopup(self):
         """Display a popup with all shortcuts currently defined"""
         msgbox = QMessageBox(self)
-        msgbox.setWindowTitle("CEMU Shortcuts from: {}".format(CONFIG_FILEPATH))
+        msgbox.setWindowTitle(f"CEMU Shortcuts from: {CONFIG_FILEPATH}")
 
         wid = QWidget()
         grid = QGridLayout()
@@ -805,13 +805,12 @@ class EmulationRunner:
             #
             if emu.use_step_mode:
                 insn = emu.next_instruction(emu.code[start_offset:], start_address)
-                if insn is not None:
+                if insn is None:
+                    emu.set(EmulatorState.FINISHED)
+                    return
+                else:
                     end_address = insn.end
                     info(f"Stepping from {start_address:#x} to {end_address:#x}")
-                else:
-                    if emu.pc() == (emu.start_addr + len(emu.code)):
-                        emu.set(EmulatorState.FINISHED)
-                        return
             else:
                 end_address = emu.start_addr + len(emu.code)
                 info(f"Running all from {start_address:#x} to {end_address:#x}")

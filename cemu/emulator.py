@@ -19,6 +19,7 @@ from cemu.exceptions import CemuEmulatorMissingRequiredSection
 from cemu.log import dbg, error, info, warn
 from .arch import is_x86, is_x86_32, x86
 from .memory import MemorySection
+from .ui.utils import popup, PopupType
 
 
 @unique
@@ -513,11 +514,7 @@ class Emulator:
                 try:
                     self.setup()
                 except Exception as e:
-                    msgbox = QMessageBox()
-                    msgbox.setIcon(QMessageBox.Icon.Critical)
-                    msgbox.setWindowTitle("Emulator setup error")
-                    msgbox.setText(str(e))
-                    msgbox.exec()
+                    popup(str(e), PopupType.Error, "Emulator setup error")
 
                 #
                 # If we stopped from execution (i.e RUNNING -> [IDLE,FINISHED]), refresh registers

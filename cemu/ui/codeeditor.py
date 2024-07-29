@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import typing
+from typing import Optional
 
 from PyQt6.QtCore import Qt, QVariant
 from PyQt6.QtGui import QFont, QTextFormat
@@ -16,11 +17,12 @@ from PyQt6.QtWidgets import (
 )
 
 import cemu.core
-from build.lib.cemu.const import DEFAULT_CODE_VIEW_FONT, DEFAULT_CODE_VIEW_FONT_SIZE
 from cemu.const import (
     COMMENT_MARKER,
     DEFAULT_ASSEMBLY_VIEW_FONT,
     DEFAULT_ASSEMBLY_VIEW_FONT_SIZE,
+    DEFAULT_CODE_VIEW_FONT,
+    DEFAULT_CODE_VIEW_FONT_SIZE
 )
 from cemu.log import error
 
@@ -33,7 +35,7 @@ from .utils import get_cursor_position
 
 
 class CodeEdit(QTextEdit):
-    def __init__(self, parent=None):
+    def __init__(self, parent: Optional[QWidget] = None):
         super(CodeEdit, self).__init__(parent)
         self.cursorPositionChanged.connect(self.UpdateHighlightedLine)
         self.setFont(

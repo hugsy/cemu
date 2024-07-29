@@ -46,7 +46,7 @@ def get_cursor_position(widget: QTextEdit) -> tuple[int, int]:
     Returns:
         tuple[int, int]: _description_
     """
-    return (get_cursor_row_number(widget), get_cursor_column_number(widget))
+    return get_cursor_row_number(widget), get_cursor_column_number(widget)
 
 
 class PopupType(enum.IntEnum):
@@ -54,11 +54,12 @@ class PopupType(enum.IntEnum):
     Error = 1
 
 
-def popup(msg: str, type: PopupType = PopupType.Error, title: str = ""):
-    if type == PopupType.Information:
+# type is built-in name, instead use popup_type
+def popup(msg: str, popup_type: PopupType = PopupType.Error, title: str = ""):
+    if popup_type == PopupType.Information:
         icon = QMessageBox.Icon.Information
         title = f"Info - {title}"
-    elif type == PopupType.Error:
+    elif popup_type == PopupType.Error:
         icon = QMessageBox.Icon.Critical
         title = f"Error - {title}"
     else:
@@ -68,11 +69,11 @@ def popup(msg: str, type: PopupType = PopupType.Error, title: str = ""):
     QMessageBox(icon, title, msg, buttons=QMessageBox.StandardButton.Discard).exec()
 
 
-def is_dark_mode(palette: QPalette):
+def is_dark_mode(palette: QPalette) -> bool:
     return palette.color(QPalette.ColorRole.Window).value() < 128
 
 
-def brighten_color(hex_color: str, percent: float):
+def brighten_color(hex_color: str, percent: float) -> str:
     # Remove the '#' if it exists
     hex_color = hex_color.lstrip('#')
 
@@ -90,21 +91,21 @@ def brighten_color(hex_color: str, percent: float):
     return f'{r:02x}{g:02x}{b:02x}'
 
 
-def hex_to_rgb(hex_color: str):
+def hex_to_rgb(hex_color: str) -> tuple[int, ...]:
     hex_color = hex_color.lstrip('#')
     return tuple(int(hex_color[i:i + 2], 16) for i in (0, 2, 4))
 
 
-def is_red(hex_color: str):
+def is_red(hex_color: str) -> bool:
     r, g, b = hex_to_rgb(hex_color)
     return r > g and r > b
 
 
-def is_green(hex_color: str):
+def is_green(hex_color: str) -> bool:
     r, g, b = hex_to_rgb(hex_color)
     return g > r and g > b
 
 
-def is_blue(hex_color: str):
+def is_blue(hex_color: str) -> bool:
     r, g, b = hex_to_rgb(hex_color)
     return b > r and b > g
