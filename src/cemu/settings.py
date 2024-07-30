@@ -76,9 +76,7 @@ class Settings:
         """
         Deploy a new config file as ~/.cemu.ini
         """
-        self.__config_filename.write_text(
-            cemu.const.TEMPLATE_CONFIG.read_text()
-        )
+        self.__config_filename.write_text(cemu.const.TEMPLATE_CONFIG.read_text())
         return
 
     def __contains__(self, key: str) -> bool:
