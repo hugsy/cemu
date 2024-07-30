@@ -29,9 +29,7 @@ def parse_as_lief_pe_permission(perm: MemoryPermission, extra: Any = None) -> in
     return res
 
 
-def build_pe_executable(
-    text: bytes, memory_layout: List[MemorySection], arch: Architecture
-) -> str:
+def build_pe_executable(text: bytes, memory_layout: List[MemorySection], arch: Architecture) -> str:
     """
     Uses LIEF to build a standalone binary.
 
@@ -112,8 +110,6 @@ def build_pe_executable(
     return outfile
 
 
-def build_elf_executable(
-    asm_code: bytes, memory_layout: List[MemorySection], arch: Architecture
-) -> str:
+def build_elf_executable(asm_code: bytes, memory_layout: List[MemorySection], arch: Architecture) -> str:
     """ """
     raise NotImplementedError("ELF generation will be implemented soon")

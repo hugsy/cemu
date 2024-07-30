@@ -29,7 +29,6 @@ class ARM(Architecture):
         pc,
         sp,
     ]
-    syscall_filename = "arm"
 
     def __init__(self, *args, **kwargs):
         self.thumb = kwargs.get("thumb", False)

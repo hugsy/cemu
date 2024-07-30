@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse
 
 import sys
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Optional, Union
 
 import cemu.ui.main
 
@@ -79,7 +79,7 @@ class GlobalGuiContext(GlobalContext):
 context: Union[GlobalContext, GlobalGuiContext]
 
 
-def CemuGui(args: list[str]) -> None:
+def CemuGui() -> None:
     """Entry point of the GUI
 
     Args:
@@ -93,14 +93,14 @@ def CemuGui(args: list[str]) -> None:
     cemu.log.dbg("Creating GUI context")
     context = GlobalGuiContext()
 
-    app = QApplication(args)
+    app = QApplication(sys.argv)
     app.setStyleSheet(cemu.const.DEFAULT_STYLE_PATH.open().read())
     app.setWindowIcon(QIcon(str(cemu.const.ICON_PATH.absolute())))
     context.root = cemu.ui.main.CEmuWindow(app)
     sys.exit(app.exec())
 
 
-def CemuCli(argv: list[str]) -> None:
+def CemuCli(argv: Optional[argparse.Namespace]) -> None:
     """Entry point of the CLI
 
     Args:
@@ -117,10 +117,12 @@ def CemuCli(argv: list[str]) -> None:
     #
     # Run the REPL with the command line arguments
     #
-    args = argparse.ArgumentParser(
-        prog=cemu.const.PROGNAME, description=cemu.const.DESCRIPTION
-    )
-    args.parse_args(argv)
+    if argv is None:
+        args = argparse.ArgumentParser(prog=cemu.const.PROGNAME, description=cemu.const.DESCRIPTION)
+        args.parse_args(sys.argv)
+    else:
+        assert isinstance(argv, argparse.Namespace)
+        args = argv
 
     instance = cemu.cli.repl.CEmuRepl(args)
     instance.run_forever()

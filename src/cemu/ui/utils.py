@@ -75,7 +75,7 @@ def is_dark_mode(palette: QPalette) -> bool:
 
 def brighten_color(hex_color: str, percent: float) -> str:
     # Remove the '#' if it exists
-    hex_color = hex_color.lstrip('#')
+    hex_color = hex_color.lstrip("#")
 
     # Convert hex to RGB
     r = int(hex_color[0:2], 16)
@@ -88,12 +88,12 @@ def brighten_color(hex_color: str, percent: float) -> str:
     b = min(255, int(b * (1 + percent / 100)))
 
     # Convert RGB back to hex
-    return f'{r:02x}{g:02x}{b:02x}'
+    return f"{r:02x}{g:02x}{b:02x}"
 
 
 def hex_to_rgb(hex_color: str) -> tuple[int, ...]:
-    hex_color = hex_color.lstrip('#')
-    return tuple(int(hex_color[i:i + 2], 16) for i in (0, 2, 4))
+    hex_color = hex_color.lstrip("#")
+    return tuple(int(hex_color[i : i + 2], 16) for i in (0, 2, 4))
 
 
 def is_red(hex_color: str) -> bool:

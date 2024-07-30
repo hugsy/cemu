@@ -42,9 +42,7 @@ class CEmuRepl:
         self.keep_running = False
         self.prompt = "(cemu)> "
         self.__background_emulator_thread = EmulationRunner()
-        cemu.core.context.emulator.set_threaded_runner(
-            self.__background_emulator_thread
-        )
+        cemu.core.context.emulator.set_threaded_runner(self.__background_emulator_thread)
 
         # register the callbacks for the emulator
         emu = cemu.core.context.emulator
@@ -137,11 +135,7 @@ class CEmuRepl:
                     #
                     line = line[1:]
                     parts = line.split()
-                    command, args = (
-                        (parts[0].lower(), parts[1:])
-                        if len(parts) >= 2
-                        else (parts[0].lower(), [])
-                    )
+                    command, args = (parts[0].lower(), parts[1:]) if len(parts) >= 2 else (parts[0].lower(), [])
                 else:
                     #
                     # It's assembly, happen and keep looping
@@ -169,13 +163,9 @@ class CEmuRepl:
                 case "arch":
                     match args[0]:
                         case "get":
-                            print(
-                                f"Current architecture {cemu.core.context.architecture}"
-                            )
+                            print(f"Current architecture {cemu.core.context.architecture}")
                         case "set":
-                            cemu.core.context.architecture = (
-                                cemu.arch.Architectures.find(args[1])
-                            )
+                            cemu.core.context.architecture = cemu.arch.Architectures.find(args[1])
 
                 case "regs":
                     match args[0]:
@@ -196,9 +186,7 @@ class CEmuRepl:
                             for idx, section in enumerate(emu.sections):
                                 print(f"{idx:#04x}\t{section}")
                         case "add":
-                            section = cemu.memory.MemorySection(
-                                args[1], int(args[2], 0), int(args[3], 0), args[4]
-                            )
+                            section = cemu.memory.MemorySection(args[1], int(args[2], 0), int(args[3], 0), args[4])
                             emu.sections.append(section)
                             dbg(f"Section {section} added")
                         case "del":
@@ -232,9 +220,7 @@ class CEmuRepl:
                                 error("Assembly code is invalid")
 
                         case "edit":
-                            with tempfile.NamedTemporaryFile(
-                                suffix=".asm", mode="w+"
-                            ) as f:
+                            with tempfile.NamedTemporaryFile(suffix=".asm", mode="w+") as f:
                                 filepath = pathlib.Path(f.name)
                                 f.write(emu.codelines)
                                 f.flush()
@@ -267,9 +253,7 @@ class CEmuRepl:
         return
 
     def bottom_toolbar(self) -> str:
-        return (
-            f"{str(cemu.core.context.emulator)} [{str(cemu.core.context.architecture)}]"
-        )
+        return f"{str(cemu.core.context.emulator)} [{str(cemu.core.context.architecture)}]"
 
 
 class EmulationRunner:

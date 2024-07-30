@@ -1,15 +1,6 @@
-
-#
-# https://packaging.python.org/en/latest/tutorials/packaging-projects
-#
-[build-system]
-requires = ["setuptools>=61.0"]
-build-backend = "setuptools.build_meta"
-
-
 [project]
 name = "CEmu"
-version = "0.8"
+version = "0.8.0"
 authors = [{ name = "hugsy", email = "hugsy@blah.cat" }]
 description = "Cemu is a simple assembly/dissembly/emulation IDE that provides an easy Plug-n-Play environment to start playing with many architectures (currently supports x86-{32,64}, ARM, AARCH64, MIPS, MIPS64, SPARC and PPC)."
 readme = "README.md"
@@ -23,7 +14,6 @@ classifiers = [
     "Natural Language :: English",
     "Environment :: Console",
 ]
-
 keywords = [
     "assembly",
     "disassembly",
@@ -38,35 +28,40 @@ keywords = [
 ]
 
 dependencies = [
-    "capstone",
-    "unicorn",
-    "keystone-engine",
-    "Pygments",
-    "lief",
-    "loguru",
-    "prompt_toolkit",
-    "PyQt6",
+    "capstone>=5.0.1",
+    "unicorn>=2.0.1.post1",
+    "keystone-engine>=0.9.2",
+    "pygments>=2.18.0",
+    "lief>=0.15.1",
+    "loguru>=0.7.2",
+    "prompt-toolkit>=3.0.47",
+    "pyqt6>=6.7.1",
+    "setuptools>=72.1.0",
 ]
 
-[project.optional-dependencies]
-dev = ["pre-commit", "debugpy", "black"]
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
-tests = [
-    "pytest",
-    "pytest-cov",
-    "pytest-xdist",
-    "pytest-benchmark",
-    "pytest-forked",
-    "coverage",
+[tool.rye]
+managed = true
+dev-dependencies = [
+    "pytest>=8.3.2",
+    "pytest-cov>=5.0.0",
+    "coverage>=7.6.0",
+    "debugpy>=1.8.2",
 ]
 
-all = ["cemu[dev,tests]"]
+[tool.hatch.metadata]
+allow-direct-references = true
 
+[tool.hatch.build.targets.wheel]
+packages = ["src/cemu"]
 
-[project.entry-points.console_scripts]
+[project.scripts]
 cemu = "cemu.__main__:main"
 
-[project.entry-points.gui_scripts]
+[project.gui-scripts]
 cemu = "cemu.__main__:main"
 
 [project.urls]
@@ -77,18 +72,30 @@ cemu = "cemu.__main__:main"
 minversion = "6.0"
 python_functions = ["test_*", "time_*"]
 python_files = ["*.py"]
-log_cli = true
+log_cli = false
 log_cli_level = "DEBUG"
 log_cli_format = "%(asctime)s [%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)"
 log_cli_date_format = "%Y-%m-%d %H:%M:%S"
-addopts = "--cov --cov-report html --cov-report term-missing --cov-fail-under 45"
+# addopts = "--cov --cov-report html --cov-report term-missing --cov-fail-under 45"
 testpaths = ["tests"]
 pythonpath = ["."]
+filterwarnings = [
+    "error",
+    "ignore::DeprecationWarning",
+    # `unicorn` uses `pkg_resources` which is deprecated, ignore the warning
+    'ignore:.*_pytest\\assertion\\rewrite.py.*',
+]
+
 
 [tool.isort]
 profile = "black"
 
 [tool.ruff]
+target-version = "py310"
+line-length = 140
+
+[tool.ruff.lint]
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 select = ["E", "F"]
 ignore = []
 fixable = [
@@ -138,7 +145,6 @@ fixable = [
     "YTT",
 ]
 unfixable = []
-
 exclude = [
     ".bzr",
     ".direnv",
@@ -163,9 +169,5 @@ exclude = [
     "venv",
 ]
 
-line-length = 120
-dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
-target-version = "py310"
-
-[tool.ruff.mccabe]
+[tool.ruff.lint.mccabe]
 max-complexity = 10

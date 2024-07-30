@@ -4,7 +4,6 @@ from multiprocessing import Lock
 from typing import Any, Callable, Optional
 
 import unicorn
-from PyQt6.QtWidgets import QMessageBox
 
 import cemu.const
 import cemu.core
@@ -61,11 +60,7 @@ class EmulationRegisters(collections.UserDict):
             int: the register value
         """
         emu = cemu.core.context.emulator
-        if (
-            emu.state
-            in (EmulatorState.RUNNING, EmulatorState.IDLE, EmulatorState.FINISHED)
-            and key in self.data.keys()
-        ):
+        if emu.state in (EmulatorState.RUNNING, EmulatorState.IDLE, EmulatorState.FINISHED) and key in self.data.keys():
             val = emu.get_register_value(key)
             if val is not None:
                 super().__setitem__(key, val)
@@ -103,9 +98,7 @@ class Emulator:
         self.vm = None
         self.code = b""
         self.sections = MEMORY_MAP_DEFAULT_LAYOUT[:]
-        self.registers = EmulationRegisters(
-            {name: 0 for name in cemu.core.context.architecture.registers}
-        )
+        self.registers = EmulationRegisters({name: 0 for name in cemu.core.context.architecture.registers})
         self.start_addr = 0
         self.set(EmulatorState.NOT_RUNNING)
         return
@@ -200,9 +193,7 @@ class Emulator:
             return False
 
         for section in self.sections:
-            self.vm.mem_map(
-                section.address, section.size, perms=section.permission.unicorn()
-            )
+            self.vm.mem_map(section.address, section.size, perms=section.permission.unicorn())
             msg = f"Mapping {str(section)}"
 
             if section.content:
@@ -234,9 +225,7 @@ class Emulator:
         if self.registers[arch.pc] == 0:
             section = self.find_section(cemu.const.MEMORY_TEXT_SECTION_NAME)
             self.registers[arch.pc] = section.address
-            warn(
-                f"No value specified for PC register, setting to {self.registers[arch.pc]:#x}"
-            )
+            warn(f"No value specified for PC register, setting to {self.registers[arch.pc]:#x}")
 
         #
         # Set the initial SP if unspecified, in the middle of the stack section
@@ -244,9 +233,7 @@ class Emulator:
         if self.registers[arch.sp] == 0:
             section = self.find_section(MEMORY_STACK_SECTION_NAME)
             self.registers[arch.sp] = section.address + (section.size // 2)
-            warn(
-                f"No value specified for SP register, setting to {self.registers[arch.sp]:#x}"
-            )
+            warn(f"No value specified for SP register, setting to {self.registers[arch.sp]:#x}")
 
         #
         # Populate all the registers for unicorn
@@ -280,9 +267,7 @@ class Emulator:
             self.registers["SS"] = int(
                 x86.X86_32.SegmentDescriptor(
                     stack.address >> 8,
-                    x86.X86_32.SegmentType.Data
-                    | x86.X86_32.SegmentType.Accessed
-                    | x86.X86_32.SegmentType.ExpandDown,
+                    x86.X86_32.SegmentType.Data | x86.X86_32.SegmentType.Accessed | x86.X86_32.SegmentType.ExpandDown,
                     False,
                     3,
                     True,
@@ -325,9 +310,7 @@ class Emulator:
         Returns:
             bool True if all went well, False otherwise.
         """
-        dbg(
-            f"[vm::setup] Generating assembly code for {cemu.core.context.architecture.name}"
-        )
+        dbg(f"[vm::setup] Generating assembly code for {cemu.core.context.architecture.name}")
 
         try:
             insns = cemu.utils.assemble(self.codelines, base_address=self.start_addr)
@@ -369,9 +352,7 @@ class Emulator:
 
         assert isinstance(self.code, bytes)
 
-        dbg(
-            f"Populated text section {text_section} with {len(self.code)} compiled bytes"
-        )
+        dbg(f"Populated text section {text_section} with {len(self.code)} compiled bytes")
         self.vm.mem_write(text_section.address, self.code)
         return True
 
@@ -384,9 +365,7 @@ class Emulator:
 
         return None
 
-    def hook_code(
-        self, emu: unicorn.Uc, address: int, size: int, user_data: Any
-    ) -> bool:
+    def hook_code(self, emu: unicorn.Uc, address: int, size: int, user_data: Any) -> bool:
         """
         Unicorn instruction hook
         """
@@ -534,9 +513,7 @@ class Emulator:
         info(f"Emulator is now {new_state.name}")
         self.state = new_state
 
-        dbg(
-            f"Executing {len(self.__state_change_callbacks[new_state])} callbacks for state {new_state.name}"
-        )
+        dbg(f"Executing {len(self.__state_change_callbacks[new_state])} callbacks for state {new_state.name}")
 
         #
         # Notify the components who've subscribed to the new state change
@@ -552,9 +529,7 @@ class Emulator:
                 # This will effectively trigger the execution in unicorn
                 #
                 assert self.threaded_runner, "No threaded runner defined"
-                assert callable(
-                    getattr(self.threaded_runner, "run")
-                ), "Threaded runner is not runnable"
+                assert callable(getattr(self.threaded_runner, "run")), "Threaded runner is not runnable"
                 self.threaded_runner.run()  # type: ignore
 
             case EmulatorState.TEARDOWN:

@@ -60,18 +60,10 @@ class CommandWidget(QDockWidget):
         #
         self.emulator: Emulator = cemu.core.context.emulator
 
-        self.emulator.add_state_change_cb(
-            EmulatorState.NOT_RUNNING, self.onNotRunningUpdateCommandButtons
-        )
-        self.emulator.add_state_change_cb(
-            EmulatorState.RUNNING, self.onRunningUpdateCommandButtons
-        )
-        self.emulator.add_state_change_cb(
-            EmulatorState.IDLE, self.onIdleUpdateCommandButtons
-        )
-        self.emulator.add_state_change_cb(
-            EmulatorState.FINISHED, self.onFinishedUpdateCommandButtons
-        )
+        self.emulator.add_state_change_cb(EmulatorState.NOT_RUNNING, self.onNotRunningUpdateCommandButtons)
+        self.emulator.add_state_change_cb(EmulatorState.RUNNING, self.onRunningUpdateCommandButtons)
+        self.emulator.add_state_change_cb(EmulatorState.IDLE, self.onIdleUpdateCommandButtons)
+        self.emulator.add_state_change_cb(EmulatorState.FINISHED, self.onFinishedUpdateCommandButtons)
 
     def onClickRunAll(self) -> None:
         """

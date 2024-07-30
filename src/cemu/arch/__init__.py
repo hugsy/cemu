@@ -90,20 +90,14 @@ class Architecture:
                         row = [x.strip() for x in row.strip().split(",")]
                         syscall_number = int(row[0])
                         syscall_name = row[1].lower()
-                        self.__syscalls[syscall_name] = (
-                            self.syscall_base + syscall_number
-                        )
+                        self.__syscalls[syscall_name] = self.syscall_base + syscall_number
 
         return self.__syscalls
 
     def __eq__(self, x):
         if not isinstance(x, Architecture):
             return False
-        return (
-            self.name == x.name
-            and self.endianness == x.endianness
-            and self.syntax == x.syntax
-        )
+        return self.name == x.name and self.endianness == x.endianness and self.syntax == x.syntax
 
     def unicorn(self) -> tuple[int, int, int]:
         """Returns a tuple with the values of unicorn architecture, mode, endianess

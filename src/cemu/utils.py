@@ -94,9 +94,7 @@ class Instruction:
         return f'Instruction({self.address:#x}, "{self.mnemonic} {self.operands}")'
 
 
-def disassemble(
-    raw_data: bytes, count: int = -1, base: int = DISASSEMBLY_DEFAULT_BASE_ADDRESS
-) -> list[Instruction]:
+def disassemble(raw_data: bytes, count: int = -1, base: int = DISASSEMBLY_DEFAULT_BASE_ADDRESS) -> list[Instruction]:
     """Disassemble the code given as raw data, with the given architecture.
 
     Args:
@@ -125,9 +123,7 @@ def disassemble_file(fpath: pathlib.Path) -> list[Instruction]:
         return disassemble(f.read())
 
 
-def assemble(
-    code: str, base_address: int = DISASSEMBLY_DEFAULT_BASE_ADDRESS
-) -> list[Instruction]:
+def assemble(code: str, base_address: int = DISASSEMBLY_DEFAULT_BASE_ADDRESS) -> list[Instruction]:
     """
     Helper function to assemble code receive in parameter `asm_code` using Keystone.
 

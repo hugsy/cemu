@@ -22,7 +22,7 @@ from cemu.const import (
     DEFAULT_ASSEMBLY_VIEW_FONT,
     DEFAULT_ASSEMBLY_VIEW_FONT_SIZE,
     DEFAULT_CODE_VIEW_FONT,
-    DEFAULT_CODE_VIEW_FONT_SIZE
+    DEFAULT_CODE_VIEW_FONT_SIZE,
 )
 from cemu.log import error
 
@@ -38,9 +38,7 @@ class CodeEdit(QTextEdit):
     def __init__(self, parent: Optional[QWidget] = None):
         super(CodeEdit, self).__init__(parent)
         self.cursorPositionChanged.connect(self.UpdateHighlightedLine)
-        self.setFont(
-            QFont(DEFAULT_CODE_VIEW_FONT, pointSize=DEFAULT_CODE_VIEW_FONT_SIZE)
-        )
+        self.setFont(QFont(DEFAULT_CODE_VIEW_FONT, pointSize=DEFAULT_CODE_VIEW_FONT_SIZE))
         self.setFrameStyle(QFrame.Shape.Panel | QFrame.Shape.NoFrame)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
 
@@ -73,7 +71,7 @@ class AssemblyView(QTextEdit):
         #
         text: str = self.editor.toPlainText()
         cur: int = self.editor.textCursor().position()
-        if cur < 1 or text[cur - 1] != '\n':
+        if cur < 1 or text[cur - 1] != "\n":
             return
 
         #
@@ -82,8 +80,8 @@ class AssemblyView(QTextEdit):
         pane_width = self.width() // 10
         lines: list[str] = text.splitlines()
         bytecode_lines: list[str] = [
-                                        "",
-                                    ] * pane_width
+            "",
+        ] * pane_width
         assembly_failed_lines: list[int] = []
 
         for i in range(len(lines)):
@@ -106,9 +104,7 @@ class AssemblyView(QTextEdit):
                 bytecode_lines[i] = ""
 
         if assembly_failed_lines:
-            msg = (
-                f"Failed to assemble lines {', '.join(map(str, assembly_failed_lines))}"
-            )
+            msg = f"Failed to assemble lines {', '.join(map(str, assembly_failed_lines))}"
             if msg != self.__last_assembly_error_msg:
                 error(msg)
                 self.__last_assembly_error_msg = msg

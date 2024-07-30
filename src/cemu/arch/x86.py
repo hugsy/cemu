@@ -78,13 +78,7 @@ class X86_32(X86):
         P: bool
 
         def __int__(self) -> int:
-            return (
-                (self.base)
-                | (self.type << 8)
-                | (int(self.S) << 12)
-                | (self.DPL << 13)
-                | (int(self.P) << 15)
-            )
+            return (self.base) | (self.type << 8) | (int(self.S) << 12) | (self.DPL << 13) | (int(self.P) << 15)
 
     name = "Intel i386 32bit"
     pc = "EIP"

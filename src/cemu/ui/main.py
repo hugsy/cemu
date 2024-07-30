@@ -64,9 +64,7 @@ class CEmuWindow(QMainWindow):
         # self.signals = {} Unused?
         self.current_file: Optional[pathlib.Path] = None
         self.__background_emulator_thread: EmulationRunner = EmulationRunner()
-        cemu.core.context.emulator.set_threaded_runner(
-            self.__background_emulator_thread
-        )
+        cemu.core.context.emulator.set_threaded_runner(self.__background_emulator_thread)
 
         self.shortcuts: ShortcutManager = ShortcutManager()
 
@@ -103,14 +101,10 @@ class CEmuWindow(QMainWindow):
 
         # register the callbacks for the emulator
         emu = cemu.core.context.emulator
-        emu.add_state_change_cb(
-            EmulatorState.NOT_RUNNING, self.update_layout_not_running
-        )
+        emu.add_state_change_cb(EmulatorState.NOT_RUNNING, self.update_layout_not_running)
         emu.add_state_change_cb(EmulatorState.RUNNING, self.update_layout_running)
         emu.add_state_change_cb(EmulatorState.IDLE, self.update_layout_step_running)
-        emu.add_state_change_cb(
-            EmulatorState.FINISHED, self.update_layout_step_finished
-        )
+        emu.add_state_change_cb(EmulatorState.FINISHED, self.update_layout_step_finished)
 
         # show everything
         start_in_full_screen = cemu.core.context.settings.getboolean("Global", "StartInFullScreen")
@@ -309,9 +303,7 @@ class CEmuWindow(QMainWindow):
             action.triggered.connect(self.openRecentFile)
             self.recentFileActions.append(action)
 
-        clearRecentFilesAction = self.addMenuItem(
-            "Clear Recent Files", self.clearRecentFiles, "Clear Recent Files", ""
-        )
+        clearRecentFilesAction = self.addMenuItem("Clear Recent Files", self.clearRecentFiles, "Clear Recent Files", "")
 
         openRecentFilesSubMenu.addActions(self.recentFileActions)
         openRecentFilesSubMenu.addSeparator()
@@ -344,12 +336,8 @@ class CEmuWindow(QMainWindow):
                     self.archActions[label].setEnabled(False)
                     self.currentAction = self.archActions[label]
 
-                self.archActions[label].setStatusTip(
-                    f"Change the architecture to '{label}'"
-                )
-                self.archActions[label].triggered.connect(
-                    functools.partial(self.onUpdateArchitecture, arch)
-                )
+                self.archActions[label].setStatusTip(f"Change the architecture to '{label}'")
+                self.archActions[label].triggered.connect(functools.partial(self.onUpdateArchitecture, arch))
                 archSubMenu.addAction(self.archActions[label])
 
         # Add the View Window menu bar
@@ -386,9 +374,7 @@ class CEmuWindow(QMainWindow):
             self.shortcuts.shortcut("shortcut_popup"),
         )
 
-        aboutAction = self.addMenuItem(
-            "About", self.about_popup, self.shortcuts.description("about_popup")
-        )
+        aboutAction = self.addMenuItem("About", self.about_popup, self.shortcuts.description("about_popup"))
 
         helpMenu.addAction(shortcutAction)
         helpMenu.addAction(aboutAction)
@@ -479,9 +465,7 @@ class CEmuWindow(QMainWindow):
         return
 
     def loadCode(self, title, filter, run_disassembler):
-        qFile, _ = QFileDialog.getOpenFileName(
-            self, title, str(EXAMPLE_PATH), filter + ";;All files (*.*)"
-        )
+        qFile, _ = QFileDialog.getOpenFileName(self, title, str(EXAMPLE_PATH), filter + ";;All files (*.*)")
 
         fpath = pathlib.Path(qFile).resolve().absolute()
         if not fpath.is_file():
@@ -491,14 +475,7 @@ class CEmuWindow(QMainWindow):
         if run_disassembler:
             with tempfile.NamedTemporaryFile("w", suffix=".asm", delete=False) as fd:
                 disassembled_instructions = cemu.utils.disassemble_file(fpath)
-                fd.write(
-                    os.linesep.join(
-                        [
-                            f"{insn.mnemonic}, {insn.operands}"
-                            for insn in disassembled_instructions
-                        ]
-                    )
-                )
+                fd.write(os.linesep.join([f"{insn.mnemonic}, {insn.operands}" for insn in disassembled_instructions]))
                 fpath = pathlib.Path(fd.name)
 
         self.loadFile(fpath)
@@ -519,9 +496,7 @@ class CEmuWindow(QMainWindow):
 
     def saveCode(self, title, filter, run_assembler):
         dbg(f"Saving content of '{title}'")
-        qFile, _ = QFileDialog().getSaveFileName(
-            self, title, str(HOME), filter=filter + ";;All files (*.*)"
-        )
+        qFile, _ = QFileDialog().getSaveFileName(self, title, str(HOME), filter=filter + ";;All files (*.*)")
 
         if not qFile:
             return
@@ -544,9 +519,7 @@ class CEmuWindow(QMainWindow):
 
     def pick_file(self, title: str, file_picker_filter: str) -> Optional[pathlib.Path]:
         dbg(f"Saving content of '{title}'")
-        qFile, _ = QFileDialog().getSaveFileName(
-            self, title, str(HOME), filter=file_picker_filter + ";;All files (*.*)"
-        )
+        qFile, _ = QFileDialog().getSaveFileName(self, title, str(HOME), filter=file_picker_filter + ";;All files (*.*)")
 
         if not qFile:
             return None
@@ -558,14 +531,10 @@ class CEmuWindow(QMainWindow):
         return fpath
 
     def saveCodeText(self):
-        return self.saveCode(
-            "Save Assembly Pane As", "Assembly files (*.asm *.s)", False
-        )
+        return self.saveCode("Save Assembly Pane As", "Assembly files (*.asm *.s)", False)
 
     def saveCodeBin(self):
-        return self.saveCode(
-            "Save Raw Binary Pane As", "Raw binary files (*.raw)", True
-        )
+        return self.saveCode("Save Raw Binary Pane As", "Raw binary files (*.raw)", True)
 
     def saveAsCFile(self):
         template = (TEMPLATE_PATH / "linux" / "template.c").open("r").read()
@@ -614,9 +583,7 @@ class CEmuWindow(QMainWindow):
             insns = cemu.utils.assemble(code)
             if len(insns) > 0:
                 asm_code = b"".join([x.bytes for x in insns])
-                pe = cemu.exports.build_pe_executable(
-                    asm_code, memory_layout, cemu.core.context.architecture
-                )
+                pe = cemu.exports.build_pe_executable(asm_code, memory_layout, cemu.core.context.architecture)
                 info(f"PE file written as '{pe}'")
         except Exception as e:
             error(f"PE creation triggered an exception: {e}")
@@ -630,17 +597,13 @@ class CEmuWindow(QMainWindow):
             insns = cemu.utils.assemble(code)
             if len(insns) > 0:
                 asm_code = b"".join([x.bytes for x in insns])
-                elf = cemu.exports.build_pe_executable(
-                    asm_code, memory_layout, cemu.core.context.architecture
-                )
+                elf = cemu.exports.build_pe_executable(asm_code, memory_layout, cemu.core.context.architecture)
                 info(f"ELF file written as '{elf}'")
         except Exception as e:
             error(f"ELF creation triggered an exception: {str(e)}")
         return
 
-    def onUpdateArchitecture(
-        self, arch: Architecture, endian: Optional[Endianness] = None
-    ) -> None:
+    def onUpdateArchitecture(self, arch: Architecture, endian: Optional[Endianness] = None) -> None:
         """Callback triggered when there's a change of Architecture in the UI
 
         Args:
@@ -694,9 +657,7 @@ class CEmuWindow(QMainWindow):
 
     def about_popup(self):
         templ = (TEMPLATE_PATH / "about.html").open().read()
-        desc = templ.format(
-            author=AUTHOR, version=VERSION, project_link=URL, issues_link=ISSUE_LINK
-        )
+        desc = templ.format(author=AUTHOR, version=VERSION, project_link=URL, issues_link=ISSUE_LINK)
         msgbox = QMessageBox(self)
         msgbox.setIcon(QMessageBox.Icon.Information)
         msgbox.setWindowTitle("About CEMU")
