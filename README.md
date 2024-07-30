@@ -1,5 +1,5 @@
 <p align="center">
-  <img alt="Logo" src="cemu/img/new_logo.png" width=20%>
+  <img alt="Logo" src="src/cemu/img/new_logo.png" width=20%>
 </p>
 
 <h2 align="center">CEmu : The Cheap (Assembly) Emulator</h2>
