@@ -12,8 +12,7 @@ on:
 env:
   NAME: cemu
   REPO: hugsy/cemu
-  DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
-  VERSION: 0.8
+  VERSION: 0.8.0
 
 jobs:
   build:
@@ -42,56 +41,67 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
-    - name: "Install Pre-requisite (Linux)"
-      if: matrix.os == 'ubuntu-latest'
-      shell: bash
-      run: |
-        sudo apt update
-        sudo apt upgrade -y
-        sudo apt install -y build-essential libegl1 libgl1-mesa-glx python3-dev python3-pip python3-wheel python3-setuptools
+    - name: "Install Pre-requisite"
+      uses: eifinger/setup-rye@v4
+      with:
+        version: 'latest'
 
-    - name: "Install Pre-requisite (macOS)"
-      if: matrix.os == 'macos-latest'
-      run: |
-        env
+    # - name: "Install Pre-requisite (Linux)"
+    #   if: matrix.os == 'ubuntu-latest'
+    #   shell: bash
+    #   run: |
+    #     sudo apt update
+    #     sudo apt upgrade -y
+    #     sudo apt install -y build-essential libegl1 libgl1-mesa-glx python3-dev python3-pip python3-wheel python3-setuptools
 
-    - name: "Install Pre-requisite (Windows)"
-      if: matrix.os == 'windows-latest'
-      shell: pwsh
-      run: |
-        env
+    # - name: "Install Pre-requisite (macOS)"
+    #   if: matrix.os == 'macos-latest'
+    #   run: |
+    #     env
 
-    - name: Build artifact
-      shell: bash
-      run: |
-        mkdir build
-        mkdir build/bin
-        python --version
-        python -m pip --version
-        python -m pip install --upgrade pip setuptools wheel
-        python -m pip install --user --upgrade .[all]
+    # - name: "Install Pre-requisite (Windows)"
+    #   if: matrix.os == 'windows-latest'
+    #   shell: pwsh
+    #   run: |
+    #     env
 
-    - name: "Post build Cemu (Windows)"
-      if: matrix.os == 'windows-latest'
-      shell: pwsh
-      run: |
-        Copy-Item $env:APPDATA\Python\Python*\Scripts\cemu.exe build\bin\
+    - run: rye fmt
+    - run: rye lint
+    - run: rye test
+    - run: rye build --wheel --out ./build
 
-    - name: "Post build Cemu (Linux)"
-      if: matrix.os == 'ubuntu-latest'
-      shell: bash
-      run: |
-        cp -v ~/.local/bin/cemu build/bin/
 
-    - name: "Post build Cemu (macOS)"
-      if: matrix.os == 'macos-latest'
-      shell: bash
-      run: |
-        cp -v ~/.local/bin/cemu build/bin/ || cp -v /Users/runner/Library/Python/${{ matrix.python-version }}/bin/cemu build/bin/
+    # - name: Build artifact
+    #   shell: bash
+    #   run: |
+    #     mkdir build
+    #     mkdir build/bin
+    #     python --version
+    #     python -m pip --version
+    #     python -m pip install --upgrade pip setuptools wheel
+    #     python -m pip install --user --upgrade .[all]
 
-    - name: "Run tests"
-      run: |
-        python -m pytest tests/
+    # - name: "Post build Cemu (Windows)"
+    #   if: matrix.os == 'windows-latest'
+    #   shell: pwsh
+    #   run: |
+    #     Copy-Item $env:APPDATA\Python\Python*\Scripts\cemu.exe build\bin\
+
+    # - name: "Post build Cemu (Linux)"
+    #   if: matrix.os == 'ubuntu-latest'
+    #   shell: bash
+    #   run: |
+    #     cp -v ~/.local/bin/cemu build/bin/
+
+    # - name: "Post build Cemu (macOS)"
+    #   if: matrix.os == 'macos-latest'
+    #   shell: bash
+    #   run: |
+    #     cp -v ~/.local/bin/cemu build/bin/ || cp -v /Users/runner/Library/Python/${{ matrix.python-version }}/bin/cemu build/bin/
+
+    # - name: "Run tests"
+    #   run: |
+    #     python -m pytest tests/
 
     - name: Publish artifact
       id: publish_artifact
@@ -133,6 +143,8 @@ jobs:
         echo "${{ matrix.os }}-$pyVersion=❌ ${{ matrix.os }} ${{ matrix.python-version }}" >> $GITHUB_OUTPUT
 
   notify:
+    env:
+      DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
     runs-on: 'ubuntu-latest'
     needs: build
     steps:
@@ -142,7 +154,7 @@ jobs:
         RUN_URL: "https://github.com/${{ env.REPO }}/actions/runs/${{ github.run_id }}"
         BRANCH_URL: "https://github.com/${{ env.REPO }}/tree/${{ github.ref_name }}"
         AUTHOR_URL: "https://github.com/${{ github.actor }}"
-      uses: sarisia/actions-status-discord@v1.14.0
+      uses: sarisia/actions-status-discord@v1.14.5
       with:
         nodetail: true
         title: 🚧 🚧 Summary of Build `${{ github.sha }}` for `${{ env.REPO }}` 🚧 🚧
