@@ -434,7 +434,7 @@ class CEmuWindow(QMainWindow):
             KeyError: if the architecture from the file metadata is invalid
         """
         dbg(f"Trying to load '{fpath}'")
-        content = fpath.open().read()
+        content = fpath.read_text()
 
         try:
             res = cemu.utils.get_metadata_from_stream(content)
@@ -509,10 +509,10 @@ class CEmuWindow(QMainWindow):
             raw_assembly = self.get_codeview_content()
             insns: list[cemu.utils.Instruction] = cemu.utils.assemble(raw_assembly)
             raw_bytecode = b"".join([insn.bytes for insn in insns])
-            fpath.open("wb").write(raw_bytecode)
+            fpath.write_bytes(raw_bytecode)
         else:
             raw_bytecode = self.get_codeview_content()
-            fpath.open("w").write(raw_bytecode)
+            fpath.write_text(raw_bytecode)
 
         ok(f"Saved as '{fpath}'")
         return
@@ -537,7 +537,7 @@ class CEmuWindow(QMainWindow):
         return self.saveCode("Save Raw Binary Pane As", "Raw binary files (*.raw)", True)
 
     def saveAsCFile(self):
-        template = (TEMPLATE_PATH / "linux" / "template.c").open("r").read()
+        template = (TEMPLATE_PATH / "linux" / "template.c").read_text("r")
         output: list[str] = []
         lines = self.get_codeview_content().splitlines()
         insns = cemu.utils.assemble(self.get_codeview_content())
@@ -562,17 +562,15 @@ class CEmuWindow(QMainWindow):
 
     def saveAsAsmFile(self) -> None:
         """Write the content of the ASM pane to disk"""
-        template = (TEMPLATE_PATH / "linux" / "template.asm").open("r").read()
+        template = (TEMPLATE_PATH / "linux" / "template.asm").read_text()
         code = self.get_codeview_content()
 
         picked_file_path = self.pick_file("Save As Generated Assembly File", "Assembly files (*.asm *.s)")
         if picked_file_path is None:
             return
 
-        with picked_file_path.open("w") as fd:
-            body = template % (cemu.core.context.architecture.name, code)
-            fd.write(body)
-            ok(f"Saved as '{fd.name}'")
+        picked_file_path.write_text(template % (cemu.core.context.architecture.name, code))
+        ok(f"Saved as '{picked_file_path}'")
         return
 
     def generate_pe(self) -> None:
@@ -651,12 +649,14 @@ class CEmuWindow(QMainWindow):
 
         wid.setMinimumWidth(800)
         wid.setLayout(grid)
-        msgbox.layout().addWidget(wid)
+        msgbox_layout = msgbox.layout()
+        if msgbox_layout:
+            msgbox_layout.addWidget(wid)
         msgbox.exec()
         return
 
     def about_popup(self):
-        templ = (TEMPLATE_PATH / "about.html").open().read()
+        templ = (TEMPLATE_PATH / "about.html").read_text()
         desc = templ.format(author=AUTHOR, version=VERSION, project_link=URL, issues_link=ISSUE_LINK)
         msgbox = QMessageBox(self)
         msgbox.setIcon(QMessageBox.Icon.Information)

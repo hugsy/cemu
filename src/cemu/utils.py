@@ -119,8 +119,7 @@ def disassemble(raw_data: bytes, count: int = -1, base: int = DISASSEMBLY_DEFAUL
 
 
 def disassemble_file(fpath: pathlib.Path) -> list[Instruction]:
-    with fpath.open("rb") as f:
-        return disassemble(f.read())
+    return disassemble(fpath.read_bytes())
 
 
 def assemble(code: str, base_address: int = DISASSEMBLY_DEFAULT_BASE_ADDRESS) -> list[Instruction]:
@@ -152,8 +151,7 @@ def assemble(code: str, base_address: int = DISASSEMBLY_DEFAULT_BASE_ADDRESS) ->
 
 
 def assemble_file(fpath: pathlib.Path) -> list[Instruction]:
-    with fpath.open("r") as f:
-        return assemble(f.read())
+    return assemble(fpath.read_text())
 
 
 def ishex(x: str) -> bool:

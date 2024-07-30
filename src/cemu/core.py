@@ -93,8 +93,10 @@ def CemuGui() -> None:
     cemu.log.dbg("Creating GUI context")
     context = GlobalGuiContext()
 
+    default_style_sheet = cemu.const.DEFAULT_STYLE_PATH.read_text()
+
     app = QApplication(sys.argv)
-    app.setStyleSheet(cemu.const.DEFAULT_STYLE_PATH.open().read())
+    app.setStyleSheet(default_style_sheet)
     app.setWindowIcon(QIcon(str(cemu.const.ICON_PATH.absolute())))
     context.root = cemu.ui.main.CEmuWindow(app)
     sys.exit(app.exec())
