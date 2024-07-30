@@ -47,6 +47,7 @@ class CommandWidget(QDockWidget):
             button = QPushButton(buttons[name].label)
             button.clicked.connect(buttons[name].on_click)
             button.setShortcut(sc.shortcut(buttons[name].shortcut))
+            button.setToolTip(name)
             self.buttons[name] = button
             layout.addWidget(self.buttons[name])
 
@@ -71,7 +72,6 @@ class CommandWidget(QDockWidget):
         self.emulator.add_state_change_cb(
             EmulatorState.FINISHED, self.onFinishedUpdateCommandButtons
         )
-        return
 
     def onClickRunAll(self) -> None:
         """
@@ -81,7 +81,6 @@ class CommandWidget(QDockWidget):
         self.emulator.use_step_mode = False
         # self.emulator.stop_now = False
         self.emulator.set(EmulatorState.RUNNING)
-        return
 
     def onClickStepNext(self) -> None:
         """
@@ -90,7 +89,6 @@ class CommandWidget(QDockWidget):
         self.emulator.use_step_mode = True
         # self.emulator.stop_now = False
         self.emulator.set(EmulatorState.RUNNING)
-        return
 
     def onClickStop(self):
         """
@@ -98,12 +96,10 @@ class CommandWidget(QDockWidget):
         """
         if not self.emulator.is_running:
             popup("Emulator is not running...")
-            return
 
         dbg("Stopping emulation...")
         self.emulator.set(EmulatorState.FINISHED)
         info("Emulation context has stopped")
-        return
 
     def onClickReset(self):
         """
@@ -115,7 +111,6 @@ class CommandWidget(QDockWidget):
         dbg("Tearing down VM on user demand...")
         self.emulator.set(EmulatorState.TEARDOWN)
         info("Emulation context reset")
-        return
 
     def onClickCheckCode(self) -> None:
         """
@@ -136,7 +131,6 @@ class CommandWidget(QDockWidget):
             popup_style = PopupType.Error
 
         popup(msg, popup_style, title=title)
-        return
 
     def onRunningUpdateCommandButtons(self) -> None:
         """On `running` state, disable all buttons"""
@@ -144,7 +138,6 @@ class CommandWidget(QDockWidget):
         self.buttons["step"].setDisabled(True)
         self.buttons["stop"].setDisabled(True)
         self.buttons["reset"].setDisabled(True)
-        return
 
     def onNotRunningUpdateCommandButtons(self) -> None:
         """On `not running` state, we can do all but stop"""
@@ -152,7 +145,6 @@ class CommandWidget(QDockWidget):
         self.buttons["step"].setDisabled(False)
         self.buttons["stop"].setDisabled(True)
         self.buttons["reset"].setDisabled(True)
-        return
 
     def onIdleUpdateCommandButtons(self) -> None:
         """On `idle` state, we can either step more, run all or stop"""
@@ -160,7 +152,6 @@ class CommandWidget(QDockWidget):
         self.buttons["step"].setDisabled(False)
         self.buttons["run"].setDisabled(False)
         self.buttons["reset"].setDisabled(True)
-        return
 
     def onFinishedUpdateCommandButtons(self):
         """In the finished state, we can only completely reset the emulation context"""
@@ -168,4 +159,3 @@ class CommandWidget(QDockWidget):
         self.buttons["step"].setDisabled(True)
         self.buttons["stop"].setDisabled(True)
         self.buttons["reset"].setDisabled(False)
-        return

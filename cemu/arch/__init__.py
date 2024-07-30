@@ -7,6 +7,7 @@ import keystone
 import unicorn
 
 from cemu.const import SYSCALLS_PATH
+from ..ui.utils import popup, PopupType
 
 if TYPE_CHECKING:
     import cemu.core
@@ -75,7 +76,13 @@ class Architecture:
 
         if not self.__syscalls:
             syscall_dir = SYSCALLS_PATH / str(self.__context.os)
-            fpath = syscall_dir / (self.syscall_filename + ".csv")
+
+            try:
+                fpath = syscall_dir / (self.syscall_filename + ".csv")
+            except ValueError as e:
+                popup(str(e), PopupType.Error, "No Syscall File Error")
+                return {}
+
             self.__syscalls = {}
             if fpath.exists():
                 with fpath.open("r") as fd:

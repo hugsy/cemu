@@ -35,6 +35,11 @@ class MemoryMappingWidget(QDockWidget):
 
         # the memory layout table
         self.MemoryMapTableWidget = QTableWidget(0, 4)
+        self.MemoryMapTableWidget.setFixedWidth(350)
+        self.MemoryMapTableWidget.setColumnWidth(0, 120)
+        self.MemoryMapTableWidget.setColumnWidth(1, 120)
+        self.MemoryMapTableWidget.setColumnWidth(2, 120)
+        self.MemoryMapTableWidget.setColumnWidth(3, 120)
         self.MemoryMapTableWidget.setSelectionBehavior(
             QTableWidget.SelectionBehavior.SelectRows
         )
@@ -150,7 +155,7 @@ class MemoryMappingWidget(QDockWidget):
         permCheckLayout = QHBoxLayout()
         perm_read_btn = QCheckBox("Read")
         perm_write_btn = QCheckBox("Write")
-        perm_exec_btn = QCheckBox("eXecute")
+        perm_exec_btn = QCheckBox("Execute")
         permCheckLayout.addWidget(perm_read_btn)
         permCheckLayout.addWidget(perm_write_btn)
         permCheckLayout.addWidget(perm_exec_btn)

@@ -4,24 +4,22 @@ from multiprocessing import Lock
 from typing import Any, Callable, Optional
 
 import unicorn
+from PyQt6.QtWidgets import QMessageBox
 
 import cemu.const
 import cemu.core
-from cemu.exceptions import CemuEmulatorMissingRequiredSection
 import cemu.os
-from cemu.ui.utils import popup
 import cemu.utils
-
-from cemu.log import dbg, error, info, warn
-
 from cemu.const import (
     MEMORY_TEXT_SECTION_NAME,
     MEMORY_DATA_SECTION_NAME,
     MEMORY_STACK_SECTION_NAME,
 )
-
+from cemu.exceptions import CemuEmulatorMissingRequiredSection
+from cemu.log import dbg, error, info, warn
 from .arch import is_x86, is_x86_32, x86
 from .memory import MemorySection
+from .ui.utils import popup, PopupType
 
 
 @unique
@@ -104,7 +102,6 @@ class Emulator:
     def reset(self):
         self.vm = None
         self.code = b""
-        self.codelines = ""
         self.sections = MEMORY_MAP_DEFAULT_LAYOUT[:]
         self.registers = EmulationRegisters(
             {name: 0 for name in cemu.core.context.architecture.registers}
@@ -378,14 +375,14 @@ class Emulator:
         self.vm.mem_write(text_section.address, self.code)
         return True
 
-    def next_instruction(self, code: bytes, addr: int) -> cemu.utils.Instruction:
+    def next_instruction(self, code: bytes, addr: int) -> Optional[cemu.utils.Instruction]:
         """
         Returns a string disassembly of the first instruction from `code`.
         """
         for insn in cemu.utils.disassemble(code, 1, addr):
             return insn
 
-        raise Exception("should never be here")
+        return None
 
     def hook_code(
         self, emu: unicorn.Uc, address: int, size: int, user_data: Any
@@ -514,7 +511,10 @@ class Emulator:
                 #
                 # Make sure there's always an emulation environment ready
                 #
-                self.setup()
+                try:
+                    self.setup()
+                except Exception as e:
+                    popup(str(e), PopupType.Error, "Emulator setup error")
 
                 #
                 # If we stopped from execution (i.e RUNNING -> [IDLE,FINISHED]), refresh registers
