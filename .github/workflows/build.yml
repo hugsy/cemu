@@ -19,20 +19,20 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest]
+        os: [windows-2019, ubuntu-22.04, macos-13]
         python-version: ['3.10', '3.11', '3.12']
     name: ${{ matrix.os }} / ${{ matrix.python-version }}
     runs-on: ${{ matrix.os }}
     outputs:
-      windows-latest-3-10: ${{ join(steps.*.outputs.windows-latest-3-10,'') }}
-      windows-latest-3-11: ${{ join(steps.*.outputs.windows-latest-3-11,'') }}
-      windows-latest-3-12: ${{ join(steps.*.outputs.windows-latest-3-12,'') }}
-      ubuntu-latest-3-10: ${{ join(steps.*.outputs.ubuntu-latest-3-10,'') }}
-      ubuntu-latest-3-11: ${{ join(steps.*.outputs.ubuntu-latest-3-11,'') }}
-      ubuntu-latest-3-12: ${{ join(steps.*.outputs.ubuntu-latest-3-12,'') }}
-      macos-latest-3-10: ${{ join(steps.*.outputs.macos-latest-3-10,'') }}
-      macos-latest-3-11: ${{ join(steps.*.outputs.macos-latest-3-11,'') }}
-      macos-latest-3-12: ${{ join(steps.*.outputs.macos-latest-3-12,'') }}
+      windows-2019-3-10: ${{ join(steps.*.outputs.windows-2019-3-10,'') }}
+      windows-2019-3-11: ${{ join(steps.*.outputs.windows-2019-3-11,'') }}
+      windows-2019-3-12: ${{ join(steps.*.outputs.windows-2019-3-12,'') }}
+      ubuntu-22.04-3-10: ${{ join(steps.*.outputs.ubuntu-22.04-3-10,'') }}
+      ubuntu-22.04-3-11: ${{ join(steps.*.outputs.ubuntu-22.04-3-11,'') }}
+      ubuntu-22.04-3-12: ${{ join(steps.*.outputs.ubuntu-22.04-3-12,'') }}
+      macos-13-3-10: ${{ join(steps.*.outputs.macos-13-3-10,'') }}
+      macos-13-3-11: ${{ join(steps.*.outputs.macos-13-3-11,'') }}
+      macos-13-3-12: ${{ join(steps.*.outputs.macos-13-3-12,'') }}
 
     steps:
     - uses: actions/checkout@v4
@@ -46,21 +46,21 @@ jobs:
       with:
         version: 'latest'
 
-    # - name: "Install Pre-requisite (Linux)"
-    #   if: matrix.os == 'ubuntu-latest'
-    #   shell: bash
-    #   run: |
-    #     sudo apt update
-    #     sudo apt upgrade -y
-    #     sudo apt install -y build-essential libegl1 libgl1-mesa-glx python3-dev python3-pip python3-wheel python3-setuptools
+    - name: "Install Pre-requisite (Linux)"
+      if: matrix.os == 'ubuntu-22.04'
+      shell: bash
+      run: |
+        sudo apt update
+        sudo apt upgrade -y
+        sudo apt install -y build-essential libegl1 libgl1-mesa-glx
 
     # - name: "Install Pre-requisite (macOS)"
-    #   if: matrix.os == 'macos-latest'
+    #   if: matrix.os == 'macos-13'
     #   run: |
     #     env
 
     # - name: "Install Pre-requisite (Windows)"
-    #   if: matrix.os == 'windows-latest'
+    #   if: matrix.os == 'windows-2019'
     #   shell: pwsh
     #   run: |
     #     env
@@ -82,19 +82,19 @@ jobs:
     #     python -m pip install --user --upgrade .[all]
 
     # - name: "Post build Cemu (Windows)"
-    #   if: matrix.os == 'windows-latest'
+    #   if: matrix.os == 'windows-2019'
     #   shell: pwsh
     #   run: |
     #     Copy-Item $env:APPDATA\Python\Python*\Scripts\cemu.exe build\bin\
 
     # - name: "Post build Cemu (Linux)"
-    #   if: matrix.os == 'ubuntu-latest'
+    #   if: matrix.os == 'ubuntu-22.04'
     #   shell: bash
     #   run: |
     #     cp -v ~/.local/bin/cemu build/bin/
 
     # - name: "Post build Cemu (macOS)"
-    #   if: matrix.os == 'macos-latest'
+    #   if: matrix.os == 'macos-13'
     #   shell: bash
     #   run: |
     #     cp -v ~/.local/bin/cemu build/bin/ || cp -v /Users/runner/Library/Python/${{ matrix.python-version }}/bin/cemu build/bin/
@@ -112,7 +112,7 @@ jobs:
 
     - name: Populate the successful output (Windows)
       id: output_success_windows
-      if: ${{ matrix.os == 'windows-latest' &&  success() }}
+      if: ${{ matrix.os == 'windows-2019' &&  success() }}
       shell: pwsh
       run: |
         $pyVersion = "${{ matrix.python-version }}" -replace "\.", "-"
@@ -120,7 +120,7 @@ jobs:
 
     - name: Populate the successful output (Other)
       id: output_success_other
-      if: ${{matrix.os != 'windows-latest' && success() }}
+      if: ${{matrix.os != 'windows-2019' && success() }}
       shell: bash
       run: |
         pyVersion="$(echo -n ${{ matrix.python-version }} | tr . -)"
@@ -128,7 +128,7 @@ jobs:
 
     - name: Populate the failure output (Windows)
       id: output_failure_windows
-      if: ${{matrix.os == 'windows-latest' && failure() }}
+      if: ${{matrix.os == 'windows-2019' && failure() }}
       shell: pwsh
       run: |
         $pyVersion = "${{ matrix.python-version }}" -replace "\.", "-"
@@ -136,7 +136,7 @@ jobs:
 
     - name: Populate the failure output (Other)
       id: output_failure_other
-      if: ${{matrix.os != 'windows-latest' && failure() }}
+      if: ${{matrix.os != 'windows-2019' && failure() }}
       shell: bash
       run: |
         pyVersion="$(echo -n ${{ matrix.python-version }} | tr . -)"
@@ -145,7 +145,7 @@ jobs:
   notify:
     env:
       DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
-    runs-on: 'ubuntu-latest'
+    runs-on: 'ubuntu-22.04'
     needs: build
     steps:
     - name: Send Discord notification
@@ -164,15 +164,15 @@ jobs:
           ● Branch [`${{ github.ref_name }}`](${{ env.BRANCH_URL }})
           ● [Detail Page](${{ env.RUN_URL }})
 
-          ${{ needs.build.outputs.windows-latest-3-10 }}
-          ${{ needs.build.outputs.windows-latest-3-11 }}
-          ${{ needs.build.outputs.windows-latest-3-12 }}
-          ${{ needs.build.outputs.ubuntu-latest-3-10 }}
-          ${{ needs.build.outputs.ubuntu-latest-3-11 }}
-          ${{ needs.build.outputs.ubuntu-latest-3-12 }}
-          ${{ needs.build.outputs.macos-latest-3-10 }}
-          ${{ needs.build.outputs.macos-latest-3-11 }}
-          ${{ needs.build.outputs.macos-latest-3-12 }}
+          ${{ needs.build.outputs.windows-2019-3-10 }}
+          ${{ needs.build.outputs.windows-2019-3-11 }}
+          ${{ needs.build.outputs.windows-2019-3-12 }}
+          ${{ needs.build.outputs.ubuntu-22.04-3-10 }}
+          ${{ needs.build.outputs.ubuntu-22.04-3-11 }}
+          ${{ needs.build.outputs.ubuntu-22.04-3-12 }}
+          ${{ needs.build.outputs.macos-13-3-10 }}
+          ${{ needs.build.outputs.macos-13-3-11 }}
+          ${{ needs.build.outputs.macos-13-3-12 }}
 
 
         color: 0x0000ff
