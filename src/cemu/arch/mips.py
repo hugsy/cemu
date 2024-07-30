@@ -58,27 +58,21 @@ class MIPS(Architecture):
         return (
             keystone.KS_ARCH_MIPS,
             keystone.KS_MODE_MIPS32,
-            keystone.KS_MODE_LITTLE_ENDIAN
-            if self.endianness == Endianness.LITTLE_ENDIAN
-            else keystone.KS_MODE_BIG_ENDIAN,
+            keystone.KS_MODE_LITTLE_ENDIAN if self.endianness == Endianness.LITTLE_ENDIAN else keystone.KS_MODE_BIG_ENDIAN,
         )
 
     def capstone(self) -> tuple[int, int, int]:
         return (
             capstone.CS_ARCH_MIPS,
             capstone.CS_MODE_MIPS32,
-            capstone.CS_MODE_LITTLE_ENDIAN
-            if self.endianness == Endianness.LITTLE_ENDIAN
-            else capstone.CS_MODE_BIG_ENDIAN,
+            capstone.CS_MODE_LITTLE_ENDIAN if self.endianness == Endianness.LITTLE_ENDIAN else capstone.CS_MODE_BIG_ENDIAN,
         )
 
     def unicorn(self) -> tuple[int, int, int]:
         return (
             unicorn.UC_ARCH_MIPS,
             unicorn.UC_MODE_MIPS32,
-            unicorn.UC_MODE_LITTLE_ENDIAN
-            if self.endianness == Endianness.LITTLE_ENDIAN
-            else unicorn.UC_MODE_BIG_ENDIAN,
+            unicorn.UC_MODE_LITTLE_ENDIAN if self.endianness == Endianness.LITTLE_ENDIAN else unicorn.UC_MODE_BIG_ENDIAN,
         )
 
     def uc_register(self, name: str) -> int:
@@ -94,25 +88,19 @@ class MIPS64(MIPS):
         return (
             keystone.KS_ARCH_MIPS,
             keystone.KS_MODE_MIPS64,
-            keystone.KS_MODE_LITTLE_ENDIAN
-            if self.endianness == Endianness.LITTLE_ENDIAN
-            else keystone.KS_MODE_BIG_ENDIAN,
+            keystone.KS_MODE_LITTLE_ENDIAN if self.endianness == Endianness.LITTLE_ENDIAN else keystone.KS_MODE_BIG_ENDIAN,
         )
 
     def capstone(self) -> tuple[int, int, int]:
         return (
             capstone.CS_ARCH_MIPS,
             capstone.CS_MODE_MIPS64,
-            capstone.CS_MODE_LITTLE_ENDIAN
-            if self.endianness == Endianness.LITTLE_ENDIAN
-            else capstone.CS_MODE_BIG_ENDIAN,
+            capstone.CS_MODE_LITTLE_ENDIAN if self.endianness == Endianness.LITTLE_ENDIAN else capstone.CS_MODE_BIG_ENDIAN,
         )
 
     def unicorn(self) -> tuple[int, int, int]:
         return (
             unicorn.UC_ARCH_MIPS,
             unicorn.UC_MODE_MIPS64,
-            unicorn.UC_MODE_LITTLE_ENDIAN
-            if self.endianness == Endianness.LITTLE_ENDIAN
-            else unicorn.UC_MODE_BIG_ENDIAN,
+            unicorn.UC_MODE_LITTLE_ENDIAN if self.endianness == Endianness.LITTLE_ENDIAN else unicorn.UC_MODE_BIG_ENDIAN,
         )

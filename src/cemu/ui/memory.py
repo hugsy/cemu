@@ -47,9 +47,7 @@ class MemoryWidget(QDockWidget):
         memview_layout = QVBoxLayout()
         self.editor = QTextEdit()
         self.editor.setFrameStyle(QFrame.Shape.Panel | QFrame.Shape.NoFrame)
-        self.editor.setFont(
-            QFont(const.DEFAULT_MEMORY_VIEW_FONT, const.DEFAULT_MEMORY_VIEW_FONT_SIZE)
-        )
+        self.editor.setFont(QFont(const.DEFAULT_MEMORY_VIEW_FONT, const.DEFAULT_MEMORY_VIEW_FONT_SIZE))
         self.editor.setReadOnly(True)
         memview_layout.addWidget(title_widget)
         memview_layout.addWidget(self.editor)
@@ -63,9 +61,7 @@ class MemoryWidget(QDockWidget):
         #
         emu: Emulator = cemu.core.context.emulator
         emu.add_state_change_cb(EmulatorState.IDLE, self.onIdleRefreshMemoryEditor)
-        emu.add_state_change_cb(
-            EmulatorState.FINISHED, self.onFinishedClearMemoryEditor
-        )
+        emu.add_state_change_cb(EmulatorState.FINISHED, self.onFinishedClearMemoryEditor)
 
         return
 

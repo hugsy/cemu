@@ -9,5 +9,7 @@ __pycache__
 .coverage*
 build
 dist
-/.idea
-/.venv
+.idea
+.venv
+CEmu.egg-info
+htmlcov

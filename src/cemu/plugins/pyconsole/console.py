@@ -41,9 +41,7 @@ class PythonConsole(QTextEdit):
 
         self.setWordWrapMode(QTextOption.WrapMode.WrapAnywhere)
         self.setUndoRedoEnabled(False)
-        self.document().setDefaultFont(
-            QFont(const.DEFAULT_FONT, const.DEFAULT_FONT_SIZE, QFont.Weight.Normal)
-        )
+        self.document().setDefaultFont(QFont(const.DEFAULT_FONT, const.DEFAULT_FONT_SIZE, QFont.Weight.Normal))
         self.setText(self.startup_message + os.linesep)
         self.newPrompt()
         return
@@ -68,13 +66,9 @@ class PythonConsole(QTextEdit):
         if self.getCommand() == command:
             return
         self.moveCursor(QTextCursor.MoveOperation.End)
-        self.moveCursor(
-            QTextCursor.MoveOperation.StartOfLine, QTextCursor.MoveMode.KeepAnchor
-        )
+        self.moveCursor(QTextCursor.MoveOperation.StartOfLine, QTextCursor.MoveMode.KeepAnchor)
         for i in range(len(self.prompt)):
-            self.moveCursor(
-                QTextCursor.MoveOperation.Right, QTextCursor.MoveMode.KeepAnchor
-            )
+            self.moveCursor(QTextCursor.MoveOperation.Right, QTextCursor.MoveMode.KeepAnchor)
         self.textCursor().removeSelectedText()
         self.textCursor().insertText(command)
         self.moveCursor(QTextCursor.MoveOperation.End)
@@ -200,10 +194,7 @@ class PythonConsole(QTextEdit):
             self.setCommand(self.getNextHistoryEntry())
             return
 
-        if (
-            event.key() == Qt.Key.Key_D
-            and event.modifiers() == Qt.KeyboardModifier.ControlModifier
-        ):
+        if event.key() == Qt.Key.Key_D and event.modifiers() == Qt.KeyboardModifier.ControlModifier:
             self.close()
 
         super(PythonConsole, self).keyPressEvent(event)

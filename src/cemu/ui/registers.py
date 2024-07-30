@@ -47,9 +47,7 @@ class RegistersWidget(QDockWidget):
         #
         emu: Emulator = cemu.core.context.emulator
         emu.add_state_change_cb(EmulatorState.IDLE, self.onIdleRefreshRegisterGrid)
-        emu.add_state_change_cb(
-            EmulatorState.FINISHED, self.onFinishedRefreshRegisterGrid
-        )
+        emu.add_state_change_cb(EmulatorState.FINISHED, self.onFinishedRefreshRegisterGrid)
         emu.add_state_change_cb(EmulatorState.NOT_RUNNING, self.updateGrid)
         return
 
@@ -87,14 +85,8 @@ class RegistersWidget(QDockWidget):
             )
             if old_val != val:
                 self.__old_register_values[reg] = val
-                value.setForeground(
-                    QColor(DEFAULT_REGISTER_VIEW_CHANGED_REGISTER_COLOR)
-                )
-            value.setFlags(
-                Qt.ItemFlag.ItemIsEnabled
-                | Qt.ItemFlag.ItemIsSelectable
-                | Qt.ItemFlag.ItemIsEditable
-            )
+                value.setForeground(QColor(DEFAULT_REGISTER_VIEW_CHANGED_REGISTER_COLOR))
+            value.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEditable)
             self.RegisterTableWidget.setItem(i, 0, name)
             self.RegisterTableWidget.setItem(i, 1, value)
 

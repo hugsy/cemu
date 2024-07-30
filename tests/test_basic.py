@@ -91,9 +91,8 @@ class EmulationTestRunner:
         last_insn_address = self.emu.start_addr + len(self.emu.code)
 
         if self.emu.use_step_mode:
-            insn = self.emu.next_instruction(
-                self.emu.code[start_offset:], start_address + start_offset
-            )
+            insn = self.emu.next_instruction(self.emu.code[start_offset:], start_address + start_offset)
+            assert insn
             end_address = insn.end
         else:
             end_address = last_insn_address
@@ -202,9 +201,7 @@ class TestEmulatorBasic(unittest.TestCase):
                 or isinstance(tc.arch, cemu.arch.arm.ARM)
                 or isinstance(tc.arch, cemu.arch.arm.AARCH64)
             ):
-                assert self.emu.pc() == self.emu.sections[0].address + len(
-                    self.emu.code
-                )
+                assert self.emu.pc() == self.emu.sections[0].address + len(self.emu.code)
                 assert self.emu.state == EmulatorState.FINISHED
 
             assert tc.result()

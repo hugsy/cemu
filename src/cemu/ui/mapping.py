@@ -17,7 +17,7 @@ from PyQt6.QtWidgets import (
 
 import cemu.core
 from cemu.emulator import Emulator, EmulatorState
-from cemu.log import error, info
+from cemu.log import error
 from cemu.memory import MemorySection
 from cemu.utils import format_address
 
@@ -40,12 +40,8 @@ class MemoryMappingWidget(QDockWidget):
         self.MemoryMapTableWidget.setColumnWidth(1, 120)
         self.MemoryMapTableWidget.setColumnWidth(2, 120)
         self.MemoryMapTableWidget.setColumnWidth(3, 120)
-        self.MemoryMapTableWidget.setSelectionBehavior(
-            QTableWidget.SelectionBehavior.SelectRows
-        )
-        self.MemoryMapTableWidget.setHorizontalHeaderLabels(
-            ["Start", "End", "Name", "Permission"]
-        )
+        self.MemoryMapTableWidget.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.MemoryMapTableWidget.setHorizontalHeaderLabels(["Start", "End", "Name", "Permission"])
         self.MemoryMapTableWidget.verticalHeader().setVisible(False)
         layout.addWidget(self.MemoryMapTableWidget)
 
@@ -69,16 +65,10 @@ class MemoryMappingWidget(QDockWidget):
         # Emulator state callback
         #
         self.emu: Emulator = cemu.core.context.emulator
-        self.emu.add_state_change_cb(
-            EmulatorState.NOT_RUNNING, self.onNotRunningUpdateMemoryMap
-        )
-        self.emu.add_state_change_cb(
-            EmulatorState.RUNNING, self.onRunningDisableMemoryMapGrid
-        )
+        self.emu.add_state_change_cb(EmulatorState.NOT_RUNNING, self.onNotRunningUpdateMemoryMap)
+        self.emu.add_state_change_cb(EmulatorState.RUNNING, self.onRunningDisableMemoryMapGrid)
         self.emu.add_state_change_cb(EmulatorState.IDLE, self.onIdleEnableMemoryMapGrid)
-        self.emu.add_state_change_cb(
-            EmulatorState.FINISHED, self.onFinishedEnableMemoryMapGrid
-        )
+        self.emu.add_state_change_cb(EmulatorState.FINISHED, self.onFinishedEnableMemoryMapGrid)
 
     def onNotRunningUpdateMemoryMap(self) -> None:
         self.redraw_memory_map_table()
@@ -99,9 +89,7 @@ class MemoryMappingWidget(QDockWidget):
             self.MemoryMapTableWidget.insertRow(idx)
             name = QTableWidgetItem(section.name)
             start_address = QTableWidgetItem(format_address(section.address))
-            end_address = QTableWidgetItem(
-                format_address(section.address + section.size)
-            )
+            end_address = QTableWidgetItem(format_address(section.address + section.size))
             permission = QTableWidgetItem(str(section.permission))
             self.MemoryMapTableWidget.setItem(idx, 0, start_address)
             self.MemoryMapTableWidget.setItem(idx, 1, end_address)
@@ -185,9 +173,7 @@ class MemoryMappingWidget(QDockWidget):
         wid.setMinimumWidth(400)
         layout.addWidget(wid)
 
-        msgbox.setStandardButtons(
-            QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel
-        )
+        msgbox.setStandardButtons(QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel)
 
         ret = msgbox.exec()
         if ret == QMessageBox.StandardButton.Ok:
@@ -199,10 +185,7 @@ class MemoryMappingWidget(QDockWidget):
                 error("section name already exists")
                 return
 
-            memory_set = (
-                set(range(x.address, x.address + x.size))
-                for x in cemu.core.context.emulator.sections
-            )
+            memory_set = (set(range(x.address, x.address + x.size)) for x in cemu.core.context.emulator.sections)
             current_set = set(range(address, address + size))
             for m in memory_set:
                 if len(current_set & m) != 0:

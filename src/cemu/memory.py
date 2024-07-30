@@ -101,18 +101,10 @@ class MemoryPermission(enum.IntFlag):
                 return MemoryPermission.EXECUTE | MemoryPermission.READ
             case 0x40:
                 # PAGE_EXECUTE_READWRITE
-                return (
-                    MemoryPermission.READ
-                    | MemoryPermission.WRITE
-                    | MemoryPermission.EXECUTE
-                )
+                return MemoryPermission.READ | MemoryPermission.WRITE | MemoryPermission.EXECUTE
             case 0x80:
                 # PAGE_EXECUTE_WRITECOPY
-                return (
-                    MemoryPermission.READ
-                    | MemoryPermission.WRITE
-                    | MemoryPermission.EXECUTE
-                )
+                return MemoryPermission.READ | MemoryPermission.WRITE | MemoryPermission.EXECUTE
             case 0x100:
                 raise NotImplementedError("PAGE_GUARD is not implemented")
 
@@ -229,11 +221,7 @@ class MemorySection:
         return data
 
     def __str__(self) -> str:
-        return (
-            f"MemorySection([{self.address:#x}-{self.end:#x}], "
-            f"name='{self.name:s}', "
-            f"permission={str(self.permission)})"
-        )
+        return f"MemorySection([{self.address:#x}-{self.end:#x}], " f"name='{self.name:s}', " f"permission={str(self.permission)})"
 
     def __contains__(self, addr: int) -> bool:
         """`in` operator overload
