@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 import enum
 import importlib
 from typing import Optional, TYPE_CHECKING
@@ -264,3 +265,22 @@ def is_sparc64(a: Architecture):
 
 def is_ppc(a: Architecture):
     return isinstance(a, PowerPC)
+
+
+@dataclass
+class Instruction:
+    address: int
+    mnemonic: str
+    operands: str
+    bytes: bytes
+
+    @property
+    def size(self):
+        return len(self.bytes)
+
+    @property
+    def end(self) -> int:
+        return self.address + self.size
+
+    def __str__(self):
+        return f'Instruction({self.address:#x}, "{self.mnemonic} {self.operands}")'

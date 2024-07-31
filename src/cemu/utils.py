@@ -2,14 +2,12 @@ import os
 import pathlib
 import random
 import string
-from dataclasses import dataclass
-from typing import Optional, TYPE_CHECKING
+from typing import Optional
 
-if TYPE_CHECKING:
-    import cemu.arch
+from .arch import Instruction, Architecture, Architectures, Endianness
 import cemu.core
 import cemu.errors
-import cemu.utils
+
 from cemu.const import COMMENT_MARKER, PROPERTY_MARKER
 from cemu.log import dbg
 
@@ -49,7 +47,7 @@ def hexdump(
     return os.linesep.join(result)
 
 
-def format_address(addr: int, arch: Optional[cemu.arch.Architecture] = None) -> str:
+def format_address(addr: int, arch: Optional[Architecture] = None) -> str:
     """Format an address to string, aligned to the given architecture
 
     Args:
@@ -65,33 +63,15 @@ def format_address(addr: int, arch: Optional[cemu.arch.Architecture] = None) -> 
     if arch is None:
         arch = cemu.core.context.architecture
 
-    if arch.ptrsize == 2:
-        return f"{addr:#04x}"
-    elif arch.ptrsize == 4:
-        return f"{addr:#08x}"
-    elif arch.ptrsize == 8:
-        return f"{addr:#016x}"
-    else:
-        raise ValueError(f"Invalid value for '{arch.ptrsize=}'")
-
-
-@dataclass
-class Instruction:
-    address: int
-    mnemonic: str
-    operands: str
-    bytes: bytes
-
-    @property
-    def size(self):
-        return len(self.bytes)
-
-    @property
-    def end(self) -> int:
-        return self.address + self.size
-
-    def __str__(self):
-        return f'Instruction({self.address:#x}, "{self.mnemonic} {self.operands}")'
+    match arch.ptrsize:
+        case 2:
+            return f"{addr:#04x}"
+        case 4:
+            return f"{addr:#08x}"
+        case 8:
+            return f"{addr:#016x}"
+        case _:
+            raise ValueError(f"Invalid value for '{arch.ptrsize=}'")
 
 
 def disassemble(raw_data: bytes, count: int = -1, base: int = DISASSEMBLY_DEFAULT_BASE_ADDRESS) -> list[Instruction]:
@@ -175,7 +155,7 @@ def generate_random_string(length: int) -> str:
 
 def get_metadata_from_stream(
     content: str,
-) -> Optional[tuple[cemu.arch.Architecture, cemu.arch.Endianness]]:
+) -> Optional[tuple[Architecture, Endianness]]:
     """Parse a file content to automatically extract metadata. Metadata can only be passed in the file
     header, and *must* be a commented line (i.e. starting with `;;; `) followed by the property marker (i.e. `@@@`).
     Both the architecture and endianess *must* be provided
@@ -188,23 +168,28 @@ def get_metadata_from_stream(
         content (str): _description_
 
     Returns:
-        Optional[tuple[str, str]]: _description_
+        Optional[tuple[Architecture, Endianness]]: _description_
 
     Raises:
         KeyError:
             - if an architecture metadata is found, but invalid
             - if an endianess metadata is found, but invalid
     """
-    arch: Optional[cemu.arch.Architecture] = None
-    endian: Optional[cemu.arch.Endianness] = None
+    arch: Optional[Architecture] = None
+    endian: Optional[Endianness] = None
 
     for line in content.splitlines():
-        part = line.strip().split()
-        if len(part) < 4:
-            return None
-
-        if (part[0] != COMMENT_MARKER) and (arch and endian):
+        # if already set, don't bother continuing
+        if arch and endian:
             return (arch, endian)
+
+        # validate the line format
+        part = line.strip().split()
+        if len(part) != 3:
+            continue
+
+        if part[0] != COMMENT_MARKER:
+            continue
 
         if not part[1].startswith(PROPERTY_MARKER):
             continue
@@ -213,17 +198,18 @@ def get_metadata_from_stream(
         metadata_value = part[2].lower()
 
         if metadata_type == "architecture" and not arch:
-            arch = cemu.arch.Architectures.find(metadata_value)
-            dbg(f"Forcing architecture '{arch}'")
+            arch = Architectures.find(metadata_value)
+            dbg(f"Setting architecture from metadata to '{arch}'")
             continue
 
         if metadata_type == "endianness" and not endian:
-            if metadata_value == "little":
-                endian = cemu.arch.Endianness.LITTLE_ENDIAN
-            elif metadata_value == "big":
-                endian = cemu.arch.Endianness.BIG_ENDIAN
-            else:
-                continue
-            dbg(f"Forcing endianness '{endian}'")
+            match metadata_value:
+                case "little":
+                    endian = Endianness.LITTLE_ENDIAN
+                case "big":
+                    endian = Endianness.BIG_ENDIAN
+                case _:
+                    raise ValueError
+            dbg(f"Setting endianness from metadata to '{endian}'")
 
     return None

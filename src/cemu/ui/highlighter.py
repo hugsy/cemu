@@ -68,7 +68,11 @@ class Highlighter(QSyntaxHighlighter):
     def highlightBlock(self, text):
         cb = self.currentBlock()
         pos = cb.position()
-        text = self.document().toPlainText() + "\n"
+        doc = self.document()
+        if not doc:
+            cemu.log.dbg("Missing doc")
+            return
+        text = doc.toPlainText() + "\n"
         highlight(text, self.lexer, self.formatter)
         for i in range(len(text)):
             try:

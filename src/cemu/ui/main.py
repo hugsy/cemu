@@ -168,8 +168,10 @@ class CEmuWindow(QMainWindow):
 
         # center the window
         frame_geometry = self.frameGeometry()
-        screen = self.screen().availableGeometry().center()
-        frame_geometry.moveCenter(screen)
+        screen = self.screen()
+        if screen:
+            p = screen.availableGeometry().center()
+            frame_geometry.moveCenter(p)
         self.move(frame_geometry.topLeft())
 
         # apply the style
@@ -205,10 +207,15 @@ class CEmuWindow(QMainWindow):
     def setMainWindowMenuBar(self):
         self.statusBar()
         menubar = self.menuBar()
+        if not menubar:
+            popup("No menubar found")
+            return
+
         maxRecentFiles = cemu.core.context.settings.getint("Global", "MaxRecentFiles")
 
         # Create "File" menu options
         fileMenu = menubar.addMenu("&File")
+        assert fileMenu
 
         # "Open File" submenu
         openAsmAction = self.addMenuItem(
@@ -327,8 +334,10 @@ class CEmuWindow(QMainWindow):
 
         # Add Architecture menu bar
         archMenu = menubar.addMenu("&Architecture")
+        assert archMenu
         for abi in sorted(Architectures.keys()):
             archSubMenu = archMenu.addMenu(abi.upper())
+            assert archSubMenu
             for arch in Architectures[abi]:
                 label = f"{arch.name:s} / Endian: {str(arch.endianness)} / Syntax: {str(arch.syntax)}"
                 self.archActions[label] = QAction(QIcon(), label, self)
@@ -342,6 +351,7 @@ class CEmuWindow(QMainWindow):
 
         # Add the View Window menu bar
         viewWindowsMenu = menubar.addMenu("&View")
+        assert viewWindowsMenu
         toggleFocusMode = self.addMenuItem(
             "Toggle Focus Mode",
             self.toggleFocusMode,
@@ -367,6 +377,7 @@ class CEmuWindow(QMainWindow):
 
         # Add Help menu bar
         helpMenu = menubar.addMenu("&Help")
+        assert helpMenu
         shortcutAction = self.addMenuItem(
             "Shortcuts",
             self.showShortcutPopup,
@@ -608,6 +619,9 @@ class CEmuWindow(QMainWindow):
             arch (Architecture): the newly selected architecture
         """
         label = f"{arch.name:s} / Endian: {str(arch.endianness)} / Syntax: {str(arch.syntax)}"
+        if self.currentAction is None:
+            dbg("No current action defined")
+            return
         self.currentAction.setEnabled(True)
         cemu.core.context.architecture = arch
         if endian:
@@ -725,20 +739,24 @@ class CEmuWindow(QMainWindow):
         return cemu.core.context.emulator.sections
 
     def update_layout_not_running(self):
-        self.statusBar().showMessage("Not running")
-        return
+        statusBar = self.statusBar()
+        assert statusBar
+        statusBar.showMessage("Not running")
 
     def update_layout_running(self):
-        self.statusBar().showMessage("Running")
-        return
+        statusBar = self.statusBar()
+        assert statusBar
+        statusBar.showMessage("Running")
 
     def update_layout_step_running(self):
-        self.statusBar().showMessage("Idle (Step Mode)")
-        return
+        statusBar = self.statusBar()
+        assert statusBar
+        statusBar.showMessage("Idle (Step Mode)")
 
     def update_layout_step_finished(self):
-        self.statusBar().showMessage("Finished")
-        return
+        statusBar = self.statusBar()
+        assert statusBar
+        statusBar.showMessage("Finished")
 
 
 class EmulationRunner:
