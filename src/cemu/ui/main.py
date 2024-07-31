@@ -20,6 +20,7 @@ from PyQt6.QtWidgets import (
 )
 
 import cemu.core
+import cemu.arch
 import cemu.exports
 import cemu.plugins
 import cemu.utils
@@ -485,7 +486,7 @@ class CEmuWindow(QMainWindow):
 
         if run_disassembler:
             with tempfile.NamedTemporaryFile("w", suffix=".asm", delete=False) as fd:
-                disassembled_instructions = cemu.utils.disassemble_file(fpath)
+                disassembled_instructions = cemu.arch.disassemble_file(fpath)
                 fd.write(os.linesep.join([f"{insn.mnemonic}, {insn.operands}" for insn in disassembled_instructions]))
                 fpath = pathlib.Path(fd.name)
 
@@ -518,7 +519,7 @@ class CEmuWindow(QMainWindow):
 
         if run_assembler:
             raw_assembly = self.get_codeview_content()
-            insns: list[cemu.utils.Instruction] = cemu.utils.assemble(raw_assembly)
+            insns: list["cemu.arch.Instruction"] = cemu.arch.assemble(raw_assembly)
             raw_bytecode = b"".join([insn.bytes for insn in insns])
             fpath.write_bytes(raw_bytecode)
         else:
@@ -551,7 +552,7 @@ class CEmuWindow(QMainWindow):
         template = (TEMPLATE_PATH / "linux" / "template.c").read_text("r")
         output: list[str] = []
         lines = self.get_codeview_content().splitlines()
-        insns = cemu.utils.assemble(self.get_codeview_content())
+        insns = cemu.arch.assemble(self.get_codeview_content())
         for i, insn in enumerate(insns):
             hexa = ", ".join([f"{b:#02x}" for b in insn.bytes])
             line = f"/* {i:#08x} */   {hexa}   // {lines[i]}"
@@ -589,7 +590,7 @@ class CEmuWindow(QMainWindow):
         memory_layout = self.get_memory_layout()
         code = self.get_codeview_content()
         try:
-            insns = cemu.utils.assemble(code)
+            insns = cemu.arch.assemble(code)
             if len(insns) > 0:
                 asm_code = b"".join([x.bytes for x in insns])
                 pe = cemu.exports.build_pe_executable(asm_code, memory_layout, cemu.core.context.architecture)
@@ -603,7 +604,7 @@ class CEmuWindow(QMainWindow):
         memory_layout = self.get_memory_layout()
         code = self.get_codeview_content()
         try:
-            insns = cemu.utils.assemble(code)
+            insns = cemu.arch.assemble(code)
             if len(insns) > 0:
                 asm_code = b"".join([x.bytes for x in insns])
                 elf = cemu.exports.build_pe_executable(asm_code, memory_layout, cemu.core.context.architecture)

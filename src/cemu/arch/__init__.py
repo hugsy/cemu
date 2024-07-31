@@ -1,13 +1,17 @@
 from dataclasses import dataclass
 import enum
 import importlib
+import pathlib
 from typing import Optional, TYPE_CHECKING
 
 import capstone
 import keystone
 import unicorn
 
+import cemu.errors
 from cemu.const import SYSCALLS_PATH
+from cemu.log import dbg
+from cemu.utils import DISASSEMBLY_DEFAULT_BASE_ADDRESS
 from ..ui.utils import popup, PopupType
 
 if TYPE_CHECKING:
@@ -267,6 +271,35 @@ def is_ppc(a: Architecture):
     return isinstance(a, PowerPC)
 
 
+def format_address(addr: int, arch: Optional[Architecture] = None) -> str:
+    """Format an address to string, aligned to the given architecture
+
+    Args:
+        addr (int): _description_
+        arch (Optional[Architecture], optional): _description_. Defaults to None.
+
+    Raises:
+        ValueError: _description_
+
+    Returns:
+        str: _description_
+    """
+    if arch is None:
+        import cemu.core
+
+        arch = cemu.core.context.architecture
+
+    match arch.ptrsize:
+        case 2:
+            return f"{addr:#04x}"
+        case 4:
+            return f"{addr:#08x}"
+        case 8:
+            return f"{addr:#016x}"
+        case _:
+            raise ValueError(f"Invalid value for '{arch.ptrsize=}'")
+
+
 @dataclass
 class Instruction:
     address: int
@@ -284,3 +317,63 @@ class Instruction:
 
     def __str__(self):
         return f'Instruction({self.address:#x}, "{self.mnemonic} {self.operands}")'
+
+
+def disassemble(raw_data: bytes, count: int = -1, base: int = DISASSEMBLY_DEFAULT_BASE_ADDRESS) -> list[Instruction]:
+    """Disassemble the code given as raw data, with the given architecture.
+
+    Args:
+        raw_data (bytes): the raw byte code to disassemble
+        arch (Architecture): the architecture to use for disassembling
+        count (int, optional): the maximum number of instruction to disassemble. Defaults to -1.
+        base (int, optional): the disassembled code base address. Defaults to DISASSEMBLY_DEFAULT_BASE_ADDRESS
+
+    Returns:
+        str: the text representation of the disassembled code
+    """
+    arch = cemu.core.context.architecture
+    insns: list[Instruction] = []
+    for idx, ins in enumerate(arch.cs.disasm(raw_data, base)):
+        insn = Instruction(ins.address, ins.mnemonic, ins.op_str, ins.bytes)
+        insns.append(insn)
+        if idx == count:
+            break
+
+    dbg(f"{insns=}")
+    return insns
+
+
+def disassemble_file(fpath: pathlib.Path) -> list[Instruction]:
+    return disassemble(fpath.read_bytes())
+
+
+def assemble(code: str, base_address: int = DISASSEMBLY_DEFAULT_BASE_ADDRESS) -> list[Instruction]:
+    """
+    Helper function to assemble code receive in parameter `asm_code` using Keystone.
+
+    @param code : assembly code in bytes (multiple instructions must be separated by ';')
+    @param base_address : (opt) the base address to use
+
+    @return a list of Instruction
+    """
+    arch = cemu.core.context.architecture
+
+    #
+    # Compile the entire given code
+    #
+    bytecode, assembled_insn_count = arch.ks.asm(code, as_bytes=True, addr=base_address)
+    if not bytecode or assembled_insn_count == 0:
+        raise cemu.errors.AssemblyException("Not instruction compiled")
+
+    assert isinstance(bytecode, bytes)
+
+    #
+    # Decompile it and return the stuff
+    #
+    insns = disassemble(bytecode, base=base_address)
+    dbg(f"{insns=}")
+    return insns
+
+
+def assemble_file(fpath: pathlib.Path) -> list[Instruction]:
+    return assemble(fpath.read_text())

@@ -6,7 +6,7 @@ from lief import PE
 
 from .arch import Architecture, is_x86_32, is_x86_64
 from .memory import MemoryPermission, MemorySection
-from .utils import generate_random_string
+import cemu.utils
 
 
 def parse_as_lief_pe_permission(perm: MemoryPermission, extra: Any = None) -> int:
@@ -42,10 +42,10 @@ def build_pe_executable(text: bytes, memory_layout: List[MemorySection], arch: A
     is_x64 = is_x86_64(arch)
 
     if is_x64:
-        basename = "cemu-pe-amd64-{:s}".format(generate_random_string(5))
+        basename = "cemu-pe-amd64-{:s}".format(cemu.utils.generate_random_string(5))
         pe = PE.Binary(basename, PE.PE_TYPE.PE32_PLUS)
     else:
-        basename = "cemu-pe-i386-{:s}".format(generate_random_string(5))
+        basename = "cemu-pe-i386-{:s}".format(cemu.utils.generate_random_string(5))
         pe = PE.Binary(basename, PE.PE_TYPE.PE32)
 
     # adding sections

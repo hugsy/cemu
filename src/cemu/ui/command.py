@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Callable
 from PyQt6.QtWidgets import QDockWidget, QHBoxLayout, QPushButton, QWidget
 
 import cemu.core
-from cemu import utils
+import cemu.arch
 from cemu.emulator import Emulator, EmulatorState
 from cemu.log import dbg, info
 from cemu.ui.utils import PopupType, popup
@@ -113,7 +113,7 @@ class CommandWidget(QDockWidget):
             if not code:
                 raise ValueError("Empty code")
 
-            insns = utils.assemble(code)
+            insns = cemu.arch.assemble(code)
             title = "Success"
             msg = f"Your code is syntaxically valid, {len(insns)} instructions compiled"
             popup_style = PopupType.Information

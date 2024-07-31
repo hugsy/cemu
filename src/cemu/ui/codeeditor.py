@@ -29,7 +29,7 @@ from cemu.log import error
 if typing.TYPE_CHECKING:
     from cemu.ui.main import CEmuWindow
 
-from ..utils import assemble
+from ..arch import assemble
 from .highlighter import Highlighter
 from .utils import get_cursor_position
 

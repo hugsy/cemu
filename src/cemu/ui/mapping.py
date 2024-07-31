@@ -19,7 +19,7 @@ import cemu.core
 from cemu.emulator import Emulator, EmulatorState
 from cemu.log import error
 from cemu.memory import MemorySection
-from cemu.utils import format_address
+from cemu.arch import format_address
 
 from .utils import popup
 
@@ -42,7 +42,9 @@ class MemoryMappingWidget(QDockWidget):
         self.MemoryMapTableWidget.setColumnWidth(3, 120)
         self.MemoryMapTableWidget.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.MemoryMapTableWidget.setHorizontalHeaderLabels(["Start", "End", "Name", "Permission"])
-        self.MemoryMapTableWidget.verticalHeader().setVisible(False)
+        vHeader = self.MemoryMapTableWidget.verticalHeader()
+        if vHeader:
+            vHeader.setVisible(False)
         layout.addWidget(self.MemoryMapTableWidget)
 
         # add/remove buttons
@@ -111,7 +113,7 @@ class MemoryMappingWidget(QDockWidget):
         Callback associated with the click of the "Remove Section" button
         """
         selection = self.MemoryMapTableWidget.selectionModel()
-        if not selection.hasSelection():
+        if not selection or not selection.hasSelection():
             return
 
         indexes = [x.row() for x in selection.selectedRows()]
@@ -169,6 +171,7 @@ class MemoryMappingWidget(QDockWidget):
 
         msgbox.setWindowTitle("Add section")
         layout = msgbox.layout()
+        assert layout
         wid.setLayout(grid)
         wid.setMinimumWidth(400)
         layout.addWidget(wid)
