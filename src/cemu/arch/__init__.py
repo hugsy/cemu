@@ -12,7 +12,7 @@ import cemu.errors
 from cemu.const import SYSCALLS_PATH
 from cemu.log import dbg, error
 from cemu.utils import DISASSEMBLY_DEFAULT_BASE_ADDRESS
-from ..ui.utils import popup, PopupType
+
 
 if TYPE_CHECKING:
     import cemu.core
