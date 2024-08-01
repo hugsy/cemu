@@ -77,8 +77,8 @@ python -m cemu
 
 This should produce a GUI similar to this:
 
-![cemu-gui](cemu/img/cemu-windows-light.png)
-![cemu-gui](cemu/img/cemu-windows-dark.png)
+![cemu-gui](src/cemu/img/cemu-windows-light.png)
+![cemu-gui](src/cemu/img/cemu-windows-dark.png)
 
 ### In the terminal
 
