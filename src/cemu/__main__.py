@@ -20,9 +20,7 @@ def setup_remote_debug(port: int = cemu.const.DEBUG_DEBUGPY_PORT):
 
 
 def main(argv: list[str]):
-    parser = argparse.ArgumentParser(
-                        prog=cemu.const.PROGNAME,
-                        description=cemu.const.DESCRIPTION)
+    parser = argparse.ArgumentParser(prog=cemu.const.PROGNAME, description=cemu.const.DESCRIPTION)
     parser.add_argument("filename")
     parser.add_argument("--debug", action="store_true")
     parser.add_argument("--attach", action="store_true")
@@ -46,6 +44,7 @@ def main(argv: list[str]):
 
 if __name__ == "__main__":
     import sys
+
     path = pathlib.Path(__file__).absolute().parent.parent
     sys.path.append(str(path))
     main(sys.argv)

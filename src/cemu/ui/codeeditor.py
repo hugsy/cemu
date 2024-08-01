@@ -29,7 +29,7 @@ from cemu.log import error
 if typing.TYPE_CHECKING:
     from cemu.ui.main import CEmuWindow
 
-from ..utils import assemble
+from ..arch import assemble
 from .highlighter import Highlighter
 from .utils import get_cursor_position
 
@@ -160,6 +160,7 @@ class CodeWidget(QDockWidget):
         self.setWidget(widget)
 
     def onUpdateText(self):
+        assert cemu.core.context
         cemu.core.context.emulator.codelines = self.getCleanContent()
 
     def onCursorPositionChanged(self):
@@ -189,6 +190,7 @@ class CodeWidget(QDockWidget):
 
         def parse_syscalls(lines: list[str]) -> list[str]:
             parsed = []
+            assert cemu.core.context
             syscalls = cemu.core.context.architecture.syscalls
             syscall_names = syscalls.keys()
             for line in lines:

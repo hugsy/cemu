@@ -202,6 +202,7 @@ class PythonConsole(QTextEdit):
 
     @property
     def emu(self) -> cemu.emulator.Emulator:
+        assert cemu.core.context
         return cemu.core.context.emulator
 
     @property
@@ -210,4 +211,5 @@ class PythonConsole(QTextEdit):
 
     @property
     def arch(self):
+        assert cemu.core.context
         return cemu.core.context.architecture

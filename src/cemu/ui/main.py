@@ -20,6 +20,7 @@ from PyQt6.QtWidgets import (
 )
 
 import cemu.core
+import cemu.arch
 import cemu.exports
 import cemu.plugins
 import cemu.utils
@@ -53,7 +54,9 @@ class CEmuWindow(QMainWindow):
     def __init__(self, app: QApplication, *args, **kwargs):
         super(CEmuWindow, self).__init__()
         self.currentAction: Optional[QAction] = None
+        assert cemu.core.context
         assert cemu.core.context is not None
+        assert cemu.core.context
         assert isinstance(cemu.core.context, cemu.core.GlobalGuiContext)
 
         self.rootWindow: CEmuWindow = self
@@ -64,6 +67,7 @@ class CEmuWindow(QMainWindow):
         # self.signals = {} Unused?
         self.current_file: Optional[pathlib.Path] = None
         self.__background_emulator_thread: EmulationRunner = EmulationRunner()
+        assert cemu.core.context
         cemu.core.context.emulator.set_threaded_runner(self.__background_emulator_thread)
 
         self.shortcuts: ShortcutManager = ShortcutManager()
@@ -100,6 +104,7 @@ class CEmuWindow(QMainWindow):
         self.__app.aboutToQuit.connect(self.onAboutToQuit)
 
         # register the callbacks for the emulator
+        assert cemu.core.context
         emu = cemu.core.context.emulator
         emu.add_state_change_cb(EmulatorState.NOT_RUNNING, self.update_layout_not_running)
         emu.add_state_change_cb(EmulatorState.RUNNING, self.update_layout_running)
@@ -107,6 +112,7 @@ class CEmuWindow(QMainWindow):
         emu.add_state_change_cb(EmulatorState.FINISHED, self.update_layout_step_finished)
 
         # show everything
+        assert cemu.core.context
         start_in_full_screen = cemu.core.context.settings.getboolean("Global", "StartInFullScreen")
         if start_in_full_screen:
             self.showMaximized()
@@ -129,6 +135,7 @@ class CEmuWindow(QMainWindow):
 
     def changeEvent(self, event):
         if event.type() == QEvent.Type.WindowStateChange:
+            assert cemu.core.context
             cemu.core.context.settings.set("Global", "StartInFullScreen", str(self.isMaximized()))
         super().changeEvent(event)
 
@@ -136,7 +143,9 @@ class CEmuWindow(QMainWindow):
         """
         Overriding the aboutToSignal handler
         """
+        assert cemu.core.context
         if cemu.core.context.settings.getboolean("Global", "SaveConfigOnExit"):
+            assert cemu.core.context
             cemu.core.context.settings.save()
             ok("Settings saved...")
         return
@@ -161,18 +170,23 @@ class CEmuWindow(QMainWindow):
         return nb_added
 
     def setMainWindowProperty(self) -> None:
+        assert cemu.core.context
         width = cemu.core.context.settings.getint("Global", "WindowWidth", 800)
+        assert cemu.core.context
         heigth = cemu.core.context.settings.getint("Global", "WindowHeight", 600)
         self.resize(width, heigth)
         self.refreshWindowTitle()
 
         # center the window
         frame_geometry = self.frameGeometry()
-        screen = self.screen().availableGeometry().center()
-        frame_geometry.moveCenter(screen)
+        screen = self.screen()
+        if screen:
+            p = screen.availableGeometry().center()
+            frame_geometry.moveCenter(p)
         self.move(frame_geometry.topLeft())
 
         # apply the style
+        assert cemu.core.context
         style = cemu.core.context.settings.get("Theme", "QtStyle", "Cleanlooks")
         self.__app.setStyle(style)
         return
@@ -205,10 +219,16 @@ class CEmuWindow(QMainWindow):
     def setMainWindowMenuBar(self):
         self.statusBar()
         menubar = self.menuBar()
+        if not menubar:
+            popup("No menubar found")
+            return
+
+        assert cemu.core.context
         maxRecentFiles = cemu.core.context.settings.getint("Global", "MaxRecentFiles")
 
         # Create "File" menu options
         fileMenu = menubar.addMenu("&File")
+        assert fileMenu
 
         # "Open File" submenu
         openAsmAction = self.addMenuItem(
@@ -327,11 +347,14 @@ class CEmuWindow(QMainWindow):
 
         # Add Architecture menu bar
         archMenu = menubar.addMenu("&Architecture")
+        assert archMenu
         for abi in sorted(Architectures.keys()):
             archSubMenu = archMenu.addMenu(abi.upper())
+            assert archSubMenu
             for arch in Architectures[abi]:
                 label = f"{arch.name:s} / Endian: {str(arch.endianness)} / Syntax: {str(arch.syntax)}"
                 self.archActions[label] = QAction(QIcon(), label, self)
+                assert cemu.core.context
                 if arch == cemu.core.context.architecture:
                     self.archActions[label].setEnabled(False)
                     self.currentAction = self.archActions[label]
@@ -342,6 +365,7 @@ class CEmuWindow(QMainWindow):
 
         # Add the View Window menu bar
         viewWindowsMenu = menubar.addMenu("&View")
+        assert viewWindowsMenu
         toggleFocusMode = self.addMenuItem(
             "Toggle Focus Mode",
             self.toggleFocusMode,
@@ -367,6 +391,7 @@ class CEmuWindow(QMainWindow):
 
         # Add Help menu bar
         helpMenu = menubar.addMenu("&Help")
+        assert helpMenu
         shortcutAction = self.addMenuItem(
             "Shortcuts",
             self.showShortcutPopup,
@@ -434,7 +459,7 @@ class CEmuWindow(QMainWindow):
             KeyError: if the architecture from the file metadata is invalid
         """
         dbg(f"Trying to load '{fpath}'")
-        content = fpath.open().read()
+        content = fpath.read_text()
 
         try:
             res = cemu.utils.get_metadata_from_stream(content)
@@ -474,7 +499,7 @@ class CEmuWindow(QMainWindow):
 
         if run_disassembler:
             with tempfile.NamedTemporaryFile("w", suffix=".asm", delete=False) as fd:
-                disassembled_instructions = cemu.utils.disassemble_file(fpath)
+                disassembled_instructions = cemu.arch.disassemble_file(fpath)
                 fd.write(os.linesep.join([f"{insn.mnemonic}, {insn.operands}" for insn in disassembled_instructions]))
                 fpath = pathlib.Path(fd.name)
 
@@ -507,12 +532,12 @@ class CEmuWindow(QMainWindow):
 
         if run_assembler:
             raw_assembly = self.get_codeview_content()
-            insns: list[cemu.utils.Instruction] = cemu.utils.assemble(raw_assembly)
+            insns: list["cemu.arch.Instruction"] = cemu.arch.assemble(raw_assembly)
             raw_bytecode = b"".join([insn.bytes for insn in insns])
-            fpath.open("wb").write(raw_bytecode)
+            fpath.write_bytes(raw_bytecode)
         else:
             raw_bytecode = self.get_codeview_content()
-            fpath.open("w").write(raw_bytecode)
+            fpath.write_text(raw_bytecode)
 
         ok(f"Saved as '{fpath}'")
         return
@@ -537,10 +562,10 @@ class CEmuWindow(QMainWindow):
         return self.saveCode("Save Raw Binary Pane As", "Raw binary files (*.raw)", True)
 
     def saveAsCFile(self):
-        template = (TEMPLATE_PATH / "linux" / "template.c").open("r").read()
+        template = (TEMPLATE_PATH / "linux" / "template.c").read_text("r")
         output: list[str] = []
         lines = self.get_codeview_content().splitlines()
-        insns = cemu.utils.assemble(self.get_codeview_content())
+        insns = cemu.arch.assemble(self.get_codeview_content())
         for i, insn in enumerate(insns):
             hexa = ", ".join([f"{b:#02x}" for b in insn.bytes])
             line = f"/* {i:#08x} */   {hexa}   // {lines[i]}"
@@ -551,6 +576,7 @@ class CEmuWindow(QMainWindow):
             return
 
         with picked_file_path.open("w") as fd:
+            assert cemu.core.context
             body = template % (
                 cemu.core.context.architecture.name,
                 len(insns),
@@ -562,17 +588,16 @@ class CEmuWindow(QMainWindow):
 
     def saveAsAsmFile(self) -> None:
         """Write the content of the ASM pane to disk"""
-        template = (TEMPLATE_PATH / "linux" / "template.asm").open("r").read()
+        template = (TEMPLATE_PATH / "linux" / "template.asm").read_text()
         code = self.get_codeview_content()
 
         picked_file_path = self.pick_file("Save As Generated Assembly File", "Assembly files (*.asm *.s)")
         if picked_file_path is None:
             return
 
-        with picked_file_path.open("w") as fd:
-            body = template % (cemu.core.context.architecture.name, code)
-            fd.write(body)
-            ok(f"Saved as '{fd.name}'")
+        assert cemu.core.context
+        picked_file_path.write_text(template % (cemu.core.context.architecture.name, code))
+        ok(f"Saved as '{picked_file_path}'")
         return
 
     def generate_pe(self) -> None:
@@ -580,9 +605,10 @@ class CEmuWindow(QMainWindow):
         memory_layout = self.get_memory_layout()
         code = self.get_codeview_content()
         try:
-            insns = cemu.utils.assemble(code)
+            insns = cemu.arch.assemble(code)
             if len(insns) > 0:
                 asm_code = b"".join([x.bytes for x in insns])
+                assert cemu.core.context
                 pe = cemu.exports.build_pe_executable(asm_code, memory_layout, cemu.core.context.architecture)
                 info(f"PE file written as '{pe}'")
         except Exception as e:
@@ -594,9 +620,10 @@ class CEmuWindow(QMainWindow):
         memory_layout = self.get_memory_layout()
         code = self.get_codeview_content()
         try:
-            insns = cemu.utils.assemble(code)
+            insns = cemu.arch.assemble(code)
             if len(insns) > 0:
                 asm_code = b"".join([x.bytes for x in insns])
+                assert cemu.core.context
                 elf = cemu.exports.build_pe_executable(asm_code, memory_layout, cemu.core.context.architecture)
                 info(f"ELF file written as '{elf}'")
         except Exception as e:
@@ -610,9 +637,14 @@ class CEmuWindow(QMainWindow):
             arch (Architecture): the newly selected architecture
         """
         label = f"{arch.name:s} / Endian: {str(arch.endianness)} / Syntax: {str(arch.syntax)}"
+        if self.currentAction is None:
+            dbg("No current action defined")
+            return
         self.currentAction.setEnabled(True)
+        assert cemu.core.context
         cemu.core.context.architecture = arch
         if endian:
+            assert cemu.core.context
             cemu.core.context.architecture.endianness = endian
         info(f"Switching to '{label}'")
         self.__regsWidget.updateGrid()
@@ -623,6 +655,7 @@ class CEmuWindow(QMainWindow):
 
     def refreshWindowTitle(self) -> None:
         """Refresh the main window title bar"""
+        assert cemu.core.context
         title = f"{TITLE} ({cemu.core.context.architecture})"
         if self.current_file:
             title += f": {self.current_file.name}"
@@ -651,12 +684,14 @@ class CEmuWindow(QMainWindow):
 
         wid.setMinimumWidth(800)
         wid.setLayout(grid)
-        msgbox.layout().addWidget(wid)
+        msgbox_layout = msgbox.layout()
+        if msgbox_layout:
+            msgbox_layout.addWidget(wid)
         msgbox.exec()
         return
 
     def about_popup(self):
-        templ = (TEMPLATE_PATH / "about.html").open().read()
+        templ = (TEMPLATE_PATH / "about.html").read_text()
         desc = templ.format(author=AUTHOR, version=VERSION, project_link=URL, issues_link=ISSUE_LINK)
         msgbox = QMessageBox(self)
         msgbox.setIcon(QMessageBox.Icon.Information)
@@ -675,6 +710,7 @@ class CEmuWindow(QMainWindow):
             settings.setValue("recentFileList", [])
             files = settings.value("recentFileList")
 
+        assert cemu.core.context
         maxRecentFiles = cemu.core.context.settings.getint("Default", "MaxRecentFiles")
 
         if insert_file:
@@ -722,23 +758,28 @@ class CEmuWindow(QMainWindow):
         """
         Returns the memory layout as defined by the __mapWidget values as a structured list.
         """
+        assert cemu.core.context
         return cemu.core.context.emulator.sections
 
     def update_layout_not_running(self):
-        self.statusBar().showMessage("Not running")
-        return
+        statusBar = self.statusBar()
+        assert statusBar
+        statusBar.showMessage("Not running")
 
     def update_layout_running(self):
-        self.statusBar().showMessage("Running")
-        return
+        statusBar = self.statusBar()
+        assert statusBar
+        statusBar.showMessage("Running")
 
     def update_layout_step_running(self):
-        self.statusBar().showMessage("Idle (Step Mode)")
-        return
+        statusBar = self.statusBar()
+        assert statusBar
+        statusBar.showMessage("Idle (Step Mode)")
 
     def update_layout_step_finished(self):
-        self.statusBar().showMessage("Finished")
-        return
+        statusBar = self.statusBar()
+        assert statusBar
+        statusBar.showMessage("Finished")
 
 
 class EmulationRunner:
@@ -748,6 +789,7 @@ class EmulationRunner:
         """
         Runs the emulation
         """
+        assert cemu.core.context
         emu = cemu.core.context.emulator
         if not emu.vm:
             error("VM is not ready")

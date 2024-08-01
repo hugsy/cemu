@@ -59,6 +59,7 @@ class MemoryWidget(QDockWidget):
         #
         # Emulator state callback
         #
+        assert cemu.core.context
         emu: Emulator = cemu.core.context.emulator
         emu.add_state_change_cb(EmulatorState.IDLE, self.onIdleRefreshMemoryEditor)
         emu.add_state_change_cb(EmulatorState.FINISHED, self.onFinishedClearMemoryEditor)
@@ -66,7 +67,9 @@ class MemoryWidget(QDockWidget):
         return
 
     def updateEditor(self) -> None:
+        assert cemu.core.context
         arch = cemu.core.context.architecture
+        assert cemu.core.context
         emu = cemu.core.context.emulator
         if not emu.vm:
             self.editor.setText("VM not initialized")

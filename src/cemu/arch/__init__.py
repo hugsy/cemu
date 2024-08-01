@@ -1,19 +1,24 @@
+from dataclasses import dataclass
 import enum
 import importlib
+import pathlib
 from typing import Optional, TYPE_CHECKING
 
 import capstone
 import keystone
 import unicorn
 
+import cemu.errors
 from cemu.const import SYSCALLS_PATH
-from ..ui.utils import popup, PopupType
+from cemu.log import dbg, error
+from cemu.utils import DISASSEMBLY_DEFAULT_BASE_ADDRESS
+
 
 if TYPE_CHECKING:
     import cemu.core
 
 
-class Endianness(enum.Enum):
+class Endianness(enum.IntEnum):
     LITTLE_ENDIAN = 1
     BIG_ENDIAN = 2
 
@@ -27,7 +32,7 @@ class Endianness(enum.Enum):
         return self.value
 
 
-class Syntax(enum.Enum):
+class Syntax(enum.IntEnum):
     INTEL = 1
     ATT = 2
 
@@ -71,26 +76,29 @@ class Architecture:
         if not self.__context:
             import cemu.core
 
+            assert cemu.core.context
             self.__context = cemu.core.context
             assert isinstance(self.__context, cemu.core.GlobalContext)
 
         if not self.__syscalls:
-            syscall_dir = SYSCALLS_PATH / str(self.__context.os)
+            syscall_dir = SYSCALLS_PATH / str(self.__context.os).lower()
 
             try:
                 fpath = syscall_dir / (self.syscall_filename + ".csv")
             except ValueError as e:
-                popup(str(e), PopupType.Error, "No Syscall File Error")
+                error(f"No Syscall File Error: {e}")
                 return {}
 
             self.__syscalls = {}
-            if fpath.exists():
-                with fpath.open("r") as fd:
-                    for row in fd.readlines():
-                        row = [x.strip() for x in row.strip().split(",")]
-                        syscall_number = int(row[0])
-                        syscall_name = row[1].lower()
-                        self.__syscalls[syscall_name] = self.syscall_base + syscall_number
+            if not fpath.exists():
+                raise FileNotFoundError(fpath)
+
+            with fpath.open("r") as fd:
+                for row in fd.readlines():
+                    row = [x.strip() for x in row.strip().split(",")]
+                    syscall_number = int(row[0])
+                    syscall_name = row[1].lower()
+                    self.__syscalls[syscall_name] = self.syscall_base + syscall_number
 
         return self.__syscalls
 
@@ -264,3 +272,118 @@ def is_sparc64(a: Architecture):
 
 def is_ppc(a: Architecture):
     return isinstance(a, PowerPC)
+
+
+def format_address(addr: int, arch: Optional[Architecture] = None) -> str:
+    """Format an address to string, aligned to the given architecture
+
+    Args:
+        addr (int): _description_
+        arch (Optional[Architecture], optional): _description_. Defaults to None.
+
+    Raises:
+        ValueError: _description_
+
+    Returns:
+        str: _description_
+    """
+    if arch is None:
+        import cemu.core
+
+        if not cemu.core.context:
+            ptrsize = 8
+        else:
+            ptrsize = cemu.core.context.architecture.ptrsize
+    else:
+        ptrsize = arch.ptrsize
+
+    match ptrsize:
+        case 2:
+            return f"{addr:#04x}"
+        case 4:
+            return f"{addr:#08x}"
+        case 8:
+            return f"{addr:#016x}"
+        case _:
+            raise ValueError(f"Invalid pointer size value of {ptrsize}")
+
+
+@dataclass
+class Instruction:
+    address: int
+    mnemonic: str
+    operands: str
+    bytes: bytes
+
+    @property
+    def size(self):
+        return len(self.bytes)
+
+    @property
+    def end(self) -> int:
+        return self.address + self.size
+
+    def __str__(self):
+        return f'Instruction({self.address:#x}, "{self.mnemonic} {self.operands}")'
+
+
+def disassemble(raw_data: bytes, count: int = -1, base: int = DISASSEMBLY_DEFAULT_BASE_ADDRESS) -> list[Instruction]:
+    """Disassemble the code given as raw data, with the given architecture.
+
+    Args:
+        raw_data (bytes): the raw byte code to disassemble
+        arch (Architecture): the architecture to use for disassembling
+        count (int, optional): the maximum number of instruction to disassemble. Defaults to -1.
+        base (int, optional): the disassembled code base address. Defaults to DISASSEMBLY_DEFAULT_BASE_ADDRESS
+
+    Returns:
+        str: the text representation of the disassembled code
+    """
+    assert cemu.core.context
+    arch = cemu.core.context.architecture
+    insns: list[Instruction] = []
+    for idx, ins in enumerate(arch.cs.disasm(raw_data, base)):
+        insn = Instruction(ins.address, ins.mnemonic, ins.op_str, ins.bytes)
+        insns.append(insn)
+        if idx == count:
+            break
+
+    dbg(f"{insns=}")
+    return insns
+
+
+def disassemble_file(fpath: pathlib.Path) -> list[Instruction]:
+    return disassemble(fpath.read_bytes())
+
+
+def assemble(code: str, base_address: int = DISASSEMBLY_DEFAULT_BASE_ADDRESS) -> list[Instruction]:
+    """
+    Helper function to assemble code receive in parameter `asm_code` using Keystone.
+
+    @param code : assembly code in bytes (multiple instructions must be separated by ';')
+    @param base_address : (opt) the base address to use
+
+    @return a list of Instruction
+    """
+    assert cemu.core.context
+    arch = cemu.core.context.architecture
+
+    #
+    # Compile the entire given code
+    #
+    bytecode, assembled_insn_count = arch.ks.asm(code, as_bytes=True, addr=base_address)
+    if not bytecode or assembled_insn_count == 0:
+        raise cemu.errors.AssemblyException("Not instruction compiled")
+
+    assert isinstance(bytecode, bytes)
+
+    #
+    # Decompile it and return the stuff
+    #
+    insns = disassemble(bytecode, base=base_address)
+    dbg(f"{insns=}")
+    return insns
+
+
+def assemble_file(fpath: pathlib.Path) -> list[Instruction]:
+    return assemble(fpath.read_text())

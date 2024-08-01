@@ -26,7 +26,9 @@ TEXT_EDITOR = os.getenv("EDITOR") or "nano -c"
 
 @bindings.add("c-c")
 def _(event):
+    assert cemu.core.context
     if cemu.core.context.emulator.is_running:
+        assert cemu.core.context
         cemu.core.context.emulator.set(EmulatorState.FINISHED)
     pass
 
@@ -35,6 +37,8 @@ class CEmuRepl:
     def __init__(self, args):
         super(CEmuRepl, self).__init__()
         assert cemu.core.context
+        assert cemu.core.context
+        assert cemu.core.context
         assert isinstance(cemu.core.context, cemu.core.GlobalContext)
 
         self.history_filepath = pathlib.Path().home() / ".cemu_history"
@@ -42,9 +46,11 @@ class CEmuRepl:
         self.keep_running = False
         self.prompt = "(cemu)> "
         self.__background_emulator_thread = EmulationRunner()
+        assert cemu.core.context
         cemu.core.context.emulator.set_threaded_runner(self.__background_emulator_thread)
 
         # register the callbacks for the emulator
+        assert cemu.core.context
         emu = cemu.core.context.emulator
         # emu.add_state_change_cb(
         #     EmulatorState.NOT_RUNNING, self.update_layout_not_running
@@ -65,6 +71,7 @@ class CEmuRepl:
 
     def run_forever(self):
         self.keep_running = True
+        assert cemu.core.context
         emu = cemu.core.context.emulator
         while self.keep_running:
             #
@@ -163,8 +170,10 @@ class CEmuRepl:
                 case "arch":
                     match args[0]:
                         case "get":
+                            assert cemu.core.context
                             print(f"Current architecture {cemu.core.context.architecture}")
                         case "set":
+                            assert cemu.core.context
                             cemu.core.context.architecture = cemu.arch.Architectures.find(args[1])
 
                 case "regs":
@@ -253,6 +262,7 @@ class CEmuRepl:
         return
 
     def bottom_toolbar(self) -> str:
+        assert cemu.core.context
         return f"{str(cemu.core.context.emulator)} [{str(cemu.core.context.architecture)}]"
 
 
@@ -263,6 +273,7 @@ class EmulationRunner:
         """
         Runs the emulation
         """
+        assert cemu.core.context
         emu = cemu.core.context.emulator
         if not emu.vm:
             error("VM is not ready")

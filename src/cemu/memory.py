@@ -215,7 +215,7 @@ class MemorySection:
         if not self.file_source:
             return None
 
-        data = self.file_source.open("rb").read()
+        data = self.file_source.read_bytes()
         if len(data) > self.size:
             raise AttributeError("Insufficient space")
         return data

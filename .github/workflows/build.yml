@@ -19,7 +19,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-2019, ubuntu-22.04, macos-13]
+        os: [windows-2019, windows-2022, ubuntu-22.04, ubuntu-24.04, macos-13]
         python-version: ['3.10', '3.11', '3.12']
     name: ${{ matrix.os }} / ${{ matrix.python-version }}
     runs-on: ${{ matrix.os }}
@@ -27,9 +27,9 @@ jobs:
       windows-2019-3-10: ${{ join(steps.*.outputs.windows-2019-3-10,'') }}
       windows-2019-3-11: ${{ join(steps.*.outputs.windows-2019-3-11,'') }}
       windows-2019-3-12: ${{ join(steps.*.outputs.windows-2019-3-12,'') }}
-      ubuntu-22.04-3-10: ${{ join(steps.*.outputs.ubuntu-22.04-3-10,'') }}
-      ubuntu-22.04-3-11: ${{ join(steps.*.outputs.ubuntu-22.04-3-11,'') }}
-      ubuntu-22.04-3-12: ${{ join(steps.*.outputs.ubuntu-22.04-3-12,'') }}
+      ubuntu-22-04-3-10: ${{ join(steps.*.outputs.ubuntu-22-04-3-10,'') }}
+      ubuntu-22-04-3-11: ${{ join(steps.*.outputs.ubuntu-22-04-3-11,'') }}
+      ubuntu-22-04-3-12: ${{ join(steps.*.outputs.ubuntu-22-04-3-12,'') }}
       macos-13-3-10: ${{ join(steps.*.outputs.macos-13-3-10,'') }}
       macos-13-3-11: ${{ join(steps.*.outputs.macos-13-3-11,'') }}
       macos-13-3-12: ${{ join(steps.*.outputs.macos-13-3-12,'') }}
@@ -47,61 +47,16 @@ jobs:
         version: 'latest'
 
     - name: "Install Pre-requisite (Linux)"
-      if: matrix.os == 'ubuntu-22.04'
+      if: startsWith(matrix.os, 'ubuntu')
       shell: bash
       run: |
         sudo apt update
-        sudo apt upgrade -y
-        sudo apt install -y build-essential libegl1 libgl1-mesa-glx
-
-    # - name: "Install Pre-requisite (macOS)"
-    #   if: matrix.os == 'macos-13'
-    #   run: |
-    #     env
-
-    # - name: "Install Pre-requisite (Windows)"
-    #   if: matrix.os == 'windows-2019'
-    #   shell: pwsh
-    #   run: |
-    #     env
+        sudo apt install -y build-essential libegl1
 
     - run: rye fmt
     - run: rye lint
     - run: rye test
     - run: rye build --wheel --out ./build
-
-
-    # - name: Build artifact
-    #   shell: bash
-    #   run: |
-    #     mkdir build
-    #     mkdir build/bin
-    #     python --version
-    #     python -m pip --version
-    #     python -m pip install --upgrade pip setuptools wheel
-    #     python -m pip install --user --upgrade .[all]
-
-    # - name: "Post build Cemu (Windows)"
-    #   if: matrix.os == 'windows-2019'
-    #   shell: pwsh
-    #   run: |
-    #     Copy-Item $env:APPDATA\Python\Python*\Scripts\cemu.exe build\bin\
-
-    # - name: "Post build Cemu (Linux)"
-    #   if: matrix.os == 'ubuntu-22.04'
-    #   shell: bash
-    #   run: |
-    #     cp -v ~/.local/bin/cemu build/bin/
-
-    # - name: "Post build Cemu (macOS)"
-    #   if: matrix.os == 'macos-13'
-    #   shell: bash
-    #   run: |
-    #     cp -v ~/.local/bin/cemu build/bin/ || cp -v /Users/runner/Library/Python/${{ matrix.python-version }}/bin/cemu build/bin/
-
-    # - name: "Run tests"
-    #   run: |
-    #     python -m pytest tests/
 
     - name: Publish artifact
       id: publish_artifact
@@ -112,35 +67,39 @@ jobs:
 
     - name: Populate the successful output (Windows)
       id: output_success_windows
-      if: ${{ matrix.os == 'windows-2019' &&  success() }}
+      if: ${{ startsWith(matrix.os, 'windows') &&  success() }}
       shell: pwsh
       run: |
+        $osVersion = "${{ matrix.os }}" -replace "\.", "-"
         $pyVersion = "${{ matrix.python-version }}" -replace "\.", "-"
-        echo "${{ matrix.os }}-$pyVersion=✅ ${{ matrix.os }} ${{ matrix.python-version }}" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+        echo "${osVersion}-$pyVersion=✅ ${{ matrix.os }} ${{ matrix.python-version }}" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
     - name: Populate the successful output (Other)
       id: output_success_other
-      if: ${{matrix.os != 'windows-2019' && success() }}
+      if: ${{startsWith(matrix.os, 'windows') == false && success() }}
       shell: bash
       run: |
+        osVersion="$(echo -n ${{ matrix.os }} | tr . -)"
         pyVersion="$(echo -n ${{ matrix.python-version }} | tr . -)"
-        echo "${{ matrix.os }}-${pyVersion}=✅ ${{ matrix.os }} ${{ matrix.python-version }}" >> $GITHUB_OUTPUT
+        echo "${osVersion}-${pyVersion}=✅ ${{ matrix.os }} ${{ matrix.python-version }}" >> $GITHUB_OUTPUT
 
     - name: Populate the failure output (Windows)
       id: output_failure_windows
-      if: ${{matrix.os == 'windows-2019' && failure() }}
+      if: ${{startsWith(matrix.os, 'windows') && failure() }}
       shell: pwsh
       run: |
+        $osVersion = "${{ matrix.os }}" -replace "\.", "-"
         $pyVersion = "${{ matrix.python-version }}" -replace "\.", "-"
-        echo "${{ matrix.os }}-${pyVersion}=❌ ${{ matrix.os }} ${{ matrix.python-version }}" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+        echo "${osVersion}-${pyVersion}=❌ ${{ matrix.os }} ${{ matrix.python-version }}" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
     - name: Populate the failure output (Other)
       id: output_failure_other
-      if: ${{matrix.os != 'windows-2019' && failure() }}
+      if: ${{startsWith(matrix.os, 'windows') && failure() }}
       shell: bash
       run: |
+        osVersion="$(echo -n ${{ matrix.os }} | tr . -)"
         pyVersion="$(echo -n ${{ matrix.python-version }} | tr . -)"
-        echo "${{ matrix.os }}-$pyVersion=❌ ${{ matrix.os }} ${{ matrix.python-version }}" >> $GITHUB_OUTPUT
+        echo "${osVersion}-$pyVersion=❌ ${{ matrix.os }} ${{ matrix.python-version }}" >> $GITHUB_OUTPUT
 
   notify:
     env:
@@ -167,9 +126,9 @@ jobs:
           ${{ needs.build.outputs.windows-2019-3-10 }}
           ${{ needs.build.outputs.windows-2019-3-11 }}
           ${{ needs.build.outputs.windows-2019-3-12 }}
-          ${{ needs.build.outputs.ubuntu-22.04-3-10 }}
-          ${{ needs.build.outputs.ubuntu-22.04-3-11 }}
-          ${{ needs.build.outputs.ubuntu-22.04-3-12 }}
+          ${{ needs.build.outputs.ubuntu-22-04-3-10 }}
+          ${{ needs.build.outputs.ubuntu-22-04-3-11 }}
+          ${{ needs.build.outputs.ubuntu-22-04-3-12 }}
           ${{ needs.build.outputs.macos-13-3-10 }}
           ${{ needs.build.outputs.macos-13-3-11 }}
           ${{ needs.build.outputs.macos-13-3-12 }}

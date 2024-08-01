@@ -1,7 +1,7 @@
 import collections
 from enum import IntEnum, unique
 from multiprocessing import Lock
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Optional, TYPE_CHECKING
 
 import unicorn
 
@@ -19,6 +19,10 @@ from cemu.log import dbg, error, info, warn
 from .arch import is_x86, is_x86_32, x86
 from .memory import MemorySection
 from .ui.utils import popup, PopupType
+
+
+if TYPE_CHECKING:
+    import cemu.arch
 
 
 @unique
@@ -59,6 +63,7 @@ class EmulationRegisters(collections.UserDict):
         Returns:
             int: the register value
         """
+        assert cemu.core.context
         emu = cemu.core.context.emulator
         if emu.state in (EmulatorState.RUNNING, EmulatorState.IDLE, EmulatorState.FINISHED) and key in self.data.keys():
             val = emu.get_register_value(key)
@@ -98,6 +103,7 @@ class Emulator:
         self.vm = None
         self.code = b""
         self.sections = MEMORY_MAP_DEFAULT_LAYOUT[:]
+        assert cemu.core.context
         self.registers = EmulationRegisters({name: 0 for name in cemu.core.context.architecture.registers})
         self.start_addr = 0
         self.set(EmulatorState.NOT_RUNNING)
@@ -116,6 +122,7 @@ class Emulator:
         if not self.vm:
             return None
 
+        assert cemu.core.context
         arch = cemu.core.context.architecture
         ur = arch.uc_register(regname)
         val = self.vm.reg_read(ur)
@@ -130,14 +137,18 @@ class Emulator:
         """
         Returns the current value of $pc
         """
+        assert cemu.core.context
         # return self.get_register_value(cemu.core.context.architecture.pc)
+        assert cemu.core.context
         return self.registers[cemu.core.context.architecture.pc]
 
     def sp(self) -> int:
         """
         Returns the current value of $sp
         """
+        assert cemu.core.context
         # return self.get_register_value(cemu.core.context.architecture.sp)
+        assert cemu.core.context
         return self.registers[cemu.core.context.architecture.sp]
 
     def setup(self) -> None:
@@ -152,6 +163,7 @@ class Emulator:
 
         info("Setting up emulation environment...")
 
+        assert cemu.core.context
         arch = cemu.core.context.architecture
         self.vm = arch.uc
         self.vm.hook_add(unicorn.UC_HOOK_BLOCK, self.hook_block)
@@ -159,6 +171,7 @@ class Emulator:
         self.vm.hook_add(unicorn.UC_HOOK_INTR, self.hook_interrupt)  # type: ignore
         self.vm.hook_add(unicorn.UC_HOOK_MEM_WRITE, self.hook_mem_access)
         self.vm.hook_add(unicorn.UC_HOOK_MEM_READ, self.hook_mem_access)
+        assert cemu.core.context
         if is_x86(cemu.core.context.architecture):
             self.vm.hook_add(
                 unicorn.UC_HOOK_INSN,
@@ -217,6 +230,7 @@ class Emulator:
         if not self.vm:
             return False
 
+        assert cemu.core.context
         arch = cemu.core.context.architecture
 
         #
@@ -296,6 +310,7 @@ class Emulator:
         if not self.vm or not self.is_running:
             return False
 
+        assert cemu.core.context
         arch = cemu.core.context.architecture
         for regname in self.registers.keys():
             value = self.vm.reg_read(arch.uc_register(regname))
@@ -310,10 +325,11 @@ class Emulator:
         Returns:
             bool True if all went well, False otherwise.
         """
+        assert cemu.core.context
         dbg(f"[vm::setup] Generating assembly code for {cemu.core.context.architecture.name}")
 
         try:
-            insns = cemu.utils.assemble(self.codelines, base_address=self.start_addr)
+            insns = cemu.arch.assemble(self.codelines, base_address=self.start_addr)
             if len(insns) == 0:
                 raise Exception("no instruction")
         except Exception as e:
@@ -356,11 +372,11 @@ class Emulator:
         self.vm.mem_write(text_section.address, self.code)
         return True
 
-    def next_instruction(self, code: bytes, addr: int) -> Optional[cemu.utils.Instruction]:
+    def next_instruction(self, code: bytes, addr: int) -> Optional[cemu.arch.Instruction]:
         """
         Returns a string disassembly of the first instruction from `code`.
         """
-        for insn in cemu.utils.disassemble(code, 1, addr):
+        for insn in cemu.arch.disassemble(code, 1, addr):
             return insn
 
         return None
@@ -376,7 +392,8 @@ class Emulator:
             return False
 
         code = self.vm.mem_read(address, size)
-        insn: cemu.utils.Instruction = self.next_instruction(code, address)
+        insn = self.next_instruction(code, address)
+        assert isinstance(insn, cemu.arch.Instruction)
 
         if self.use_step_mode:
             dbg(f"[vm::runtime] Stepping @ {insn}")

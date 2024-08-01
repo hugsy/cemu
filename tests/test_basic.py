@@ -179,6 +179,7 @@ class TestEmulatorBasic(unittest.TestCase):
             #
             # (Re-)Initialize the context
             #
+            assert cemu.core.context
             cemu.core.context.architecture = tc.arch
             self.emu.reset()
             self.emu.sections = MEMORY_MAP_DEFAULT_LAYOUT[:]

@@ -17,7 +17,8 @@ from cemu.const import (
     DEFAULT_REGISTER_VIEW_REGISTER_FONT_SIZE,
 )
 from cemu.emulator import Emulator, EmulatorState
-from cemu.utils import format_address
+from cemu.arch import format_address
+import cemu.emulator
 
 
 class RegistersWidget(QDockWidget):
@@ -28,9 +29,13 @@ class RegistersWidget(QDockWidget):
         self.__old_register_values = {}
         layout = QVBoxLayout()
         self.RegisterTableWidget = QTableWidget(10, 2)
-        self.RegisterTableWidget.horizontalHeader().setStretchLastSection(True)
+        hHeader = self.RegisterTableWidget.horizontalHeader()
+        if hHeader:
+            hHeader.setStretchLastSection(True)
         self.RegisterTableWidget.setHorizontalHeaderLabels(["Register", "Value"])
-        self.RegisterTableWidget.verticalHeader().setVisible(False)
+        vHeader = self.RegisterTableWidget.verticalHeader()
+        if vHeader:
+            vHeader.setVisible(False)
         self.RegisterTableWidget.setColumnWidth(0, 80)
         layout.addWidget(self.RegisterTableWidget)
 
@@ -45,6 +50,7 @@ class RegistersWidget(QDockWidget):
         #
         # Emulator state callback
         #
+        assert cemu.core.context
         emu: Emulator = cemu.core.context.emulator
         emu.add_state_change_cb(EmulatorState.IDLE, self.onIdleRefreshRegisterGrid)
         emu.add_state_change_cb(EmulatorState.FINISHED, self.onFinishedRefreshRegisterGrid)
@@ -56,7 +62,9 @@ class RegistersWidget(QDockWidget):
         VM CPU registers
 
         """
+        assert cemu.core.context
         emu: Emulator = cemu.core.context.emulator
+        assert cemu.core.context
         arch = cemu.core.context.architecture
         registers = arch.registers
         self.RegisterTableWidget.setRowCount(len(registers))
@@ -93,16 +101,21 @@ class RegistersWidget(QDockWidget):
         #
         # Propagate the change to the emulator
         #
-        cemu.core.context.emulator.registers = self.getRegisterValuesFromGrid()
+        assert cemu.core.context
+        cemu.core.context.emulator.registers = cemu.emulator.EmulationRegisters(self.getRegisterValuesFromGrid())
         return
 
     def getRegisterValuesFromGrid(self) -> dict[str, int]:
         """Returns the current values of the registers, as shown by the widget grid"""
         regs = {}
+        assert cemu.core.context
         registers = cemu.core.context.emulator.registers.keys()
         for i in range(len(registers)):
-            name = self.RegisterTableWidget.item(i, 0).text()
-            value = self.RegisterTableWidget.item(i, 1).text()
+            item1 = self.RegisterTableWidget.item(i, 0)
+            name = item1.text() if item1 else ""
+
+            item2 = self.RegisterTableWidget.item(i, 1)
+            value = item2.text() if item2 else "0"
             regs[name] = int(value, 16)
         return regs
 
