@@ -47,60 +47,16 @@ jobs:
         version: 'latest'
 
     - name: "Install Pre-requisite (Linux)"
-      if: matrix.os == 'ubuntu-22.04'
+      if: startsWith(matrix.os, 'ubuntu')
       shell: bash
       run: |
         sudo apt update
         sudo apt install -y build-essential libegl1 libgl1-mesa-glx
 
-    # - name: "Install Pre-requisite (macOS)"
-    #   if: matrix.os == 'macos-13'
-    #   run: |
-    #     env
-
-    # - name: "Install Pre-requisite (Windows)"
-    #   if: matrix.os == 'windows-2019'
-    #   shell: pwsh
-    #   run: |
-    #     env
-
     - run: rye fmt
     - run: rye lint
     - run: rye test
     - run: rye build --wheel --out ./build
-
-
-    # - name: Build artifact
-    #   shell: bash
-    #   run: |
-    #     mkdir build
-    #     mkdir build/bin
-    #     python --version
-    #     python -m pip --version
-    #     python -m pip install --upgrade pip setuptools wheel
-    #     python -m pip install --user --upgrade .[all]
-
-    # - name: "Post build Cemu (Windows)"
-    #   if: matrix.os == 'windows-2019'
-    #   shell: pwsh
-    #   run: |
-    #     Copy-Item $env:APPDATA\Python\Python*\Scripts\cemu.exe build\bin\
-
-    # - name: "Post build Cemu (Linux)"
-    #   if: matrix.os == 'ubuntu-22.04'
-    #   shell: bash
-    #   run: |
-    #     cp -v ~/.local/bin/cemu build/bin/
-
-    # - name: "Post build Cemu (macOS)"
-    #   if: matrix.os == 'macos-13'
-    #   shell: bash
-    #   run: |
-    #     cp -v ~/.local/bin/cemu build/bin/ || cp -v /Users/runner/Library/Python/${{ matrix.python-version }}/bin/cemu build/bin/
-
-    # - name: "Run tests"
-    #   run: |
-    #     python -m pytest tests/
 
     - name: Publish artifact
       id: publish_artifact
@@ -111,7 +67,7 @@ jobs:
 
     - name: Populate the successful output (Windows)
       id: output_success_windows
-      if: ${{ matrix.os == 'windows-2019' &&  success() }}
+      if: ${{ startsWith(matrix.os, 'windows') &&  success() }}
       shell: pwsh
       run: |
         $osVersion = "${{ matrix.os }}" -replace "\.", "-"
@@ -120,7 +76,7 @@ jobs:
 
     - name: Populate the successful output (Other)
       id: output_success_other
-      if: ${{matrix.os != 'windows-2019' && success() }}
+      if: ${{startsWith(matrix.os, 'windows') == false && success() }}
       shell: bash
       run: |
         osVersion="$(echo -n ${{ matrix.os }} | tr . -)"
@@ -129,7 +85,7 @@ jobs:
 
     - name: Populate the failure output (Windows)
       id: output_failure_windows
-      if: ${{matrix.os == 'windows-2019' && failure() }}
+      if: ${{startsWith(matrix.os, 'windows') && failure() }}
       shell: pwsh
       run: |
         $osVersion = "${{ matrix.os }}" -replace "\.", "-"
@@ -138,7 +94,7 @@ jobs:
 
     - name: Populate the failure output (Other)
       id: output_failure_other
-      if: ${{matrix.os != 'windows-2019' && failure() }}
+      if: ${{startsWith(matrix.os, 'windows') && failure() }}
       shell: bash
       run: |
         osVersion="$(echo -n ${{ matrix.os }} | tr . -)"
