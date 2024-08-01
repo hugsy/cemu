@@ -51,7 +51,6 @@ jobs:
       shell: bash
       run: |
         sudo apt update
-        sudo apt upgrade -y
         sudo apt install -y build-essential libegl1 libgl1-mesa-glx
 
     # - name: "Install Pre-requisite (macOS)"

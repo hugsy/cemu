@@ -1,6 +1,7 @@
 import string
 import pytest
 
+import cemu.core
 import cemu.utils
 import cemu.arch
 
@@ -38,6 +39,10 @@ def test_ishex():
 
 
 def test_hexdump():
+    cemu.core.context = cemu.core.GlobalContext()
+    cemu.core.context.architecture = cemu.arch.Architectures.find("x86_32")
+    assert cemu.utils.hexdump(b"aaaa") == "0x000000  61 61 61 61  aaaa"
+    cemu.core.context.architecture = cemu.arch.Architectures.find("x86_64")
     assert cemu.utils.hexdump(b"aaaa") == "0x00000000000000  61 61 61 61  aaaa"
 
     with pytest.raises(ValueError):
