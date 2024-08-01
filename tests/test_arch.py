@@ -60,7 +60,8 @@ def test_assemble_file():
     ):
         cemu.core.context.architecture = cemu.arch.Architectures.find(tc)
         fpath = CEMU_EXAMPLES_FOLDER / f"{tc}_sys_exec_bin_sh.asm"
-        code = ";".join(parse_syscalls([x for x in fpath.read_text().splitlines() if not x.startswith(";;; ")]))
+        code = ";".join(parse_syscalls([x.strip() for x in fpath.read_text().splitlines() if not x.strip().startswith(";;; ")]))
+        print(f"trying {tc} -> {cemu.core.context.architecture.syscalls}")
         insns = cemu.arch.assemble(code)
         assert len(insns) > 0
 

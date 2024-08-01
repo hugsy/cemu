@@ -10,7 +10,7 @@ import unicorn
 
 import cemu.errors
 from cemu.const import SYSCALLS_PATH
-from cemu.log import dbg
+from cemu.log import dbg, error
 from cemu.utils import DISASSEMBLY_DEFAULT_BASE_ADDRESS
 from ..ui.utils import popup, PopupType
 
@@ -81,22 +81,24 @@ class Architecture:
             assert isinstance(self.__context, cemu.core.GlobalContext)
 
         if not self.__syscalls:
-            syscall_dir = SYSCALLS_PATH / str(self.__context.os)
+            syscall_dir = SYSCALLS_PATH / str(self.__context.os).lower()
 
             try:
                 fpath = syscall_dir / (self.syscall_filename + ".csv")
             except ValueError as e:
-                popup(str(e), PopupType.Error, "No Syscall File Error")
+                error(f"No Syscall File Error: {e}")
                 return {}
 
             self.__syscalls = {}
-            if fpath.exists():
-                with fpath.open("r") as fd:
-                    for row in fd.readlines():
-                        row = [x.strip() for x in row.strip().split(",")]
-                        syscall_number = int(row[0])
-                        syscall_name = row[1].lower()
-                        self.__syscalls[syscall_name] = self.syscall_base + syscall_number
+            if not fpath.exists():
+                raise FileNotFoundError(fpath)
+
+            with fpath.open("r") as fd:
+                for row in fd.readlines():
+                    row = [x.strip() for x in row.strip().split(",")]
+                    syscall_number = int(row[0])
+                    syscall_name = row[1].lower()
+                    self.__syscalls[syscall_name] = self.syscall_base + syscall_number
 
         return self.__syscalls
 
