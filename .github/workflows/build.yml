@@ -51,7 +51,7 @@ jobs:
       shell: bash
       run: |
         sudo apt update
-        sudo apt install -y build-essential libegl1 libgl1-mesa-glx
+        sudo apt install -y build-essential libegl1
 
     - run: rye fmt
     - run: rye lint
