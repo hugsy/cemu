@@ -44,6 +44,7 @@ class ShortcutManager:
         Load the shortcuts dict from either the config file if the value exists, or
         the defaults
         """
+        assert cemu.core.context
         settings = cemu.core.context.settings
         for key in self._defaults:
             default_shortcut, description = self._defaults[key]

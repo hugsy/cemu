@@ -66,6 +66,7 @@ class MemoryMappingWidget(QDockWidget):
         #
         # Emulator state callback
         #
+        assert cemu.core.context
         self.emu: Emulator = cemu.core.context.emulator
         self.emu.add_state_change_cb(EmulatorState.NOT_RUNNING, self.onNotRunningUpdateMemoryMap)
         self.emu.add_state_change_cb(EmulatorState.RUNNING, self.onRunningDisableMemoryMapGrid)
@@ -120,6 +121,7 @@ class MemoryMappingWidget(QDockWidget):
 
         for idx in range(len(self.emu.sections) - 1, 0, -1):
             if idx in indexes:
+                assert cemu.core.context
                 del cemu.core.context.emulator.sections[idx]
         self.redraw_memory_map_table()
         return
@@ -184,10 +186,12 @@ class MemoryMappingWidget(QDockWidget):
             address = int(startAddressEdit.text(), 0)
             size = int(sizeEdit.text(), 0)
 
+            assert cemu.core.context
             if name in (x.name for x in cemu.core.context.emulator.sections):
                 error("section name already exists")
                 return
 
+            assert cemu.core.context
             memory_set = (set(range(x.address, x.address + x.size)) for x in cemu.core.context.emulator.sections)
             current_set = set(range(address, address + size))
             for m in memory_set:
@@ -204,6 +208,7 @@ class MemoryMappingWidget(QDockWidget):
                 section_perm.append("EXEC")
             try:
                 section = MemorySection(name, address, size, "|".join(section_perm))
+                assert cemu.core.context
                 cemu.core.context.emulator.sections.append(section)
                 self.redraw_memory_map_table()
             except ValueError as ve:
@@ -214,6 +219,7 @@ class MemoryMappingWidget(QDockWidget):
                 section_perm.append("EXEC")
             try:
                 section = MemorySection(name, address, size, "|".join(section_perm))
+                assert cemu.core.context
                 cemu.core.context.emulator.sections.append(section)
                 self.redraw_memory_map_table()
             except ValueError as ve:

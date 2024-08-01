@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     import cemu.core
 
 
-class Endianness(enum.Enum):
+class Endianness(enum.IntEnum):
     LITTLE_ENDIAN = 1
     BIG_ENDIAN = 2
 
@@ -32,7 +32,7 @@ class Endianness(enum.Enum):
         return self.value
 
 
-class Syntax(enum.Enum):
+class Syntax(enum.IntEnum):
     INTEL = 1
     ATT = 2
 
@@ -76,6 +76,7 @@ class Architecture:
         if not self.__context:
             import cemu.core
 
+            assert cemu.core.context
             self.__context = cemu.core.context
             assert isinstance(self.__context, cemu.core.GlobalContext)
 
@@ -287,9 +288,14 @@ def format_address(addr: int, arch: Optional[Architecture] = None) -> str:
     if arch is None:
         import cemu.core
 
-        arch = cemu.core.context.architecture
+        if not cemu.core.context:
+            ptrsize = 8
+        else:
+            ptrsize = cemu.core.context.architecture.ptrsize
+    else:
+        ptrsize = arch.ptrsize
 
-    match arch.ptrsize:
+    match ptrsize:
         case 2:
             return f"{addr:#04x}"
         case 4:
@@ -297,7 +303,7 @@ def format_address(addr: int, arch: Optional[Architecture] = None) -> str:
         case 8:
             return f"{addr:#016x}"
         case _:
-            raise ValueError(f"Invalid value for '{arch.ptrsize=}'")
+            raise ValueError(f"Invalid pointer size value of {ptrsize}")
 
 
 @dataclass
@@ -331,6 +337,7 @@ def disassemble(raw_data: bytes, count: int = -1, base: int = DISASSEMBLY_DEFAUL
     Returns:
         str: the text representation of the disassembled code
     """
+    assert cemu.core.context
     arch = cemu.core.context.architecture
     insns: list[Instruction] = []
     for idx, ins in enumerate(arch.cs.disasm(raw_data, base)):
@@ -356,6 +363,7 @@ def assemble(code: str, base_address: int = DISASSEMBLY_DEFAULT_BASE_ADDRESS) ->
 
     @return a list of Instruction
     """
+    assert cemu.core.context
     arch = cemu.core.context.architecture
 
     #

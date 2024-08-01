@@ -63,6 +63,7 @@ class EmulationRegisters(collections.UserDict):
         Returns:
             int: the register value
         """
+        assert cemu.core.context
         emu = cemu.core.context.emulator
         if emu.state in (EmulatorState.RUNNING, EmulatorState.IDLE, EmulatorState.FINISHED) and key in self.data.keys():
             val = emu.get_register_value(key)
@@ -102,6 +103,7 @@ class Emulator:
         self.vm = None
         self.code = b""
         self.sections = MEMORY_MAP_DEFAULT_LAYOUT[:]
+        assert cemu.core.context
         self.registers = EmulationRegisters({name: 0 for name in cemu.core.context.architecture.registers})
         self.start_addr = 0
         self.set(EmulatorState.NOT_RUNNING)
@@ -120,6 +122,7 @@ class Emulator:
         if not self.vm:
             return None
 
+        assert cemu.core.context
         arch = cemu.core.context.architecture
         ur = arch.uc_register(regname)
         val = self.vm.reg_read(ur)
@@ -134,14 +137,18 @@ class Emulator:
         """
         Returns the current value of $pc
         """
+        assert cemu.core.context
         # return self.get_register_value(cemu.core.context.architecture.pc)
+        assert cemu.core.context
         return self.registers[cemu.core.context.architecture.pc]
 
     def sp(self) -> int:
         """
         Returns the current value of $sp
         """
+        assert cemu.core.context
         # return self.get_register_value(cemu.core.context.architecture.sp)
+        assert cemu.core.context
         return self.registers[cemu.core.context.architecture.sp]
 
     def setup(self) -> None:
@@ -156,6 +163,7 @@ class Emulator:
 
         info("Setting up emulation environment...")
 
+        assert cemu.core.context
         arch = cemu.core.context.architecture
         self.vm = arch.uc
         self.vm.hook_add(unicorn.UC_HOOK_BLOCK, self.hook_block)
@@ -163,6 +171,7 @@ class Emulator:
         self.vm.hook_add(unicorn.UC_HOOK_INTR, self.hook_interrupt)  # type: ignore
         self.vm.hook_add(unicorn.UC_HOOK_MEM_WRITE, self.hook_mem_access)
         self.vm.hook_add(unicorn.UC_HOOK_MEM_READ, self.hook_mem_access)
+        assert cemu.core.context
         if is_x86(cemu.core.context.architecture):
             self.vm.hook_add(
                 unicorn.UC_HOOK_INSN,
@@ -221,6 +230,7 @@ class Emulator:
         if not self.vm:
             return False
 
+        assert cemu.core.context
         arch = cemu.core.context.architecture
 
         #
@@ -300,6 +310,7 @@ class Emulator:
         if not self.vm or not self.is_running:
             return False
 
+        assert cemu.core.context
         arch = cemu.core.context.architecture
         for regname in self.registers.keys():
             value = self.vm.reg_read(arch.uc_register(regname))
@@ -314,6 +325,7 @@ class Emulator:
         Returns:
             bool True if all went well, False otherwise.
         """
+        assert cemu.core.context
         dbg(f"[vm::setup] Generating assembly code for {cemu.core.context.architecture.name}")
 
         try:

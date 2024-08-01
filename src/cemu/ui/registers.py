@@ -50,6 +50,7 @@ class RegistersWidget(QDockWidget):
         #
         # Emulator state callback
         #
+        assert cemu.core.context
         emu: Emulator = cemu.core.context.emulator
         emu.add_state_change_cb(EmulatorState.IDLE, self.onIdleRefreshRegisterGrid)
         emu.add_state_change_cb(EmulatorState.FINISHED, self.onFinishedRefreshRegisterGrid)
@@ -61,7 +62,9 @@ class RegistersWidget(QDockWidget):
         VM CPU registers
 
         """
+        assert cemu.core.context
         emu: Emulator = cemu.core.context.emulator
+        assert cemu.core.context
         arch = cemu.core.context.architecture
         registers = arch.registers
         self.RegisterTableWidget.setRowCount(len(registers))
@@ -98,12 +101,14 @@ class RegistersWidget(QDockWidget):
         #
         # Propagate the change to the emulator
         #
+        assert cemu.core.context
         cemu.core.context.emulator.registers = cemu.emulator.EmulationRegisters(self.getRegisterValuesFromGrid())
         return
 
     def getRegisterValuesFromGrid(self) -> dict[str, int]:
         """Returns the current values of the registers, as shown by the widget grid"""
         regs = {}
+        assert cemu.core.context
         registers = cemu.core.context.emulator.registers.keys()
         for i in range(len(registers)):
             item1 = self.RegisterTableWidget.item(i, 0)

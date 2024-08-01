@@ -76,7 +76,7 @@ class GlobalGuiContext(GlobalContext):
 #
 # The global application context. This **must** defined for cemu to operate
 #
-context: Union[GlobalContext, GlobalGuiContext]
+context: Optional[Union[GlobalContext, GlobalGuiContext]] = None
 
 
 def CemuGui() -> None:

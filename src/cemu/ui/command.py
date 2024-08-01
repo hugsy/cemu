@@ -58,6 +58,7 @@ class CommandWidget(QDockWidget):
         #
         # Emulator state callback
         #
+        assert cemu.core.context
         self.emulator: Emulator = cemu.core.context.emulator
 
         self.emulator.add_state_change_cb(EmulatorState.NOT_RUNNING, self.onNotRunningUpdateCommandButtons)

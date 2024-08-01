@@ -34,6 +34,15 @@ def hexdump(
     """
     import cemu.arch
 
+    if not isinstance(source, bytes):
+        raise ValueError("source must be of type `bytes`")
+
+    if len(separator) != 1:
+        raise ValueError("separator must be a single character")
+
+    if (alignment & 1) == 1:
+        raise ValueError("alignment must be a multiple of two")
+
     result: list[str] = []
     for i in range(0, len(source), alignment):
         chunk = source[i : i + alignment]
@@ -43,7 +52,7 @@ def hexdump(
         if show_raw:
             result.append(hexa)
         else:
-            result.append(f"{cemu.arch.format_address(base)}  {hexa}  {text}")
+            result.append(f"{cemu.arch.format_address(base+i)}  {hexa}  {text}")
 
     return os.linesep.join(result)
 
@@ -54,7 +63,7 @@ def ishex(x: str) -> bool:
     return all([c in string.hexdigits for c in x])
 
 
-def generate_random_string(length: int) -> str:
+def generate_random_string(length: int, charset: str = string.ascii_letters + string.digits) -> str:
     """Returns a random string
 
     Args:
@@ -63,7 +72,9 @@ def generate_random_string(length: int) -> str:
     Returns:
         str: _description_
     """
-    charset = string.ascii_letters + string.digits
+    if length < 1:
+        raise ValueError("invalid length")
+
     return "".join(random.choice(charset) for _ in range(length))
 
 

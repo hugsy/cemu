@@ -26,7 +26,9 @@ class CemuPlugin(QDockWidget):
 
     @property
     def rootWindow(self) -> CEmuWindow:
+        assert cemu.core.context
         assert isinstance(cemu.core.context, cemu.core.GlobalGuiContext)
+        assert cemu.core.context
         return cemu.core.context.root
 
 
