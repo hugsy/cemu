@@ -1,4 +1,4 @@
-name: Publish CEmu to PyPI
+name: Publish to PyPI
 
 on:
   workflow_dispatch:
@@ -14,35 +14,24 @@ jobs:
     environment:
       name: hugsy
       url: https://pypi.org/p/cemu
+
     permissions:
       id-token: write
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
 
-      - name: Setup
-        uses: actions/setup-python@v4
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v4
         with:
           python-version: "3.10"
 
-      - name: "Install Pre-requisite"
-        uses: eifinger/setup-rye@v4
+      - uses: eifinger/setup-rye@v4
         with:
           version: 'latest'
 
-      - run: rye build --wheel --out ./publish
+      - run: rye build --wheel
 
-      # - name: Requirements
-      #   run: |
-      #     python -m pip install --upgrade build wheel
-
-      # - name: Build
-      #   run: |
-      #     python -m build
-
-      - name: Publish
-        uses: pypa/gh-action-pypi-publish@release/v1
+      - uses: pypa/gh-action-pypi-publish@release/v1
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}
           print-hash: true
-          packages-dir: publish/
