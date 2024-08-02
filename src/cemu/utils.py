@@ -2,7 +2,7 @@ import os
 
 import random
 import string
-from typing import Optional, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING, Union
 
 if TYPE_CHECKING:
     import cemu.arch
@@ -14,7 +14,7 @@ DISASSEMBLY_DEFAULT_BASE_ADDRESS = 0x40000
 
 
 def hexdump(
-    source: bytes,
+    source: Union[bytes, bytearray],
     alignment: int = 0x10,
     separator: str = ".",
     show_raw: bool = False,
@@ -34,8 +34,8 @@ def hexdump(
     """
     import cemu.arch
 
-    if not isinstance(source, bytes):
-        raise ValueError("source must be of type `bytes`")
+    if not (isinstance(source, bytes) or isinstance(source, bytearray)):
+        raise ValueError("source must be of type `bytes` or `bytearray`")
 
     if len(separator) != 1:
         raise ValueError("separator must be a single character")
