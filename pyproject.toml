@@ -59,10 +59,10 @@ allow-direct-references = true
 packages = ["src/cemu"]
 
 [project.scripts]
-cemu = "cemu.__main__:main"
+cemu = "cemu.__main__:main_cli"
 
 [project.gui-scripts]
-cemu = "cemu.__main__:main"
+cemu = "cemu.__main__:main_gui"
 
 [project.urls]
 "Homepage" = "https://github.com/hugsy/cemu"

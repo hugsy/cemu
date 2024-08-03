@@ -42,6 +42,18 @@ def main(argv: list[str]):
         cemu.core.CemuGui()
 
 
+def main_gui():
+    main([])
+
+
+def main_cli():
+    main(
+        [
+            "--cli",
+        ]
+    )
+
+
 if __name__ == "__main__":
     import sys
 

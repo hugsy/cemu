@@ -1,8 +1,8 @@
-import os
 import tempfile
+import pathlib
 from typing import Any, List
 
-from lief import PE
+from lief import PE  # type: ignore
 
 from .arch import Architecture, is_x86_32, is_x86_64
 from .memory import MemoryPermission, MemorySection
@@ -12,24 +12,25 @@ import cemu.utils
 def parse_as_lief_pe_permission(perm: MemoryPermission, extra: Any = None) -> int:
     res = 0
     if perm.r:
-        res |= PE.SECTION_CHARACTERISTICS.MEM_READ.value
+        res |= PE.Section.CHARACTERISTICS.MEM_READ.value
     if perm.w:
-        res |= PE.SECTION_CHARACTERISTICS.MEM_WRITE.value
+        res |= PE.Section.CHARACTERISTICS.MEM_WRITE.value
     if perm.x:
-        res |= PE.SECTION_CHARACTERISTICS.MEM_EXECUTE.value
+        res |= PE.Section.CHARACTERISTICS.MEM_EXECUTE.value
 
     if extra:
-        if extra.lower() == "code":
-            res |= PE.SECTION_CHARACTERISTICS.CNT_CODE.value
-        if extra.lower() == "idata":
-            res |= PE.SECTION_CHARACTERISTICS.CNT_INITIALIZED_DATA.value
-        if extra.lower() == "udata":
-            res |= PE.SECTION_CHARACTERISTICS.CNT_UNINITIALIZED_DATA.value
+        match extra.lower():
+            case "code":
+                res |= PE.Section.CHARACTERISTICS.CNT_CODE.value
+            case "idata":
+                res |= PE.Section.CHARACTERISTICS.CNT_INITIALIZED_DATA.value
+            case "udata":
+                res |= PE.Section.CHARACTERISTICS.CNT_UNINITIALIZED_DATA.value
 
     return res
 
 
-def build_pe_executable(text: bytes, memory_layout: List[MemorySection], arch: Architecture) -> str:
+def build_pe_executable(text: bytes, memory_layout: List[MemorySection], arch: Architecture) -> pathlib.Path:
     """
     Uses LIEF to build a standalone binary.
 
@@ -43,10 +44,10 @@ def build_pe_executable(text: bytes, memory_layout: List[MemorySection], arch: A
 
     if is_x64:
         basename = "cemu-pe-amd64-{:s}".format(cemu.utils.generate_random_string(5))
-        pe = PE.Binary(basename, PE.PE_TYPE.PE32_PLUS)
+        pe = PE.Binary(PE.PE_TYPE.PE32_PLUS)
     else:
         basename = "cemu-pe-i386-{:s}".format(cemu.utils.generate_random_string(5))
-        pe = PE.Binary(basename, PE.PE_TYPE.PE32)
+        pe = PE.Binary(PE.PE_TYPE.PE32)
 
     # adding sections
     sections = {}
@@ -82,12 +83,12 @@ def build_pe_executable(text: bytes, memory_layout: List[MemorySection], arch: A
         reladdr += size
 
     # fixing pe header
-    pe.header.add_characteristic(PE.HEADER_CHARACTERISTICS.EXECUTABLE_IMAGE)
-    pe.header.add_characteristic(PE.HEADER_CHARACTERISTICS.DEBUG_STRIPPED)
+    pe.header.add_characteristic(PE.Header.CHARACTERISTICS.EXECUTABLE_IMAGE)
+    pe.header.add_characteristic(PE.Header.CHARACTERISTICS.DEBUG_STRIPPED)
     if is_x64:
-        pe.header.add_characteristic(PE.HEADER_CHARACTERISTICS.LARGE_ADDRESS_AWARE)
+        pe.header.add_characteristic(PE.Header.CHARACTERISTICS.LARGE_ADDRESS_AWARE)
     else:
-        pe.header.add_characteristic(PE.HEADER_CHARACTERISTICS.CHARA_32BIT_MACHINE)
+        pe.header.add_characteristic(PE.Header.CHARACTERISTICS.NEED_32BIT_MACHINE)
 
     # fixing pe optional header
     pe.optional_header.addressof_entrypoint = sections["text"].virtual_address
@@ -97,16 +98,17 @@ def build_pe_executable(text: bytes, memory_layout: List[MemorySection], arch: A
     pe.optional_header.minor_subsystem_version = 0x02
     pe.optional_header.major_linker_version = 0x02
     pe.optional_header.minor_linker_version = 0x1E
-    pe.optional_header.remove(PE.DLL_CHARACTERISTICS.NX_COMPAT)
-    pe.optional_header.add(PE.DLL_CHARACTERISTICS.NO_SEH)
+    pe.optional_header.remove(PE.OptionalHeader.DLL_CHARACTERISTICS.NX_COMPAT)
+    pe.optional_header.add(PE.OptionalHeader.DLL_CHARACTERISTICS.NO_SEH)
     # pe.add_library("ntdll.dll")
 
     # building exe to disk
-    outfile = f"{tempfile.gettempdir()}{os.path.sep:s}{basename:s}.exe"
+    outfile = pathlib.Path(tempfile.gettempdir()) / f"{basename:s}.exe"
     builder = PE.Builder(pe)
     builder.build_imports(True)
     builder.build()
-    builder.write(outfile)
+    builder.write(str(outfile.absolute()))
+    assert outfile.exists()
     return outfile
 
 

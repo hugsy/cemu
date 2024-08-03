@@ -10,8 +10,7 @@ from cemu.ui.main import CEmuWindow
 
 class ScratchboardWidget(QDockWidget):
     def __init__(self, parent: CEmuWindow, *args, **kwargs):
-        super(ScratchboardWidget, self).__init__("Scratchboard", parent)
-        self.parent = parent
+        super().__init__("Scratchboard", parent)
         self.title = "Scratchboard"
         QVBoxLayout()
         self.__editor = QTextEdit()
