@@ -2,7 +2,7 @@ from typing import Callable
 
 import cemu.const
 
-loggers = set()
+loggers: set[Callable] = set()
 
 
 def register_sink(cb: Callable):

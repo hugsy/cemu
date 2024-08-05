@@ -8,6 +8,8 @@ import cemu.const
 import cemu.core
 import cemu.log
 
+THIS_FILE = pathlib.Path(__file__).absolute()
+
 
 def setup_remote_debug(port: int = cemu.const.DEBUG_DEBUGPY_PORT):
     assert cemu.const.DEBUG
@@ -42,9 +44,25 @@ def main(argv: list[str]):
         cemu.core.CemuGui()
 
 
+def main_gui(debug: bool = False):
+    args = [
+        str(THIS_FILE),
+    ]
+    if debug:
+        args.append("--debug")
+    main(args)
+
+
+def main_cli(debug: bool = False):
+    args = [str(THIS_FILE), "--cli"]
+    if debug:
+        args.append("--debug")
+    main(args)
+
+
 if __name__ == "__main__":
     import sys
 
-    path = pathlib.Path(__file__).absolute().parent.parent
+    path = THIS_FILE.parent.parent
     sys.path.append(str(path))
     main(sys.argv)

@@ -158,13 +158,13 @@ class CEmuWindow(QMainWindow):
             if not module:
                 continue
 
-            m = module.register(self)
-            if not m:
+            plugin_widget: Optional[QDockWidget] = module.register(self)
+            if not plugin_widget:
                 error(f"The registration of '{path}' failed")
                 continue
 
-            self.__dockable_widgets.append(m)
-            self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, m)
+            self.__dockable_widgets.append(plugin_widget)
+            self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, plugin_widget)
             ok(f"Loaded plugin '{path}'")
             nb_added += 1
         return nb_added

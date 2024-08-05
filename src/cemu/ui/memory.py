@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 import unicorn
 from PyQt6.QtGui import QFont
@@ -79,7 +79,7 @@ class MemoryWidget(QDockWidget):
             self.editor.setText("VM not running")
             return
 
-        addr: int
+        addr: Optional[int] = None
         msg = "Displaying "
 
         value = self.address.text()
