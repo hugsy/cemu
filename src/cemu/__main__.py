@@ -63,6 +63,6 @@ def main_cli(debug: bool = False):
 if __name__ == "__main__":
     import sys
 
-    path = pathlib.Path(__file__).absolute().parent.parent
+    path = THIS_FILE.parent.parent
     sys.path.append(str(path))
     main(sys.argv)

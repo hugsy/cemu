@@ -83,7 +83,7 @@ This should produce a GUI similar to this:
 ### In the terminal
 
 ```bash
-python -m cemu cli
+python -m cemu --cli
 ```
 
 From where you'll end up in a REPL, allowing you to build and run the emulation environment.
@@ -99,11 +99,28 @@ $ python
 
 Then use the provided API to build and run your environment.
 
-## Contribution ##
+## Contribution
 
 `cemu` was created and maintained by myself, [`@_hugsy_`](https://twitter.com/_hugsy_), but kept fresh thanks to [all the contributors](https://github.com/hugsy/cemu/graphs/contributors).
 
 [ ![contributors-img](https://contrib.rocks/image?repo=hugsy/cemu) ](https://github.com/hugsy/cemu/graphs/contributors)
 
-If you just like the tool, consider dropping on Discord (or Twitter or other) a simple *"thanks"*, it is always very appreciated.
+To make contributions, the easiest way to get started is by using [`rye`](https://rye-up.sh) to get everything setup:
+
+```bash
+curl -sSf https://rye.astral.sh/get | bash  # opt
+rye sync
+```
+
+Before submitting a Pull Request, ensure that both linting and formatting of your new code comply with the project's standards. This can be achieved easily as such:
+
+```bash
+rye lint
+rye fmt
+```
+
+Note that any non-compliance will make CI validation fail, therefore preventing your code being merged.
+
+
+But if you just like the tool as a user, consider dropping on Discord (or Twitter or other) a simple *"thanks"*, it is always very appreciated.
 And if you can, consider [sponsoring me](https://github.com/hugsy/sponsors) - it really helps dedicating time and resources to the projects!
