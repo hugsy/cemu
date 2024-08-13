@@ -50,15 +50,13 @@ In addition, Python >= 3.10 is required, starting `0.6`.
 Last stable from PyPI:
 
 ```bash
-pip3 install cemu
+python3 -m pip install install cemu
 ```
 
 Last stable from Github:
 
 ```bash
-git clone https://github.com/hugsy/cemu
-cd cemu
-pip3 install --upgrade .
+python3 -m pip install --user --upgrade git+https://github.com/hugsy/cemu.git@main#egg=cemu
 ```
 
 For 99% of cases, that's all you need to do. `cemu` will be installed in the associated `Scripts` directory:
@@ -72,7 +70,7 @@ For 99% of cases, that's all you need to do. `cemu` will be installed in the ass
 After installing with `pip`, simply run the executable, or invoke via Python
 
 ```bash
-python -m cemu
+python3 -m cemu
 ```
 
 This should produce a GUI similar to this:
@@ -93,8 +91,7 @@ From where you'll end up in a REPL, allowing you to build and run the emulation 
 ### As a Library
 
 ```bash
-$ python
->>> import cemu
+python -i -c "import cemu"
 ```
 
 Then use the provided API to build and run your environment.
